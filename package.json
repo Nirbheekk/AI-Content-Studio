@@ -1,0 +1,37 @@
+{
+  "name": "ai-content-studio",
+  "version": "0.2.0",
+  "private": true,
+  "description": "AI Content Operating System — AI-Native Content Creation, Remotion Rendering & Social Publishing Platform",
+  "packageManager": "pnpm@12.21.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "typecheck": "turbo run typecheck",
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md}\"",
+    "test": "pnpm --env-file=.env exec turbo run test",
+    "db:generate": "pnpm --filter @ai-content-os/database db:generate",
+    "db:migrate": "pnpm --env-file=.env --filter @ai-content-os/database db:migrate",
+    "db:deploy": "pnpm --env-file=.env --filter @ai-content-os/database db:deploy",
+    "db:seed": "pnpm --env-file=.env --filter @ai-content-os/database db:seed",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:ps": "docker compose ps"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.15.0",
+    "@types/node": "^22.10.1",
+    "eslint": "^9.15.0",
+    "prettier": "^3.4.1",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.16.0",
+    "vitest": "^2.1.6"
+  }
+}
