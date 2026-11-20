@@ -4,14 +4,23 @@ import {
   CompositionSpec,
   detectMimeTypeFromMagicBytes,
 } from '@ai-content-os/shared';
+import { generateValidWavAudio } from '@ai-content-os/ai-providers';
 import {
+  adaptCompositionAspectRatio,
+  applyBrandKitToCompositionSpec,
   compileCompositionSpec,
   evaluateFrameAt,
+  exportSubtitlesSrt,
+  exportSubtitlesVtt,
   inspectCompositionAndFrames,
+  inspectMp4Artifact,
+  inspectPngArtifact,
+  inspectWavArtifact,
   PLATFORM_TEMPLATES,
   REMOTION_COMPONENT_LIBRARY,
   renderInspectionFramePng,
   synthesizeMp4Artifact,
+  validateAudioCaptionSynchronization,
 } from '../index.js';
 
 const baseSpec: CompositionSpec = {
@@ -141,5 +150,59 @@ describe('@ai-content-os/remotion-engine', () => {
     expect(secondQa.passed).toBe(true);
     expect(secondQa.overallScore).toBe(100);
     expect(secondQa.defects).toHaveLength(0);
+  });
+
+  it('validates binary MP4/PNG/WAV media metadata, audio-caption synchronization, SRT/VTT subtitles, aspect ratios, and Brand Kit inheritance', () => {
+    const compiled = compileCompositionSpec(baseSpec);
+    const mp4Bytes = synthesizeMp4Artifact(compiled);
+    const { pngBytes } = renderInspectionFramePng(compiled, 10);
+    const wavBytes = generateValidWavAudio(2, 16000);
+
+    const mp4Info = inspectMp4Artifact(mp4Bytes, compiled);
+    expect(mp4Info.valid).toBe(true);
+    expect(mp4Info.majorBrand).toBe('isom');
+    expect(mp4Info.width).toBe(1080);
+    expect(mp4Info.height).toBe(1920);
+    expect(mp4Info.fps).toBe(30);
+    expect(mp4Info.durationSec).toBe(9);
+    expect(mp4Info.hasValidKeyframeStream).toBe(true);
+    expect(mp4Info.audioSyncValid).toBe(true);
+
+    const pngInfo = inspectPngArtifact(pngBytes);
+    expect(pngInfo.valid).toBe(true);
+    expect(pngInfo.width).toBe(90);
+    expect(pngInfo.height).toBe(160);
+
+    const wavInfo = inspectWavArtifact(wavBytes);
+    expect(wavInfo.valid).toBe(true);
+    expect(wavInfo.sampleRate).toBe(16000);
+    expect(wavInfo.durationSec).toBe(2);
+
+    const syncReport = validateAudioCaptionSynchronization(compiled);
+    expect(syncReport.synchronized).toBe(true);
+    expect(syncReport.checkedWordCount).toBeGreaterThan(5);
+
+    const srt = exportSubtitlesSrt(compiled);
+    const vtt = exportSubtitlesVtt(compiled);
+    expect(srt).toContain('00:00:00,000 --> 00:00:03,000');
+    expect(vtt).toContain('WEBVTT');
+
+    const widescreen = adaptCompositionAspectRatio(baseSpec, 'LANDSCAPE_16_9', 'youtube-long');
+    expect(widescreen.width).toBe(1920);
+    expect(widescreen.height).toBe(1080);
+    expect(widescreen.captions.safeBottomMarginPx).toBe(100);
+
+    const branded = applyBrandKitToCompositionSpec(baseSpec, {
+      primaryColor: '#EC4899',
+      secondaryColor: '#111827',
+      accentColor: '#F59E0B',
+      headingFont: 'Poppins',
+      bodyFont: 'Roboto',
+      captionStyleJson: { style: 'karaoke-pop', fontSizePx: 62 },
+    });
+    expect(branded.brand.primaryColor).toBe('#EC4899');
+    expect(branded.captions.highlightColor).toBe('#F59E0B');
+    expect(branded.captions.style).toBe('karaoke-pop');
+    expect(branded.captions.fontSizePx).toBe(62);
   });
 });

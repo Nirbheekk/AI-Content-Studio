@@ -10,6 +10,9 @@ const NAV_ITEMS = [
   { href: '/projects', label: 'Projects' },
   { href: '/library', label: 'Content Library' },
   { href: '/studio', label: 'AI Studio' },
+  { href: '/editor', label: 'Video Editor' },
+  { href: '/repurpose', label: 'Repurpose Engine' },
+  { href: '/brand-kit', label: 'Brand Kit' },
   { href: '/settings', label: 'Settings & RBAC' },
 ];
 

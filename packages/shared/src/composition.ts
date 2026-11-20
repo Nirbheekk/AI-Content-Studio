@@ -122,7 +122,7 @@ export const CompositionSpecSchema = z.object({
 export type CompositionSpec = z.infer<typeof CompositionSpecSchema>;
 
 // -----------------------------------------------------------------------------
-// Structured Partial Editing Patch Operations
+// Structured Multi-Track Partial Editing Patch Operations (Phase 2 & Phase 3)
 // -----------------------------------------------------------------------------
 
 export const CompositionPatchOperationSchema = z.discriminatedUnion('op', [
@@ -130,6 +130,29 @@ export const CompositionPatchOperationSchema = z.discriminatedUnion('op', [
     op: z.literal('UPDATE_SCENE'),
     sceneId: z.string().min(1),
     patch: SceneSpecSchema.partial().omit({ id: true }),
+  }),
+  z.object({
+    op: z.literal('ADD_SCENE'),
+    scene: SceneSpecSchema.omit({ orderIndex: true, startFrame: true }),
+    insertAtIndex: z.number().int().nonnegative().optional(),
+  }),
+  z.object({
+    op: z.literal('REMOVE_SCENE'),
+    sceneId: z.string().min(1),
+  }),
+  z.object({
+    op: z.literal('REORDER_SCENES'),
+    sceneIdsInOrder: z.array(z.string().min(1)).min(1),
+  }),
+  z.object({
+    op: z.literal('ADD_OVERLAY'),
+    sceneId: z.string().min(1),
+    overlay: OverlaySpecSchema,
+  }),
+  z.object({
+    op: z.literal('REMOVE_OVERLAY'),
+    sceneId: z.string().min(1),
+    overlayId: z.string().min(1),
   }),
   z.object({
     op: z.literal('UPDATE_CAPTION_STYLE'),
@@ -140,11 +163,38 @@ export const CompositionPatchOperationSchema = z.discriminatedUnion('op', [
     patch: BrandSettingsSpecSchema.partial(),
   }),
   z.object({
-    op: z.literal('REORDER_SCENES'),
-    sceneIdsInOrder: z.array(z.string().min(1)).min(1),
+    op: z.literal('UPDATE_AUDIO'),
+    patch: AudioSettingsSpecSchema.partial(),
+  }),
+  z.object({
+    op: z.literal('SET_DIMENSIONS'),
+    width: z.number().int().positive(),
+    height: z.number().int().positive(),
+    templateId: CompositionTemplateIdSchema.optional(),
+    safeBottomMarginPx: z.number().int().min(80).max(400).optional(),
   }),
 ]);
 export type CompositionPatchOperation = z.infer<typeof CompositionPatchOperationSchema>;
+
+function recalculateSceneTimeline(scenes: SceneSpec[]): {
+  scenes: SceneSpec[];
+  totalDurationInFrames: number;
+} {
+  let cursorFrame = 0;
+  const normalized = scenes.map((scene, idx) => {
+    const updated: SceneSpec = SceneSpecSchema.parse({
+      ...scene,
+      orderIndex: idx,
+      startFrame: cursorFrame,
+    });
+    cursorFrame += updated.durationInFrames;
+    return updated;
+  });
+  return {
+    scenes: normalized,
+    totalDurationInFrames: cursorFrame,
+  };
+}
 
 /**
  * Applies structured partial patch operations to an existing CompositionSpec
@@ -159,14 +209,91 @@ export function applyCompositionPatches(
   for (const operation of operations) {
     switch (operation.op) {
       case 'UPDATE_SCENE': {
+        const updatedScenes = nextSpec.scenes.map((scene) =>
+          scene.id === operation.sceneId
+            ? SceneSpecSchema.parse({ ...scene, ...operation.patch, id: scene.id })
+            : scene,
+        );
+        const timeline = recalculateSceneTimeline(updatedScenes);
         nextSpec = {
           ...nextSpec,
-          scenes: nextSpec.scenes.map((scene) =>
-            scene.id === operation.sceneId
-              ? SceneSpecSchema.parse({ ...scene, ...operation.patch, id: scene.id })
-              : scene,
-          ),
+          durationInFrames: timeline.totalDurationInFrames,
+          scenes: timeline.scenes,
         };
+        break;
+      }
+      case 'ADD_SCENE': {
+        const candidate: SceneSpec = SceneSpecSchema.parse({
+          ...operation.scene,
+          orderIndex: nextSpec.scenes.length,
+          startFrame: nextSpec.durationInFrames,
+        });
+        const list = [...nextSpec.scenes];
+        const insertIdx =
+          operation.insertAtIndex !== undefined
+            ? Math.min(list.length, Math.max(0, operation.insertAtIndex))
+            : list.length;
+        list.splice(insertIdx, 0, candidate);
+        const timeline = recalculateSceneTimeline(list);
+        nextSpec = {
+          ...nextSpec,
+          durationInFrames: timeline.totalDurationInFrames,
+          scenes: timeline.scenes,
+        };
+        break;
+      }
+      case 'REMOVE_SCENE': {
+        if (nextSpec.scenes.length <= 1) {
+          throw new Error('Cannot remove the last remaining scene from a composition');
+        }
+        const remaining = nextSpec.scenes.filter((s) => s.id !== operation.sceneId);
+        const timeline = recalculateSceneTimeline(remaining);
+        nextSpec = {
+          ...nextSpec,
+          durationInFrames: timeline.totalDurationInFrames,
+          scenes: timeline.scenes,
+        };
+        break;
+      }
+      case 'REORDER_SCENES': {
+        const sceneById = new Map(nextSpec.scenes.map((s) => [s.id, s]));
+        const reordered: SceneSpec[] = operation.sceneIdsInOrder.map((id) => {
+          const existing = sceneById.get(id);
+          if (!existing) {
+            throw new Error(`Scene ID not found during reorder: ${id}`);
+          }
+          return existing;
+        });
+        const timeline = recalculateSceneTimeline(reordered);
+        nextSpec = {
+          ...nextSpec,
+          durationInFrames: timeline.totalDurationInFrames,
+          scenes: timeline.scenes,
+        };
+        break;
+      }
+      case 'ADD_OVERLAY': {
+        const updatedScenes = nextSpec.scenes.map((scene) =>
+          scene.id === operation.sceneId
+            ? SceneSpecSchema.parse({
+                ...scene,
+                overlays: [...scene.overlays, operation.overlay],
+              })
+            : scene,
+        );
+        nextSpec = { ...nextSpec, scenes: updatedScenes };
+        break;
+      }
+      case 'REMOVE_OVERLAY': {
+        const updatedScenes = nextSpec.scenes.map((scene) =>
+          scene.id === operation.sceneId
+            ? SceneSpecSchema.parse({
+                ...scene,
+                overlays: scene.overlays.filter((ov) => ov.id !== operation.overlayId),
+              })
+            : scene,
+        );
+        nextSpec = { ...nextSpec, scenes: updatedScenes };
         break;
       }
       case 'UPDATE_CAPTION_STYLE': {
@@ -189,26 +316,28 @@ export function applyCompositionPatches(
         };
         break;
       }
-      case 'REORDER_SCENES': {
-        const sceneById = new Map(nextSpec.scenes.map((s) => [s.id, s]));
-        let currentStartFrame = 0;
-        const reordered: SceneSpec[] = operation.sceneIdsInOrder.map((id, index) => {
-          const existing = sceneById.get(id);
-          if (!existing) {
-            throw new Error(`Scene ID not found during reorder: ${id}`);
-          }
-          const updatedScene: SceneSpec = {
-            ...existing,
-            orderIndex: index,
-            startFrame: currentStartFrame,
-          };
-          currentStartFrame += existing.durationInFrames;
-          return updatedScene;
-        });
+      case 'UPDATE_AUDIO': {
         nextSpec = {
           ...nextSpec,
-          durationInFrames: currentStartFrame,
-          scenes: reordered,
+          audio: AudioSettingsSpecSchema.parse({
+            ...nextSpec.audio,
+            ...operation.patch,
+          }),
+        };
+        break;
+      }
+      case 'SET_DIMENSIONS': {
+        nextSpec = {
+          ...nextSpec,
+          width: operation.width,
+          height: operation.height,
+          ...(operation.templateId ? { templateId: operation.templateId } : {}),
+          captions: {
+            ...nextSpec.captions,
+            ...(operation.safeBottomMarginPx !== undefined
+              ? { safeBottomMarginPx: operation.safeBottomMarginPx }
+              : {}),
+          },
         };
         break;
       }

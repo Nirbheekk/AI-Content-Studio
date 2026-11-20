@@ -96,12 +96,25 @@ export interface ApiResponse<T> {
 ### 2.5 Video Compositions, Interactive Editor & Rendering
 | Method | Endpoint | Auth / Role | Description |
 |--------|----------|-------------|-------------|
-| `GET` | `/api/v1/compositions/:id` | `VIEWER`+ | Get composition metadata, current `CompositionSpec` AST, and version history list |
-| `POST` | `/api/v1/compositions/:id/patch` | `EDITOR`+ | Apply structured partial edit (`CompositionPatchOperation[]`), creating `Version(N+1)` |
-| `POST` | `/api/v1/compositions/:id/undo` | `EDITOR`+ | Move `currentVersionId` to parent version |
-| `POST` | `/api/v1/compositions/:id/redo` | `EDITOR`+ | Move `currentVersionId` forward to child version |
-| `POST` | `/api/v1/compositions/:id/render` | `EDITOR`+ | Enqueue isolated `RenderJob` in `rendering-worker` for current version |
-| `GET` | `/api/v1/renders/:id` | `VIEWER`+ | Get render job progress, signed MP4 download URL, and `QaInspection` report |
+| `GET` | `/api/v1/brand-kit` | `VIEWER`+ | Get active workspace `BrandKit` visual language configuration |
+| `PUT` | `/api/v1/brand-kit` | `EDITOR`+ | Update `BrandKit` colors, fonts, tone of voice, editing style, caption preset |
+| `GET` | `/api/v1/compositions` | `VIEWER`+ | List workspace compositions with versions and latest render jobs |
+| `GET` | `/api/v1/compositions/:compositionId` | `VIEWER`+ | Get composition metadata, compiled Remotion sequence plan, and version history list |
+| `POST` | `/api/v1/compositions/:compositionId/patch` | `EDITOR`+ | Apply structured multi-track timeline edit (`UPDATE_SCENE`, `ADD_SCENE`, `REMOVE_SCENE`, `REORDER_SCENES`, `ADD_OVERLAY`, `REMOVE_OVERLAY`, `UPDATE_CAPTION_STYLE`, `UPDATE_BRAND`, `UPDATE_AUDIO`, `SET_DIMENSIONS`), creating `Version(N+1)` |
+| `POST` | `/api/v1/compositions/:compositionId/scenes/:sceneId/ai-edit` | `EDITOR`+ | Granular AI-powered single-scene edit without regenerating unrelated scenes |
+| `POST` | `/api/v1/compositions/:compositionId/aspect-ratio` | `EDITOR`+ | Adapt composition aspect ratio (`9:16`, `16:9`, `1:1`, `4:5`) and safe-zone margins |
+| `POST` | `/api/v1/compositions/:compositionId/apply-brand-kit` | `EDITOR`+ | Apply workspace `BrandKit` identity to composition and save new version |
+| `GET` | `/api/v1/compositions/:compositionId/subtitles` | `VIEWER`+ | Export `.srt` and `.vtt` subtitles and validate audio-caption timestamp synchronization |
+| `GET` | `/api/v1/compositions/:compositionId/media-inspection` | `VIEWER`+ | Inspect binary MP4 (`ftyp`/`moov`/`mdat`), keyframe PNG stream, resolution, duration, and audio sync |
+| `GET` | `/api/v1/compositions/:compositionId/compare` | `VIEWER`+ | Compare two composition versions (`?fromVersion=1&toVersion=N`) and return structured AST diff |
+| `GET` | `/api/v1/compositions/:compositionId/comments` | `VIEWER`+ | List frame/scene-pinned collaboration comments and composition approval history |
+| `POST` | `/api/v1/compositions/:compositionId/comments` | `VIEWER`+ | Add a collaboration comment pinned to a version, scene, and frame index |
+| `PATCH` | `/api/v1/compositions/:compositionId/comments/:commentId/resolve` | `EDITOR`+ | Resolve or reopen a collaboration comment |
+| `POST` | `/api/v1/compositions/:compositionId/approve` | `EDITOR`+ | Approve composition for publishing and record audit history |
+| `POST` | `/api/v1/compositions/:compositionId/undo` | `EDITOR`+ | Move `currentVersionId` to parent version |
+| `POST` | `/api/v1/compositions/:compositionId/redo` | `EDITOR`+ | Move `currentVersionId` forward to child version |
+| `POST` | `/api/v1/compositions/:compositionId/render` | `EDITOR`+ | Render current composition version to MP4 + QA frames in MinIO |
+| `GET` | `/api/v1/renders/:renderJobId` | `VIEWER`+ | Get render job progress, signed MP4 download URL, and `QaInspection` report |
 
 ### 2.6 Content Repurposing, Postiz Publishing & Content Calendar
 | Method | Endpoint | Auth / Role | Description |

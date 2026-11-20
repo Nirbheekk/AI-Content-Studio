@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyCompositionPatches,
   canTransitionWorkflowStage,
+  compareCompositionSpecs,
   CompositionSpec,
   CompositionSpecSchema,
   detectMimeTypeFromMagicBytes,
@@ -151,5 +152,68 @@ describe('@ai-content-os/shared', () => {
     expect(detectMimeTypeFromMagicBytes(pngHeader)).toBe('image/png');
     expect(detectMimeTypeFromMagicBytes(mp4Header)).toBe('video/mp4');
     expect(detectMimeTypeFromMagicBytes(pdfHeader)).toBe('application/pdf');
+  });
+
+  it('supports multi-track timeline patches (ADD_SCENE, REMOVE_SCENE, ADD_OVERLAY, REMOVE_OVERLAY, UPDATE_AUDIO, SET_DIMENSIONS) and computes version diffs', () => {
+    const edited = applyCompositionPatches(sampleSpec, [
+      {
+        op: 'ADD_SCENE',
+        scene: {
+          id: 'scene-3-cta',
+          durationInFrames: 90,
+          layout: 'full-bleed',
+          trimStartSec: 0,
+          headlineText: 'Subscribe for More',
+          transitionIn: 'zoom-punch',
+          overlays: [],
+        },
+      },
+      {
+        op: 'ADD_OVERLAY',
+        sceneId: 'scene-1',
+        overlay: {
+          id: 'ov-kinetic-1',
+          component: 'KineticTypography',
+          startOffsetFrames: 0,
+          durationInFrames: 90,
+          props: { text: 'HOOK' },
+        },
+      },
+      {
+        op: 'UPDATE_AUDIO',
+        patch: { musicVolume: 0.25 },
+      },
+      {
+        op: 'SET_DIMENSIONS',
+        width: 1920,
+        height: 1080,
+        templateId: 'youtube-long',
+        safeBottomMarginPx: 100,
+      },
+    ]);
+
+    expect(edited.scenes).toHaveLength(3);
+    expect(edited.durationInFrames).toBe(390);
+    expect(edited.width).toBe(1920);
+    expect(edited.height).toBe(1080);
+    expect(edited.audio.musicVolume).toBe(0.25);
+    expect(edited.scenes[0]?.overlays).toHaveLength(1);
+
+    const diff = compareCompositionSpecs(1, sampleSpec, 2, edited);
+    expect(diff.dimensionsChanged).toBe(true);
+    expect(diff.audioChanges.length).toBeGreaterThanOrEqual(1);
+    expect(diff.sceneDiffs.some((s) => s.sceneId === 'scene-3-cta' && s.status === 'ADDED')).toBe(
+      true,
+    );
+    expect(diff.totalChangesCount).toBeGreaterThanOrEqual(4);
+
+    // Removing the added scene and overlay restores 2 scenes
+    const cleaned = applyCompositionPatches(edited, [
+      { op: 'REMOVE_OVERLAY', sceneId: 'scene-1', overlayId: 'ov-kinetic-1' },
+      { op: 'REMOVE_SCENE', sceneId: 'scene-3-cta' },
+    ]);
+    expect(cleaned.scenes).toHaveLength(2);
+    expect(cleaned.durationInFrames).toBe(300);
+    expect(cleaned.scenes[0]?.overlays).toHaveLength(0);
   });
 });

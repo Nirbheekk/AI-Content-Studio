@@ -29,6 +29,7 @@ erDiagram
     Workflow ||--o{ Composition : "generates"
 
     Composition ||--o{ CompositionVersion : "versions (undo/redo)"
+    Composition ||--o{ CompositionComment : "collaborates (frame comments)"
     CompositionVersion ||--o{ RenderJob : "renders"
     RenderJob ||--o{ QaInspection : "inspects frames"
     RenderJob ||--o{ PublishPost : "publishes"
