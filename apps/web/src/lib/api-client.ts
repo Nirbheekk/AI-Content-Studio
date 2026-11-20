@@ -77,6 +77,21 @@ export interface AssetDto {
   isDuplicate?: boolean;
   createdAt: string;
   project?: { id: string; name: string } | null;
+  transcript?: {
+    id: string;
+    language: string;
+    fullText: string;
+    provider: string;
+  } | null;
+  scenes?: Array<{
+    id: string;
+    sceneIndex: number;
+    startSec: number;
+    endSec: number;
+    description?: string | null;
+    hookScore?: number | null;
+    isBroll: boolean;
+  }>;
 }
 
 export interface MessageDto {

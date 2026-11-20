@@ -68,18 +68,25 @@ export interface ApiResponse<T> {
 | `POST` | `/api/v1/assets/:assetId/complete` | `EDITOR`+ | Finalize upload, inspect first 64 bytes in MinIO for magic-byte MIME verification, detect duplicates, enqueue `media-worker` |
 | `GET` | `/api/v1/assets` | `VIEWER`+ | Paginated search/filter assets by project, folderPath, assetType, status, search query |
 | `GET` | `/api/v1/assets/:assetId` | `VIEWER`+ | Return asset metadata, pre-signed MinIO download URL, derivatives, transcript, scenes |
+| `POST` | `/api/v1/assets/:assetId/analyze` | `EDITOR`+ | Generate thumbnail & waveform derivatives in MinIO, run STT word-timestamped transcription, and segment scenes with hook scores |
 | `DELETE` | `/api/v1/assets/:assetId` | `EDITOR`+ | Delete object from MinIO storage and remove `Asset` record from PostgreSQL |
 
 ### 2.4 AI Studio Conversations & Autonomous Workflows
 | Method | Endpoint | Auth / Role | Description |
 |--------|----------|-------------|-------------|
+| `GET` | `/api/v1/ai/providers` | `VIEWER`+ | Return configured AI provider status (`hasLiveLlmCredentials`, `hasLiveSttCredentials`, `hasLiveTtsCredentials`), 9 platform templates, and 16 Remotion components |
 | `GET` | `/api/v1/conversations` | `VIEWER`+ | List conversations in the workspace (filterable by `projectId`) |
 | `POST` | `/api/v1/conversations` | `EDITOR`+ | Start a persistent AI Studio conversation for a project |
 | `GET` | `/api/v1/conversations/:conversationId` | `VIEWER`+ | Get conversation messages and linked workflows |
 | `POST` | `/api/v1/conversations/:conversationId/messages` | `EDITOR`+ | Persist user prompt, initialize persistent `Workflow` + `WorkflowStep` records, enqueue `orchestrator-queue`, emit SSE update |
+| `POST` | `/api/v1/workflows/produce` | `EDITOR`+ | Execute the complete autonomous 7-agent production pipeline (`ANALYZING -> PLANNING -> SCRIPTING -> COMPOSING -> RENDERING -> REVIEWING -> [REVISING LOOP] -> AWAITING_APPROVAL`) |
 | `GET` | `/api/v1/workflows` | `VIEWER`+ | List workspace workflows and stage history |
 | `GET` | `/api/v1/workflows/:workflowId` | `VIEWER`+ | Get workflow state, stage history (`WorkflowStep[]`), `AgentRun[]`, token cost |
 | `PATCH` | `/api/v1/workflows/:workflowId/stage` | `EDITOR`+ | Transition workflow stage (enforcing `WORKFLOW_STAGE_TRANSITIONS`) and broadcast SSE update |
+| `POST` | `/api/v1/workflows/:workflowId/approve` | `EDITOR`+ | **Human Approval Gate**: Transition `AWAITING_APPROVAL -> APPROVED` and record `approvedByUserId` + `approvedAt` |
+| `POST` | `/api/v1/workflows/:workflowId/revise` | `EDITOR`+ | Apply conversational or structured composition revisions, create immutable `CompositionVersion(N+1)`, re-render MP4, re-run Visual QA, and return to `AWAITING_APPROVAL` |
+| `POST` | `/api/v1/workflows/:workflowId/cancel` | `EDITOR`+ | Cancel active workflow (`stage = CANCELLED`) |
+| `POST` | `/api/v1/workflows/:workflowId/retry` | `EDITOR`+ | Retry workflow from project context and increment `retryCount` |
 | `GET` | `/api/v1/workflows/:workflowId/stream` | `VIEWER`+ | **SSE Stream**: Real-time stage transitions, agent activity, and progress telemetry |
 | `POST` | `/api/v1/workflows/:id/approve` | `EDITOR`+ | **Human Approval Checkpoint**: Transitions `AWAITING_APPROVAL` -> `APPROVED` |
 | `POST` | `/api/v1/workflows/:id/revise` | `EDITOR`+ | Submit conversational revision request (`AWAITING_APPROVAL` -> `REVISING`) |

@@ -27,6 +27,7 @@ export default function ContentLibraryPage() {
   const [folderPath, setFolderPath] = useState<string>('/raw-clips');
   const [tagsInput, setTagsInput] = useState<string>('podcast, hook');
   const [uploading, setUploading] = useState<boolean>(false);
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
 
   // Preview & Delete modals
   const [previewAsset, setPreviewAsset] = useState<AssetDto | null>(null);
@@ -85,7 +86,6 @@ export default function ContentLibraryPage() {
         const mimeType = file.type || 'text/plain';
         const arrayBuffer = await file.arrayBuffer();
 
-        // 1. Request upload slot & presigned URL
         const initRes = await apiRequest<{
           asset: AssetDto;
           uploadUrl: string;
@@ -105,7 +105,6 @@ export default function ContentLibraryPage() {
           },
         });
 
-        // 2. Upload binary payload to MinIO via authenticated stream endpoint
         await apiRequest<AssetDto>({
           method: 'PUT',
           path: initRes.directUploadPath,
@@ -115,7 +114,6 @@ export default function ContentLibraryPage() {
           contentType: mimeType,
         });
 
-        // 3. Finalize upload & trigger server-side magic-byte inspection + media-worker job
         await apiRequest<AssetDto>({
           method: 'POST',
           path: `/api/v1/assets/${initRes.asset.id}/complete`,
@@ -138,6 +136,46 @@ export default function ContentLibraryPage() {
       });
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleAnalyzeAsset = async (asset: AssetDto) => {
+    if (!accessToken || !activeWorkspace) return;
+    setAnalyzingId(asset.id);
+    try {
+      const analyzed = await apiRequest<AssetDto>({
+        method: 'POST',
+        path: `/api/v1/assets/${asset.id}/analyze`,
+        accessToken,
+        workspaceId: activeWorkspace.id,
+      });
+      setPreviewAsset(analyzed);
+      setFeedback({
+        type: 'success',
+        message: `Extracted transcript, scenes, and derivatives for "${asset.originalName}"`,
+      });
+      await loadLibrary();
+    } catch (err) {
+      setFeedback({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Asset analysis failed',
+      });
+    } finally {
+      setAnalyzingId(null);
+    }
+  };
+
+  const handleOpenPreview = async (asset: AssetDto) => {
+    if (!accessToken || !activeWorkspace) return;
+    try {
+      const detail = await apiRequest<AssetDto>({
+        path: `/api/v1/assets/${asset.id}`,
+        accessToken,
+        workspaceId: activeWorkspace.id,
+      });
+      setPreviewAsset(detail);
+    } catch {
+      setPreviewAsset(asset);
     }
   };
 
@@ -168,10 +206,10 @@ export default function ContentLibraryPage() {
     <AppShell>
       <div className="space-y-8">
         <div className="border-b border-zinc-800 pb-5">
-          <h1 className="text-2xl font-bold text-white">Content Asset Library</h1>
+          <h1 className="text-2xl font-bold text-white">Content Asset Library &amp; AI Analysis</h1>
           <p className="mt-1 text-xs text-zinc-400">
-            Upload raw videos, audio, images, and documents to MinIO object storage with automatic
-            magic-byte inspection and SHA-256 duplicate detection.
+            Upload raw media to MinIO object storage with magic-byte validation, SHA-256 duplicate
+            detection, automated STT transcription, and scene hook extraction.
           </p>
         </div>
 
@@ -309,6 +347,12 @@ export default function ContentLibraryPage() {
                     Folder: {asset.folderPath} • Project: {asset.project?.name ?? 'Global'}
                   </div>
 
+                  {asset.aiSummary && (
+                    <p className="mt-2 line-clamp-2 rounded border border-zinc-800 bg-zinc-950/70 p-2 text-[11px] text-zinc-300">
+                      {asset.aiSummary}
+                    </p>
+                  )}
+
                   {asset.tags.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1">
                       {asset.tags.map((tag) => (
@@ -323,18 +367,26 @@ export default function ContentLibraryPage() {
                   )}
                 </div>
 
-                <div className="mt-4 flex gap-2 border-t border-zinc-800 pt-3">
+                <div className="mt-4 flex flex-wrap gap-2 border-t border-zinc-800 pt-3">
                   <button
                     type="button"
-                    onClick={() => setPreviewAsset(asset)}
-                    className="flex-1 rounded-md bg-zinc-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-700"
+                    disabled={analyzingId === asset.id}
+                    onClick={() => void handleAnalyzeAsset(asset)}
+                    className="rounded-md bg-indigo-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
                   >
-                    Preview &amp; Signed URL
+                    {analyzingId === asset.id ? 'Analyzing...' : 'AI Analyze & Transcribe'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleOpenPreview(asset)}
+                    className="rounded-md bg-zinc-800 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-zinc-700"
+                  >
+                    Inspect
                   </button>
                   <button
                     type="button"
                     onClick={() => setDeleteTarget(asset)}
-                    className="rounded-md border border-red-500/40 px-3 py-1.5 text-xs text-red-300 hover:bg-red-500/10"
+                    className="rounded-md border border-red-500/40 px-2.5 py-1.5 text-xs text-red-300 hover:bg-red-500/10"
                   >
                     Delete
                   </button>
@@ -346,7 +398,7 @@ export default function ContentLibraryPage() {
 
         {previewAsset && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
-            <div className="w-full max-w-lg rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+            <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-900 p-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-semibold text-white">{previewAsset.originalName}</h2>
                 <button
@@ -368,11 +420,53 @@ export default function ContentLibraryPage() {
                   <strong>SHA-256 Checksum:</strong>{' '}
                   <span className="font-mono text-[11px]">{previewAsset.checksumSha256}</span>
                 </div>
-                <div>
-                  <strong>Storage Key:</strong>{' '}
-                  <span className="font-mono text-[11px]">{previewAsset.storageKey}</span>
-                </div>
+                {previewAsset.aiSummary && (
+                  <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-3 text-indigo-200">
+                    <strong>Content Intelligence Summary:</strong> {previewAsset.aiSummary}
+                  </div>
+                )}
               </div>
+
+              {previewAsset.transcript && (
+                <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+                  <div className="flex items-center justify-between text-xs font-semibold text-white">
+                    <span>Word-Synchronized Transcript ({previewAsset.transcript.language})</span>
+                    <span className="text-[10px] text-zinc-400">
+                      Provider: {previewAsset.transcript.provider}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-zinc-300">{previewAsset.transcript.fullText}</p>
+                </div>
+              )}
+
+              {previewAsset.scenes && previewAsset.scenes.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  <h3 className="text-xs font-semibold text-white">
+                    Detected Scenes &amp; Hook Scores
+                  </h3>
+                  {previewAsset.scenes.map((sc) => (
+                    <div
+                      key={sc.id}
+                      className="flex items-center justify-between rounded border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs"
+                    >
+                      <div>
+                        <span className="font-semibold text-indigo-300">
+                          Scene #{sc.sceneIndex + 1} ({sc.startSec}s - {sc.endSec}s)
+                        </span>
+                        <div className="text-[11px] text-zinc-400">{sc.description}</div>
+                      </div>
+                      <div className="text-right">
+                        <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
+                          Hook: {Math.round((sc.hookScore ?? 0.8) * 100)}%
+                        </span>
+                        {sc.isBroll && (
+                          <div className="mt-1 text-[10px] text-cyan-300">B-Roll Cutaway</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {previewAsset.downloadUrl && (
                 <div className="mt-4">

@@ -14,6 +14,7 @@ import { registerWorkspaceRoutes } from './routes/workspaces.routes.js';
 import { registerProjectAndDashboardRoutes } from './routes/projects.routes.js';
 import { registerAssetRoutes } from './routes/assets.routes.js';
 import { registerStudioRoutes } from './routes/studio.routes.js';
+import { registerProductionRoutes } from './routes/production.routes.js';
 
 export interface ServerDependencies {
   checkPostgres?: () => Promise<DependencyHealth>;
@@ -190,6 +191,7 @@ export async function buildApiServer(deps: ServerDependencies = {}): Promise<Fas
   await registerProjectAndDashboardRoutes(app);
   await registerAssetRoutes(app, deps.storage);
   await registerStudioRoutes(app);
+  await registerProductionRoutes(app, deps.storage);
 
   return app;
 }
