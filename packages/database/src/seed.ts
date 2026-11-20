@@ -1,8 +1,8 @@
-import { createHash } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { CompositionSpec, CompositionSpecSchema } from '@ai-content-os/shared';
 import { prisma } from './client.js';
 import { encryptSecret } from './encryption.js';
+import { hashPassword } from './password.js';
 
 function toInputJson(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
@@ -14,11 +14,11 @@ export async function seedDatabase(): Promise<{
   projectId: string;
   compositionId: string;
 }> {
-  const demoPasswordHash = createHash('sha256').update('DemoStudioPass!2026').digest('hex');
+  const demoPasswordHash = await hashPassword('DemoStudioPass!2026');
 
   const user = await prisma.user.upsert({
     where: { email: 'founder@aicontent.studio' },
-    update: { fullName: 'Studio Founder' },
+    update: { fullName: 'Studio Founder', passwordHash: demoPasswordHash },
     create: {
       email: 'founder@aicontent.studio',
       passwordHash: demoPasswordHash,
@@ -249,6 +249,42 @@ export async function seedDatabase(): Promise<{
     where: { id: composition.id },
     data: { currentVersionId: version1.id },
   });
+
+  const existingConversation = await prisma.conversation.findFirst({
+    where: {
+      workspaceId: workspace.id,
+      projectId: project.id,
+      title: 'Podcast Launch Reels Strategy',
+    },
+  });
+
+  if (!existingConversation) {
+    const conv = await prisma.conversation.create({
+      data: {
+        workspaceId: workspace.id,
+        projectId: project.id,
+        title: 'Podcast Launch Reels Strategy',
+      },
+    });
+
+    await prisma.message.createMany({
+      data: [
+        {
+          conversationId: conv.id,
+          role: 'USER',
+          content:
+            'Create 3 high-retention Instagram Reels from our founder podcast with dynamic word-synced captions.',
+        },
+        {
+          conversationId: conv.id,
+          role: 'ASSISTANT',
+          agentName: 'CREATIVE_DIRECTOR',
+          content:
+            'Production plan initialized. Prepared 9:16 composition template with 3-second hook headline and word-synced captions.',
+        },
+      ],
+    });
+  }
 
   // Seed a sample encrypted Postiz social account connection
   const encryptedToken = encryptSecret('postiz_simulated_oauth_access_token_demo');

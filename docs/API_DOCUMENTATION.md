@@ -38,35 +38,49 @@ export interface ApiResponse<T> {
 ### 2.2 Authentication & Workspaces
 | Method | Endpoint | Auth / Role | Description |
 |--------|----------|-------------|-------------|
-| `POST` | `/api/v1/auth/register` | Public | Register user account & provision default Workspace + BrandKit |
-| `POST` | `/api/v1/auth/login` | Public | Authenticate user and issue JWT + refresh token |
-| `GET` | `/api/v1/auth/me` | Authenticated | Return current user profile, memberships, and active workspace quotas |
-| `GET` | `/api/v1/workspaces` | Authenticated | List workspaces the user belongs to |
-| `POST` | `/api/v1/workspaces` | Authenticated | Create new workspace with isolated BrandKit and default quotas |
-| `GET` | `/api/v1/workspaces/:id/brand-kit` | `VIEWER`+ | Retrieve workspace BrandKit configuration |
-| `PUT` | `/api/v1/workspaces/:id/brand-kit` | `EDITOR`+ | Update brand colors, fonts, tone of voice, caption preset, logo |
+| `POST` | `/api/v1/auth/register` | Public (Rate-Limited) | Register user account (`scrypt` hash), provision default Workspace + BrandKit + `UserSession` |
+| `POST` | `/api/v1/auth/login` | Public (Rate-Limited) | Authenticate user and issue signed JWT access token + rotated opaque refresh token |
+| `POST` | `/api/v1/auth/refresh` | Public (Rate-Limited) | Rotate refresh token and detect token replay across `familyId` |
+| `POST` | `/api/v1/auth/logout` | Authenticated / Public | Revoke current `UserSession` and clear HTTP-only auth cookies |
+| `GET` | `/api/v1/auth/me` | Authenticated | Return current user profile, memberships, roles, and active workspace quotas |
+| `GET` | `/api/v1/workspaces` | Authenticated | List workspaces where the user is an authorized member |
+| `POST` | `/api/v1/workspaces` | Authenticated | Create new workspace with isolated BrandKit and `OWNER` membership |
+| `GET` | `/api/v1/workspaces/:workspaceId` | `VIEWER`+ | Retrieve workspace configuration, quotas, counts, and BrandKit |
+| `PATCH` | `/api/v1/workspaces/:workspaceId` | `ADMIN`+ | Update workspace name, policy flags, and BrandKit colors/tone |
+| `GET` | `/api/v1/workspaces/:workspaceId/members` | `VIEWER`+ | List workspace members and pending invitations |
+| `POST` | `/api/v1/workspaces/:workspaceId/invitations` | `ADMIN`+ | Generate expiring (7-day) workspace invitation with SHA-256 hashed token |
+| `POST` | `/api/v1/workspaces/invitations/accept` | Authenticated | Accept invitation token and create `WorkspaceMember` |
+| `PATCH` | `/api/v1/workspaces/:workspaceId/members/:memberId` | `ADMIN`+ / `OWNER` | Update member RBAC role (`OWNER`, `ADMIN`, `EDITOR`, `VIEWER`) |
 
-### 2.3 Projects & Content Library (Assets)
+### 2.3 Dashboard, Projects & Content Library (Assets)
 | Method | Endpoint | Auth / Role | Description |
 |--------|----------|-------------|-------------|
-| `GET` | `/api/v1/projects` | `VIEWER`+ | List projects with asset counts, active workflows, and recent videos |
-| `POST` | `/api/v1/projects` | `EDITOR`+ | Create a new project |
-| `GET` | `/api/v1/projects/:id` | `VIEWER`+ | Get project details, assets, conversations, compositions, workflows |
-| `POST` | `/api/v1/assets/upload-url` | `EDITOR`+ | Initiate single/multipart/folder upload; returns pre-signed S3/MinIO PUT URL |
-| `POST` | `/api/v1/assets/:id/complete` | `EDITOR`+ | Finalize upload, verify magic bytes & SHA-256 duplicate check, enqueue `media-worker` |
-| `GET` | `/api/v1/assets` | `VIEWER`+ | Search/filter assets by project, folderPath, type, tag, transcript query |
-| `GET` | `/api/v1/assets/:id` | `VIEWER`+ | Return asset metadata, pre-signed playback URL, transcript, and detected scenes |
-| `DELETE` | `/api/v1/assets/:id` | `ADMIN`+ | Soft/hard delete asset and derivatives from S3/MinIO |
+| `GET` | `/api/v1/dashboard` | `VIEWER`+ | Live workspace dashboard telemetry (project/asset counts, storage used, recent projects, conversations, workflows, audit logs) |
+| `GET` | `/api/v1/projects` | `VIEWER`+ | List workspace projects with `status` (`ACTIVE`/`ARCHIVED`) and `search` filters |
+| `POST` | `/api/v1/projects` | `EDITOR`+ | Create a new project in the active workspace |
+| `GET` | `/api/v1/projects/:projectId` | `VIEWER`+ | Get project details, assets, conversations, compositions, workflows |
+| `PATCH` | `/api/v1/projects/:projectId` | `EDITOR`+ | Rename or update project description/status |
+| `POST` | `/api/v1/projects/:projectId/archive` | `EDITOR`+ | Archive project (`status = ARCHIVED`, `archivedAt = now()`) |
+| `POST` | `/api/v1/projects/:projectId/restore` | `EDITOR`+ | Restore archived project (`status = ACTIVE`) |
+| `DELETE` | `/api/v1/projects/:projectId` | `ADMIN`+ | Safeguarded project deletion (requires archived status or `confirmDelete=true`) |
+| `POST` | `/api/v1/assets/upload-url` | `EDITOR`+ | Sanitize filename/folderPath, create `Asset` (`UPLOADING`), return MinIO presigned PUT URL |
+| `PUT` | `/api/v1/assets/:assetId/upload` | `EDITOR`+ | Upload binary payload to MinIO bucket `aicos-raw-assets` and compute SHA-256 checksum |
+| `POST` | `/api/v1/assets/:assetId/complete` | `EDITOR`+ | Finalize upload, inspect first 64 bytes in MinIO for magic-byte MIME verification, detect duplicates, enqueue `media-worker` |
+| `GET` | `/api/v1/assets` | `VIEWER`+ | Paginated search/filter assets by project, folderPath, assetType, status, search query |
+| `GET` | `/api/v1/assets/:assetId` | `VIEWER`+ | Return asset metadata, pre-signed MinIO download URL, derivatives, transcript, scenes |
+| `DELETE` | `/api/v1/assets/:assetId` | `EDITOR`+ | Delete object from MinIO storage and remove `Asset` record from PostgreSQL |
 
 ### 2.4 AI Studio Conversations & Autonomous Workflows
 | Method | Endpoint | Auth / Role | Description |
 |--------|----------|-------------|-------------|
-| `GET` | `/api/v1/projects/:projectId/conversations` | `VIEWER`+ | List conversations in a project |
-| `POST` | `/api/v1/projects/:projectId/conversations` | `EDITOR`+ | Start or continue an AI Studio conversation |
-| `POST` | `/api/v1/conversations/:id/messages` | `EDITOR`+ | Submit natural-language prompt (triggers new `Workflow` or partial composition edit) |
-| `POST` | `/api/v1/workflows` | `EDITOR`+ | Explicitly launch an autonomous production or repurposing workflow |
-| `GET` | `/api/v1/workflows/:id` | `VIEWER`+ | Get workflow state, stage history (`WorkflowStep[]`), `AgentRun[]`, token cost |
-| `GET` | `/api/v1/workflows/:id/stream` | `VIEWER`+ | **SSE Stream**: Real-time stage transitions, agent logs, render %, QA inspection results |
+| `GET` | `/api/v1/conversations` | `VIEWER`+ | List conversations in the workspace (filterable by `projectId`) |
+| `POST` | `/api/v1/conversations` | `EDITOR`+ | Start a persistent AI Studio conversation for a project |
+| `GET` | `/api/v1/conversations/:conversationId` | `VIEWER`+ | Get conversation messages and linked workflows |
+| `POST` | `/api/v1/conversations/:conversationId/messages` | `EDITOR`+ | Persist user prompt, initialize persistent `Workflow` + `WorkflowStep` records, enqueue `orchestrator-queue`, emit SSE update |
+| `GET` | `/api/v1/workflows` | `VIEWER`+ | List workspace workflows and stage history |
+| `GET` | `/api/v1/workflows/:workflowId` | `VIEWER`+ | Get workflow state, stage history (`WorkflowStep[]`), `AgentRun[]`, token cost |
+| `PATCH` | `/api/v1/workflows/:workflowId/stage` | `EDITOR`+ | Transition workflow stage (enforcing `WORKFLOW_STAGE_TRANSITIONS`) and broadcast SSE update |
+| `GET` | `/api/v1/workflows/:workflowId/stream` | `VIEWER`+ | **SSE Stream**: Real-time stage transitions, agent activity, and progress telemetry |
 | `POST` | `/api/v1/workflows/:id/approve` | `EDITOR`+ | **Human Approval Checkpoint**: Transitions `AWAITING_APPROVAL` -> `APPROVED` |
 | `POST` | `/api/v1/workflows/:id/revise` | `EDITOR`+ | Submit conversational revision request (`AWAITING_APPROVAL` -> `REVISING`) |
 | `POST` | `/api/v1/workflows/:id/retry` | `EDITOR`+ | Retry a `FAILED` workflow from its last persisted checkpoint stage |

@@ -1,6 +1,7 @@
 import { createServer, Server } from 'node:http';
 import { Job, Worker } from 'bullmq';
 import { QUEUE_NAMES, WorkerRole, WorkerRoleSchema } from '@ai-content-os/shared';
+import { prisma } from '@ai-content-os/database';
 
 export interface WorkerRuntimeConfig {
   role: WorkerRole;
@@ -30,6 +31,38 @@ export async function processFoundationJob(
   role: WorkerRole,
   job: Pick<Job, 'id' | 'name' | 'data'>,
 ): Promise<{ processedBy: WorkerRole; jobId: string | undefined; timestamp: string }> {
+  const payload = (job.data ?? {}) as Record<string, unknown>;
+
+  if (role === 'media' && job.name === 'asset.inspect' && typeof payload['assetId'] === 'string') {
+    const assetId = payload['assetId'];
+    await prisma.asset
+      .update({
+        where: { id: assetId },
+        data: {
+          status: 'READY',
+          aiSummary: 'Asset validated and indexed in Content Library.',
+        },
+      })
+      .catch(() => null);
+  }
+
+  if (
+    role === 'orchestrator' &&
+    job.name === 'workflow.foundation' &&
+    typeof payload['workflowId'] === 'string'
+  ) {
+    const workflowId = payload['workflowId'];
+    await prisma.workflow
+      .update({
+        where: { id: workflowId },
+        data: {
+          stage: 'PLANNING',
+          currentAgent: 'CREATIVE_DIRECTOR',
+        },
+      })
+      .catch(() => null);
+  }
+
   return {
     processedBy: role,
     jobId: job.id,

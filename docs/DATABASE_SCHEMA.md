@@ -5,7 +5,9 @@
 ```mermaid
 erDiagram
     User ||--o{ WorkspaceMember : "belongs to"
+    User ||--o{ UserSession : "authenticates (refresh rotation)"
     Workspace ||--o{ WorkspaceMember : "has members"
+    Workspace ||--o{ WorkspaceInvitation : "invites members"
     Workspace ||--o| BrandKit : "configures"
     Workspace ||--o{ Project : "owns"
     Workspace ||--o{ SocialAccount : "connects"
@@ -155,11 +157,30 @@ model User {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
-  memberships       WorkspaceMember[]
-  createdProjects   Project[]         @relation("ProjectCreator")
-  initiatedWorkflows Workflow[]       @relation("WorkflowInitiator")
-  approvedWorkflows  Workflow[]       @relation("WorkflowApprover")
-  auditLogs         AuditLog[]
+  memberships        WorkspaceMember[]
+  sessions           UserSession[]
+  sentInvitations    WorkspaceInvitation[] @relation("InvitationSender")
+  createdProjects    Project[]             @relation("ProjectCreator")
+  initiatedWorkflows Workflow[]            @relation("WorkflowInitiator")
+  approvedWorkflows  Workflow[]            @relation("WorkflowApprover")
+  auditLogs          AuditLog[]
+}
+
+model UserSession {
+  id               String    @id @default(uuid())
+  userId           String
+  refreshTokenHash String    @unique
+  familyId         String
+  userAgent        String?
+  ipAddress        String?
+  revokedAt        DateTime?
+  expiresAt        DateTime
+  createdAt        DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([familyId])
 }
 
 model Workspace {
@@ -175,6 +196,7 @@ model Workspace {
   updatedAt                 DateTime @updatedAt
 
   members        WorkspaceMember[]
+  invitations    WorkspaceInvitation[]
   brandKit       BrandKit?
   projects       Project[]
   assets         Asset[]
@@ -185,6 +207,25 @@ model Workspace {
   publishPosts   PublishPost[]
   usageRecords   UsageRecord[]
   auditLogs      AuditLog[]
+}
+
+model WorkspaceInvitation {
+  id          String        @id @default(uuid())
+  workspaceId String
+  email       String
+  role        WorkspaceRole @default(EDITOR)
+  tokenHash   String        @unique
+  invitedById String
+  status      String        @default("PENDING") // "PENDING", "ACCEPTED", "REVOKED", "EXPIRED"
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime      @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy User      @relation("InvitationSender", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status])
+  @@index([email])
 }
 
 model WorkspaceMember {

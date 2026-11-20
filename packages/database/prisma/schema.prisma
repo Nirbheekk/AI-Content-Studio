@@ -115,10 +115,29 @@ model User {
   updatedAt     DateTime @updatedAt
 
   memberships        WorkspaceMember[]
-  createdProjects    Project[]         @relation("ProjectCreator")
-  initiatedWorkflows Workflow[]        @relation("WorkflowInitiator")
-  approvedWorkflows  Workflow[]        @relation("WorkflowApprover")
+  sessions           UserSession[]
+  sentInvitations    WorkspaceInvitation[] @relation("InvitationSender")
+  createdProjects    Project[]             @relation("ProjectCreator")
+  initiatedWorkflows Workflow[]            @relation("WorkflowInitiator")
+  approvedWorkflows  Workflow[]            @relation("WorkflowApprover")
   auditLogs          AuditLog[]
+}
+
+model UserSession {
+  id               String    @id @default(uuid())
+  userId           String
+  refreshTokenHash String    @unique
+  familyId         String
+  userAgent        String?
+  ipAddress        String?
+  revokedAt        DateTime?
+  expiresAt        DateTime
+  createdAt        DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([familyId])
 }
 
 model Workspace {
@@ -134,6 +153,7 @@ model Workspace {
   updatedAt                 DateTime @updatedAt
 
   members        WorkspaceMember[]
+  invitations    WorkspaceInvitation[]
   brandKit       BrandKit?
   projects       Project[]
   assets         Asset[]
@@ -144,6 +164,25 @@ model Workspace {
   publishPosts   PublishPost[]
   usageRecords   UsageRecord[]
   auditLogs      AuditLog[]
+}
+
+model WorkspaceInvitation {
+  id          String        @id @default(uuid())
+  workspaceId String
+  email       String
+  role        WorkspaceRole @default(EDITOR)
+  tokenHash   String        @unique
+  invitedById String
+  status      String        @default("PENDING") // "PENDING", "ACCEPTED", "REVOKED", "EXPIRED"
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime      @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy User      @relation("InvitationSender", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status])
+  @@index([email])
 }
 
 model WorkspaceMember {
@@ -191,14 +230,15 @@ model BrandKit {
 // -----------------------------------------------------------------------------
 
 model Project {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   workspaceId String
   createdById String
   name        String
   description String?
-  status      String   @default("ACTIVE")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  status      String    @default("ACTIVE")
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy     User           @relation("ProjectCreator", fields: [createdById], references: [id])

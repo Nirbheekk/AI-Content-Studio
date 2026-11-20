@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
     container_name: aicos-postgres
     restart: unless-stopped
     environment:
@@ -21,7 +21,7 @@ services:
       retries: 10
 
   redis:
-    image: redis:7-alpine
+    image: redis:7-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe
     container_name: aicos-redis
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
@@ -39,7 +39,7 @@ services:
       retries: 10
 
   minio:
-    image: elestio/minio:latest
+    image: elestio/minio@sha256:25348a257f1ece1b192f25f6cd9854618fa86422ac87b494b5d4e629c556d4bd
     container_name: aicos-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -61,6 +61,7 @@ services:
       retries: 10
 
   api:
+    image: aicos-api:1.0.0
     build:
       context: .
       dockerfile: docker/api.Dockerfile
@@ -72,6 +73,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-aicos}:${POSTGRES_PASSWORD:-aicos_dev_password_change_me}@postgres:5432/${POSTGRES_DB:-ai_content_os}?schema=public
       REDIS_URL: redis://redis:6379
       S3_ENDPOINT: http://minio:9000
+      S3_PUBLIC_ENDPOINT: http://localhost:9000
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
       S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin_dev_password}
       JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_minimum_32_characters_long_for_local_testing_only}
@@ -95,6 +97,7 @@ services:
       retries: 5
 
   frontend:
+    image: aicos-frontend:1.0.0
     build:
       context: .
       dockerfile: docker/web.Dockerfile
@@ -117,7 +120,7 @@ services:
       retries: 5
 
   worker:
-    image: aicos-worker:latest
+    image: aicos-worker:1.0.0
     build:
       context: .
       dockerfile: docker/worker.Dockerfile
@@ -144,7 +147,7 @@ services:
       retries: 5
 
   ai-orchestrator:
-    image: aicos-worker:latest
+    image: aicos-worker:1.0.0
     container_name: aicos-ai-orchestrator
     restart: unless-stopped
     environment:
@@ -168,7 +171,7 @@ services:
       retries: 5
 
   media-worker:
-    image: aicos-worker:latest
+    image: aicos-worker:1.0.0
     container_name: aicos-media-worker
     restart: unless-stopped
     environment:
@@ -196,11 +199,15 @@ services:
       retries: 5
 
   rendering-worker:
+    image: aicos-rendering-worker:1.0.0
     build:
       context: .
       dockerfile: docker/rendering-worker.Dockerfile
     container_name: aicos-rendering-worker
     restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp/remotion:size=1G,mode=1777
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -235,7 +242,7 @@ services:
       retries: 5
 
   publishing-worker:
-    image: aicos-worker:latest
+    image: aicos-worker:1.0.0
     container_name: aicos-publishing-worker
     restart: unless-stopped
     environment:
@@ -262,7 +269,7 @@ services:
       retries: 5
 
   nginx:
-    image: nginx:alpine
+    image: nginx:alpine@sha256:fb4658584bd9a916ffb6f6e365f97c25cfdb2923801f551ea08356e695f14ff7
     container_name: aicos-nginx
     restart: unless-stopped
     ports:

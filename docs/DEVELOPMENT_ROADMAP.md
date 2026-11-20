@@ -5,29 +5,24 @@ Development is structured into incremental, empirically verified phases. No phas
 ---
 
 ## Phase 0: Architecture, Engineering Environment & Monorepo Foundation (COMPLETED)
-- [x] **Milestone 0.1**: Inspect repository and host runtime (`Node v24.20.0`, `pnpm 12.21.0`, `Docker 29.9.3`, `Compose v5.5.1`). Configure `.agents/rules/` (8 rules), `.agents/skills/` (10 skills), `AGENTS.md`, `SPEC.md`, `STATE.md`, and `docs/*` suite.
-- [x] **Milestone 0.2**:
-  - Configured `pnpm` workspaces, Turborepo, strict TypeScript (`tsconfig.base.json`), ESLint, Prettier, `.env.example`, `.gitignore`, `.dockerignore`, `Makefile`, and `README.md`.
-  - Implemented 11-service `docker-compose.yml` and `docker-compose.prod.yml` (`postgres`, `redis`, `minio`, `api`, `frontend`, `worker`, `ai-orchestrator`, `media-worker`, `rendering-worker`, `publishing-worker`, `nginx`) and verified all 11 containers `Up (healthy)`.
-  - Implemented `packages/shared` (`CompositionSpec` AST, 14-stage workflow state machine, partial AST patch engine, shared contracts, domain errors) + unit tests.
-  - Implemented `packages/database` (20-model Prisma schema, initial PostgreSQL migration `20261120170336_init`, AES-256-GCM credential encryption, idempotent seed script) + unit & DB integration tests.
-  - Implemented initial `apps/api`, `apps/workers`, and `apps/web` services with health endpoints and 18/18 passing tests.
+- [x] **Milestone 0.1**: Repository inspection, `.agents/rules/` (8 rules), `.agents/skills/` (10 skills), `AGENTS.md`, `SPEC.md`, `STATE.md`, and `docs/*` suite.
+- [x] **Milestone 0.2**: `pnpm` + Turborepo monorepo, 11-service Docker Compose stack, `packages/shared`, `packages/database` (20-model Prisma schema, migration `20261120170336_init`, AES-256-GCM encryption, seed script), and foundation services.
 
 ---
 
-## Phase 1: Working Foundation (NEXT)
-- [ ] **1.1 Authentication & Workspace Isolation**:
-  - User registration, login, JWT session auth, Workspace RBAC middleware (`OWNER`, `ADMIN`, `EDITOR`, `VIEWER`), and audit logging.
-- [ ] **1.2 Projects & Content Library**:
-  - Folder and multipart file upload pipeline backed by S3/MinIO pre-signed URLs, magic-byte MIME validation, SHA-256 duplicate detection, and project organization.
-- [ ] **1.3 Dashboard & AI Studio Foundation**:
-  - Minimalist dark-first SaaS shell, Dashboard overview, Content Library explorer, and 3-pane AI Studio with persistent projects, conversations, and messages.
-- [ ] **1.4 Phase 1 Verification Gate**:
-  - Unit tests, API/DB integration tests, and Playwright E2E tests for Auth -> Workspace -> Project -> Upload -> Persistent AI Conversation.
+## Phase 1: Working Foundation (COMPLETED)
+- [x] **1.1 Authentication & Workspace Isolation**:
+  - User registration, login, `scrypt` password hashing, JWT access tokens, refresh-token rotation with replay family revocation, logout, sliding-window rate limiting, Workspace RBAC middleware (`OWNER`, `ADMIN`, `EDITOR`, `VIEWER`), 7-day expiring invitations (`WorkspaceInvitation`), and strict tenant isolation.
+- [x] **1.2 Projects & Content Library**:
+  - Project CRUD, archive/restore, safeguarded deletion, and S3/MinIO asset upload pipeline (`@ai-content-os/integrations` AWS Signature V4 presigned URLs, filename/folder traversal sanitization, 500MB quota, server-side magic-byte MIME verification, SHA-256 duplicate detection, and BullMQ `media-queue` dispatch).
+- [x] **1.3 Dashboard & AI Studio Foundation**:
+  - Dark-first Next.js 15 SaaS interface (`/login`, `/register`, `/dashboard`, `/projects`, `/library`, `/studio`, `/settings`), real database Dashboard, Content Library explorer, and 3-pane AI Studio with persistent conversations, messages, workflows, and SSE real-time progress streaming.
+- [x] **1.4 Phase 1 Verification Gate**:
+  - 30/30 automated unit, integration, security/tenant-isolation, MinIO storage, and frontend critical-flow tests passing; all 11 Docker containers healthy with pinned image digests.
 
 ---
 
-## Phase 2: AI Production Engine
+## Phase 2: AI Production Engine (NEXT)
 - [ ] **2.1 Asset Intelligence Pipeline (`media-worker`)**:
   - FFmpeg metadata extraction, thumbnail & waveform generation, STT word-timestamped transcription, speaker identification, and scene/hook scoring.
 - [ ] **2.2 Provider Abstraction & Core Agents (`packages/ai-providers`)**:

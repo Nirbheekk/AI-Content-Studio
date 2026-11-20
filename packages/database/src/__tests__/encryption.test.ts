@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { decryptSecret, encryptSecret, maskSecret } from '../encryption.js';
+import { hashPassword, verifyPassword } from '../password.js';
 
 const TEST_MASTER_KEY = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 
@@ -30,5 +31,12 @@ describe('@ai-content-os/database AES-256-GCM encryption', () => {
   it('masks secret strings safely', () => {
     expect(maskSecret('sk-proj-1234567890abcdef')).toBe('****cdef');
     expect(maskSecret('abc')).toBe('****');
+  });
+
+  it('hashes and verifies user passwords with memory-hard scrypt', async () => {
+    const hash = await hashPassword('SuperSecureStudioPass!2026');
+    expect(hash.startsWith('scrypt$16384$8$1$')).toBe(true);
+    expect(await verifyPassword('SuperSecureStudioPass!2026', hash)).toBe(true);
+    expect(await verifyPassword('WrongPassword!2026', hash)).toBe(false);
   });
 });

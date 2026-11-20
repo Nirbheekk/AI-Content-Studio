@@ -4,8 +4,12 @@ import {
   canTransitionWorkflowStage,
   CompositionSpec,
   CompositionSpecSchema,
+  detectMimeTypeFromMagicBytes,
   ForbiddenError,
+  hasRequiredRole,
   NotFoundError,
+  sanitizeAssetFilename,
+  sanitizeFolderPath,
   ValidationError,
 } from '../index.js';
 
@@ -120,5 +124,32 @@ describe('@ai-content-os/shared', () => {
     expect(forbiddenErr.statusCode).toBe(403);
     expect(notFoundErr.statusCode).toBe(404);
     expect(notFoundErr.message).toContain('comp-123');
+  });
+
+  it('enforces RBAC role hierarchy weights accurately', () => {
+    expect(hasRequiredRole('OWNER', 'ADMIN')).toBe(true);
+    expect(hasRequiredRole('ADMIN', 'EDITOR')).toBe(true);
+    expect(hasRequiredRole('EDITOR', 'VIEWER')).toBe(true);
+    expect(hasRequiredRole('VIEWER', 'EDITOR')).toBe(false);
+    expect(hasRequiredRole('EDITOR', 'ADMIN')).toBe(false);
+  });
+
+  it('sanitizes filenames and folder paths against path traversal', () => {
+    expect(sanitizeAssetFilename('../../etc/passwd')).toBe('passwd');
+    expect(sanitizeAssetFilename('..\\windows\\system32\\cmd.exe')).toBe('cmd.exe');
+    expect(sanitizeFolderPath('podcast/episode-01/clips')).toBe('/podcast/episode-01/clips');
+    expect(() => sanitizeFolderPath('/podcast/../secrets')).toThrow(/Invalid folder path segment/);
+  });
+
+  it('detects real MIME types from magic bytes and rejects spoofed headers', () => {
+    const pngHeader = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const mp4Header = new Uint8Array([
+      0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d,
+    ]);
+    const pdfHeader = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37]);
+
+    expect(detectMimeTypeFromMagicBytes(pngHeader)).toBe('image/png');
+    expect(detectMimeTypeFromMagicBytes(mp4Header)).toBe('video/mp4');
+    expect(detectMimeTypeFromMagicBytes(pdfHeader)).toBe('application/pdf');
   });
 });

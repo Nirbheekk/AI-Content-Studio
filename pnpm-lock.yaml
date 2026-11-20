@@ -205,12 +205,18 @@ importers:
       '@ai-content-os/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@ai-content-os/integrations':
+        specifier: workspace:*
+        version: link:../../packages/integrations
       '@ai-content-os/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@fastify/cors':
         specifier: ^10.0.1
         version: 10.1.0
+      bullmq:
+        specifier: ^5.28.2
+        version: 5.81.5(supports-color@7.2.0)
       fastify:
         specifier: ^5.1.0
         version: 5.12.8
@@ -326,6 +332,22 @@ importers:
       tsx:
         specifier: ^4.19.2
         version: 4.23.15
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.6
+        version: 2.1.9(@types/node@22.20.5)(supports-color@7.2.0)
+
+  packages/integrations:
+    dependencies:
+      '@ai-content-os/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.1
+        version: 22.20.5
       typescript:
         specifier: ^5.7.2
         version: 5.9.3

@@ -8,11 +8,18 @@ import {
   HealthCheckResponseSchema,
 } from '@ai-content-os/shared';
 import { checkDatabaseHealth, prisma } from '@ai-content-os/database';
+import { MinioStorageAdapter } from '@ai-content-os/integrations';
+import { registerAuthRoutes } from './routes/auth.routes.js';
+import { registerWorkspaceRoutes } from './routes/workspaces.routes.js';
+import { registerProjectAndDashboardRoutes } from './routes/projects.routes.js';
+import { registerAssetRoutes } from './routes/assets.routes.js';
+import { registerStudioRoutes } from './routes/studio.routes.js';
 
 export interface ServerDependencies {
   checkPostgres?: () => Promise<DependencyHealth>;
   checkRedis?: () => Promise<DependencyHealth>;
   checkMinio?: () => Promise<DependencyHealth>;
+  storage?: MinioStorageAdapter;
 }
 
 export async function checkRedisHealth(redisUrl: string): Promise<DependencyHealth> {
@@ -61,12 +68,37 @@ export async function checkMinioHealth(s3Endpoint: string): Promise<DependencyHe
 }
 
 export async function buildApiServer(deps: ServerDependencies = {}): Promise<FastifyInstance> {
-  const app = Fastify({ logger: false });
+  const app = Fastify({
+    logger: false,
+    bodyLimit: 520 * 1024 * 1024,
+  });
 
   await app.register(cors, {
     origin: true,
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Workspace-Id'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
+
+  // Accept raw binary payloads for direct asset uploads
+  const binaryMimeTypes = [
+    'application/octet-stream',
+    'image/png',
+    'image/jpeg',
+    'image/webp',
+    'video/mp4',
+    'video/quicktime',
+    'video/webm',
+    'audio/mpeg',
+    'audio/wav',
+    'audio/mp4',
+    'application/pdf',
+  ];
+  for (const mime of binaryMimeTypes) {
+    app.addContentTypeParser(mime, { parseAs: 'buffer' }, (_req, body, done) => {
+      done(null, body);
+    });
+  }
 
   const redisUrl = process.env['REDIS_URL'] ?? 'redis://localhost:6379';
   const s3Endpoint = process.env['S3_ENDPOINT'] ?? 'http://localhost:9000';
@@ -112,7 +144,7 @@ export async function buildApiServer(deps: ServerDependencies = {}): Promise<Fas
     const payload: HealthCheckResponse = HealthCheckResponseSchema.parse({
       service: '@ai-content-os/api',
       status: allHealthy ? 'healthy' : anyHealthy ? 'degraded' : 'unhealthy',
-      version: '0.2.0',
+      version: '1.0.0',
       timestamp: new Date().toISOString(),
       uptimeSec: Math.round(process.uptime()),
       dependencies: {
@@ -141,7 +173,7 @@ export async function buildApiServer(deps: ServerDependencies = {}): Promise<Fas
     return reply.status(200).send({
       success: true,
       data: {
-        phase: '0.2',
+        phase: '1.0',
         environment: process.env['NODE_ENV'] ?? 'development',
         counts: {
           workspaces: workspacesCount,
@@ -152,6 +184,12 @@ export async function buildApiServer(deps: ServerDependencies = {}): Promise<Fas
       },
     });
   });
+
+  await registerAuthRoutes(app);
+  await registerWorkspaceRoutes(app);
+  await registerProjectAndDashboardRoutes(app);
+  await registerAssetRoutes(app, deps.storage);
+  await registerStudioRoutes(app);
 
   return app;
 }
