@@ -2,7 +2,7 @@
   "name": "ai-content-studio",
   "version": "0.2.0",
   "private": true,
-  "description": "AI Content Operating System — AI-Native Content Creation, Remotion Rendering & Social Publishing Platform",
+  "description": "AI Content Operating System Ã¢â‚¬â€ AI-Native Content Creation, Remotion Rendering & Social Publishing Platform",
   "packageManager": "pnpm@12.21.0",
   "engines": {
     "node": ">=20.0.0"
@@ -32,6 +32,6 @@
     "turbo": "^2.3.3",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.16.0",
-    "vitest": "^2.1.6"
+    "vitest": "^4.1.12"
   }
 }

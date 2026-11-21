@@ -24,6 +24,7 @@ Never commit `.env` or `.env.production` to Git. In production (`docker-compose.
 | `ENCRYPTION_MASTER_KEY` | Yes | 64-hex-char (32-byte) AES-256-GCM key for OAuth tokens |
 | `CORS_ALLOWED_ORIGINS` | Yes | Comma-separated allowed origins (e.g. `https://app.example.com`) |
 | `NEXT_PUBLIC_API_URL` | Yes | Public API base URL baked into Next.js standalone build |
+| `NEXT_OUTPUT_STANDALONE` | Optional | Set `true` to force Next.js standalone output on Windows; enabled automatically on Linux/Docker |
 | `GEMINI_API_KEY` | Optional | Google Gemini API key (falls back to `[SIMULATED]` if unset) |
 | `OPENAI_API_KEY` | Optional | OpenAI API key |
 | `ANTHROPIC_API_KEY` | Optional | Anthropic API key |

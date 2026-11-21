@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  ...(process.platform !== 'win32' || process.env['NEXT_OUTPUT_STANDALONE'] === 'true'
+    ? { output: 'standalone' }
+    : {}),
   transpilePackages: ['@ai-content-os/shared'],
 };
 

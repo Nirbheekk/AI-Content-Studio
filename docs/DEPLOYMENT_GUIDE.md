@@ -9,7 +9,12 @@ A single small VPS is NOT sufficient for concurrent headless Chromium + FFmpeg R
 | **Production (Single-Node)** | 10-50 active creators, 1-2 concurrent renders | 8 vCPU, 16 GB RAM, 160 GB NVMe + Managed PG/S3 | ~\$90 - \$160/mo |
 | **Production (Split Render Cluster)** | 50+ creators, >= 3 concurrent renders | App/API node (4 vCPU, 8 GB) + Render node (8-16 vCPU, 16-32 GB) + Managed PG/Redis + S3/R2 | ~\$220 - \$450/mo + AI API usage |
 
-## 2. Deployment Steps
+## 2. Pre-Deployment Security & Verification Baseline
+Before deploying to any host:
+- `pnpm audit` must return `0` high/critical vulnerabilities (verified in Phase 7: `0` vulnerabilities total).
+- Trivy image scans (`CRITICAL,HIGH --ignore-unfixed`) on `aicos-api`, `aicos-frontend`, `aicos-worker`, and `aicos-rendering-worker` must pass with `0` critical/high findings and `0` leaked secrets.
+
+## 3. Deployment Steps
 1. **Provision Server & Docker Engine**: Ubuntu 24.04 LTS with Docker Engine 26+ and Compose v2.
 2. **Configure Secrets**: Copy `.env.example` to `.env.production` and generate strong secrets:
    ```bash
@@ -29,7 +34,7 @@ A single small VPS is NOT sufficient for concurrent headless Chromium + FFmpeg R
    curl -sfk https://127.0.0.1/api/ready
    ```
 
-## 3. Rollback Procedure
+## 4. Rollback Procedure
 1. Identify previous verified image SHA tag (`IMAGE_TAG=sha-<prev>`).
 2. Restore pre-migration PostgreSQL backup if schema changed (`./scripts/restore-postgres.sh <dump> --confirm`).
 3. Pull and restart services with previous tag:

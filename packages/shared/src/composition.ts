@@ -60,7 +60,7 @@ export const OverlaySpecSchema = z.object({
   component: OverlayComponentTypeSchema,
   startOffsetFrames: z.number().int().nonnegative(),
   durationInFrames: z.number().int().positive(),
-  props: z.record(z.unknown()),
+  props: z.record(z.string(), z.unknown()),
 });
 export type OverlaySpec = z.infer<typeof OverlaySpecSchema>;
 

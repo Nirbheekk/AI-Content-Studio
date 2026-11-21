@@ -75,9 +75,15 @@
 - **Description**: Generated invoices (`POST /api/v1/billing/invoices/generate`) are draft cost accounting calculations based on base unit rates (LLM token count, Remotion rendering time, S3 storage volume). They do not represent completed credit card transactions or Stripe charges.
 - **Mitigation**: All generated invoices strictly store and display `costKind: 'ESTIMATED'` and `status: 'DRAFT'` until an external billing provider (e.g. Stripe webhook) is connected.
 
-## 6. Phase 6 Infrastructure & Dependency Audit Disclosures
+## 6. Phase 6 & 7 Infrastructure & Dependency Audit Disclosures
 
-### KI-014: Dependency Security Audit Findings (`pnpm audit --audit-level=high`)
-- **Severity**: High (Requires Patching Before Public Internet Exposure)
-- **Description**: Running `pnpm audit --audit-level=high` reported 62 advisories (5 low, 32 moderate, 17 high, 8 critical), including `next@15.1.0` (GHSA-9qr9-h5gf-34mp, GHSA-f82v-jwr5-mffw — patched in Next >= `15.1.11` / `15.5.28`), `zod` (< `4.6.6`), and `vitest` (devDependency only).
-- **Mitigation**: Upgrade `next` to a patched `15.x` release and re-verify `pnpm audit --audit-level=high` before exposing the application to public traffic. `.github/workflows/ci-cd.yml` runs `pnpm audit --audit-level=high` and Trivy container scans on every build.
+### KI-014: Dependency Security Audit Findings (RESOLVED in Phase 7)
+- **Severity**: High -> **RESOLVED**
+- **Description**: Phase 6 `pnpm audit --audit-level=high` reported 62 advisories (5 low, 32 moderate, 17 high, 8 critical), including `next@15.1.0` (`GHSA-9qr9-h5gf-34mp`, `GHSA-f82v-jwr5-mffw`, `GHSA-p293-qw3h-jr36`, `GHSA-2xp9-vwfh-vxw4`, `GHSA-2464-fhr4-w9xw`, `GHSA-p3m5-59mp-jv5r`), `postcss`, `sharp`, `zod@3.23.8` (`GHSA-mrhx-c7xc-m3w5`), and dev-only `vitest@2.1.9` / `tinypool` / `vite` / `esbuild`.
+- **Resolution (Phase 7)**:
+  - Upgraded `next` `15.1.0` -> `15.5.29` (with `@img/sharp-*` `0.35.5`).
+  - Upgraded `zod` `3.23.8` -> `4.6.7` (updated `z.record(z.string(), z.unknown())` in `packages/shared/src/composition.ts`).
+  - Upgraded `vitest` `2.1.9` -> `4.1.12` (devDependencies only).
+  - Scoped `next>postcss` override to `^8.5.23` (`8.5.33`) in `pnpm-workspace.yaml`.
+  - Stripped unused `npm`/`corepack` from all 4 production Docker `runner` stages.
+  - Verified `pnpm audit` = **0 vulnerabilities** and Trivy (`CRITICAL,HIGH --ignore-unfixed`) = **0 vulnerabilities / 0 secrets** across all 4 production images.

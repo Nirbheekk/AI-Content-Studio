@@ -15,4 +15,6 @@
 - **Mandatory Prod Secrets**: `docker-compose.prod.yml` rejects startup if `POSTGRES_PASSWORD`, `REDIS_PASSWORD`, `S3_SECRET_KEY`, `JWT_SECRET`, `ENCRYPTION_MASTER_KEY`, or `CORS_ALLOWED_ORIGINS` are unset.
 - **Credential Encryption**: OAuth tokens and workspace keys are encrypted at rest via AES-256-GCM (`ENCRYPTION_MASTER_KEY`) and redacted in logs (`redactSensitive`).
 - **Query Token Restriction**: `?accessToken=` is accepted strictly on `/stream` SSE routes and rejected on all standard REST APIs.
-- **Vulnerability Scanning**: `.github/workflows/ci-cd.yml` runs `pnpm audit --audit-level=high` and Trivy container scans (`CRITICAL`) on every build.
+- **Minimal Runtime Image Surface**: Production `runner` stages in all 4 Dockerfiles strip `npm`, `npx`, and `corepack` binaries/modules after build so only `node` runtime artifacts remain.
+- **Verified Zero-Vulnerability Baseline (Phase 7)**: `pnpm audit` reports `0` known vulnerabilities (`next@15.5.29`, `zod@4.6.7`, `postcss@8.5.33`, `vitest@4.1.12`), and Trivy (`CRITICAL,HIGH --ignore-unfixed`) reports `0` vulnerabilities and `0` secrets across `aicos-api:1.0.0`, `aicos-frontend:1.0.0`, `aicos-worker:1.0.0`, and `aicos-rendering-worker:1.0.0`.
+- **Automated CI Gates**: `.github/workflows/ci-cd.yml` enforces `pnpm audit --audit-level=high` and Trivy `CRITICAL` image scans on every build.
