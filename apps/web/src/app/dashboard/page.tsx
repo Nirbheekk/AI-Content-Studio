@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ArrowRight,
   Calendar,
@@ -12,6 +13,7 @@ import {
   FolderPlus,
   Image as ImageIcon,
   Palette,
+  Plus,
   RefreshCw,
   Repeat,
   Send,
@@ -27,7 +29,6 @@ import {
   EmptyState,
   Input,
   MetricCard,
-  PageHeader,
   Skeleton,
   StatusIndicator,
   Textarea,
@@ -87,7 +88,15 @@ function formatAuditAction(action: string, entityType: string): string {
   return `${friendly} (${entityType})`;
 }
 
+const HERO_PLACEHOLDERS = [
+  'Ask AI Studio to create a 15s SaaS product launch reel with a bold hook...',
+  'Turn our founder podcast insights into a kinetic TikTok clip with captions...',
+  'Create an educational YouTube Short explaining 3 AI creative workflows...',
+  'Produce a 4:5 LinkedIn promo video highlighting our Q4 release...',
+];
+
 function DashboardContent() {
+  const router = useRouter();
   const { user, accessToken, activeWorkspace, setFeedback } = useStudio();
   const [data, setData] = useState<DashboardDataDto | null>(null);
   const [pubSummary, setPubSummary] = useState<PublishingOverviewSummary | null>(null);
@@ -96,6 +105,29 @@ function DashboardContent() {
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDesc, setNewProjectDesc] = useState('');
   const [creating, setCreating] = useState(false);
+
+  // Lovable-inspired Prompt-First Hero Composer state
+  const [heroPrompt, setHeroPrompt] = useState('');
+  const [heroProjectId, setHeroProjectId] = useState('');
+  const [heroPlatform, setHeroPlatform] = useState('INSTAGRAM_REELS');
+  const [placeholderIdx, setPlaceholderIdx] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setPlaceholderIdx((prev) => (prev + 1) % HERO_PLACEHOLDERS.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleHeroLaunch = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const params = new URLSearchParams();
+    const chosenProj = heroProjectId || data?.recentProjects[0]?.id || '';
+    if (chosenProj) params.set('projectId', chosenProj);
+    if (heroPrompt.trim()) params.set('prompt', heroPrompt.trim());
+    if (heroPlatform) params.set('platform', heroPlatform);
+    router.push(`/studio${params.toString() ? `?${params.toString()}` : ''}`);
+  };
 
   const loadDashboard = useCallback(async () => {
     if (!accessToken || !activeWorkspace) return;
@@ -198,37 +230,118 @@ function DashboardContent() {
     0;
 
   return (
-    <div className="space-y-6">
-      {/* A. Welcome and Workspace Header */}
-      <PageHeader
-        title={`Welcome back, ${firstName}`}
-        description={`${data?.workspace.name ?? activeWorkspace?.name ?? 'Creative Workspace'} — Describe your creative goal, generate multi-scene compositions, refine in the timeline editor, and schedule approved content.`}
-        badge={
-          <div className="flex items-center gap-2">
-            <Badge variant="ai">{data?.workspace.planTier ?? 'PRO'} STUDIO</Badge>
-            <Badge variant="outline">{data?.workspace.role ?? 'MEMBER'}</Badge>
+    <div className="space-y-7">
+      {/* A. Lovable-Inspired Prompt-First Hero Composer */}
+      <section
+        aria-label="Creative studio prompt launcher"
+        className="aicos-hero-bloom relative overflow-hidden rounded-3xl border border-border/80 px-5 py-8 sm:px-10 sm:py-11"
+      >
+        <div className="mx-auto max-w-3xl text-center">
+          <div className="inline-flex flex-wrap items-center justify-center gap-2">
+            <Badge variant="ai" className="rounded-full px-3 py-1">
+              <Sparkles className="h-3 w-3" />
+              Welcome back, {firstName}
+            </Badge>
+            <Badge variant="outline" className="rounded-full bg-card/80 px-3 py-1 backdrop-blur-sm">
+              {data?.workspace.name ?? activeWorkspace?.name ?? 'Creative Workspace'} •{' '}
+              {data?.workspace.planTier ?? 'PRO'}
+            </Badge>
           </div>
-        }
-        actions={
-          <>
-            <Button variant="outline" size="sm" onClick={() => void loadDashboard()}>
+
+          <h1 className="mt-4 text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-4xl">
+            What will you create today?
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Describe it. Create it. Refine it. Publish it — from creative brief to rendered MP4.
+          </p>
+
+          <form
+            onSubmit={handleHeroLaunch}
+            className="mt-6 overflow-hidden rounded-[24px] border border-border/80 bg-card text-left shadow-2xl ring-1 ring-black/5 transition-shadow focus-within:ring-2 focus-within:ring-primary/35 dark:ring-white/10"
+          >
+            <textarea
+              rows={3}
+              value={heroPrompt}
+              onChange={(e) => setHeroPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                  e.preventDefault();
+                  handleHeroLaunch();
+                }
+              }}
+              placeholder={HERO_PLACEHOLDERS[placeholderIdx]}
+              aria-label="Describe what you want AI Studio to create"
+              className="w-full resize-none border-0 bg-transparent px-5 pt-4 pb-2 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground focus:outline-none"
+            />
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 bg-secondary/25 px-3.5 py-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <Link
+                  href="/library"
+                  title="Upload source media"
+                  aria-label="Upload source media"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:bg-secondary"
+                >
+                  <Plus className="h-4 w-4" />
+                </Link>
+
+                <select
+                  aria-label="Select project for prompt"
+                  value={heroProjectId || data?.recentProjects[0]?.id || ''}
+                  onChange={(e) => setHeroProjectId(e.target.value)}
+                  className="h-8 max-w-[170px] truncate rounded-full border border-border bg-card px-3 text-xs font-medium text-foreground focus:border-ring focus:outline-none"
+                >
+                  {data?.recentProjects.length ? (
+                    data.recentProjects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {formatCleanTitle(p.name)}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="">Default Workspace</option>
+                  )}
+                </select>
+
+                <select
+                  aria-label="Select target platform"
+                  value={heroPlatform}
+                  onChange={(e) => setHeroPlatform(e.target.value)}
+                  className="h-8 rounded-full border border-border bg-card px-3 text-xs font-medium text-foreground focus:border-ring focus:outline-none"
+                >
+                  <option value="INSTAGRAM_REELS">Reels 9:16</option>
+                  <option value="TIKTOK">TikTok 9:16</option>
+                  <option value="YOUTUBE_SHORTS">Shorts 9:16</option>
+                  <option value="YOUTUBE_LONG">YouTube 16:9</option>
+                  <option value="LINKEDIN">LinkedIn 4:5</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowNewProject(true)}
+                >
+                  <FolderPlus className="h-3.5 w-3.5" />
+                  New Project
+                </Button>
+                <Button type="submit" variant="primary" size="sm">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Create in Studio
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          </form>
+
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
+            <Button variant="ghost" size="sm" onClick={() => void loadDashboard()}>
               <RefreshCw className="h-3.5 w-3.5" />
-              Refresh
+              Refresh Workspace Data
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => setShowNewProject(true)}>
-              <FolderPlus className="h-3.5 w-3.5" />
-              New Project
-            </Button>
-            <Link
-              href="/studio"
-              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground shadow-sm transition-opacity hover:opacity-95"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              Create with AI
-            </Link>
-          </>
-        }
-      />
+          </div>
+        </div>
+      </section>
 
       {/* B. Key Metrics (6 Real Data-Backed KPIs) */}
       <section aria-label="Workspace metrics" className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-6">

@@ -5,37 +5,38 @@
 :root {
   color-scheme: light;
 
-  --background: #F7F8FC;
-  --foreground: #191B2A;
+  /* Lovable-inspired warm alabaster canvas + pure white floating surfaces */
+  --background: #FAF9F6;
+  --foreground: #171717;
 
   --card: #FFFFFF;
-  --card-foreground: #191B2A;
+  --card-foreground: #171717;
 
   --popover: #FFFFFF;
-  --popover-foreground: #191B2A;
+  --popover-foreground: #171717;
 
   --primary: #6956E8;
   --primary-foreground: #FFFFFF;
 
-  --secondary: #F0F1F8;
-  --secondary-foreground: #292C3D;
+  --secondary: #F3F1EC;
+  --secondary-foreground: #262522;
 
-  --muted: #F0F1F8;
-  --muted-foreground: #585D70;
+  --muted: #F3F1EC;
+  --muted-foreground: #66645E;
 
-  --accent: #EDEAFF;
+  --accent: #EFEAFE;
   --accent-foreground: #4C3BC2;
 
   --destructive: #C83E4D;
   --destructive-foreground: #FFFFFF;
 
-  --border: #E2E5F0;
-  --input: #D5D9E6;
+  --border: #E8E5DF;
+  --input: #DDD9D0;
   --ring: #6956E8;
 
   --ai: #6956E8;
   --ai-foreground: #FFFFFF;
-  --ai-surface: #F3F1FF;
+  --ai-surface: #F5F2FF;
 
   --success: #15805B;
   --success-foreground: #FFFFFF;
@@ -52,14 +53,14 @@
   --video: #6956E8;
   --audio: #087A92;
   --image: #15805B;
-  --timeline: #EAECEF;
-  --canvas: #141722;
+  --timeline: #F1EFEA;
+  --canvas: #141417;
 
-  --sidebar: #FFFFFF;
-  --sidebar-foreground: #292C3D;
+  --sidebar: #F6F5F1;
+  --sidebar-foreground: #262522;
   --sidebar-primary: #6956E8;
-  --sidebar-accent: #F0EEFF;
-  --sidebar-border: #E5E7F0;
+  --sidebar-accent: #ECE8FD;
+  --sidebar-border: #E8E5DF;
 
   --chart-1: #6956E8;
   --chart-2: #087A92;
@@ -67,67 +68,68 @@
   --chart-4: #9A5B08;
   --chart-5: #C83E4D;
 
-  --radius: 0.75rem;
+  --radius: 0.875rem;
 }
 
 .dark {
   color-scheme: dark;
 
-  --background: #11131B;
-  --foreground: #F4F5FB;
+  /* Lovable-inspired deep obsidian charcoal surfaces */
+  --background: #121214;
+  --foreground: #FAFAFA;
 
-  --card: #191C27;
-  --card-foreground: #F4F5FB;
+  --card: #18181B;
+  --card-foreground: #FAFAFA;
 
-  --popover: #222636;
-  --popover-foreground: #F4F5FB;
+  --popover: #1E1E22;
+  --popover-foreground: #FAFAFA;
 
   --primary: #8B7CFF;
   --primary-foreground: #11101D;
 
-  --secondary: #222636;
-  --secondary-foreground: #E8EAF5;
+  --secondary: #222226;
+  --secondary-foreground: #EAEAEF;
 
-  --muted: #222636;
-  --muted-foreground: #A5ACC0;
+  --muted: #222226;
+  --muted-foreground: #A1A1AA;
 
-  --accent: #2E294D;
-  --accent-foreground: #D3CDFF;
+  --accent: #2A2545;
+  --accent-foreground: #D7D1FF;
 
   --destructive: #F07883;
   --destructive-foreground: #1E0E12;
 
-  --border: #2F3446;
-  --input: #3A4054;
+  --border: #27272A;
+  --input: #34343A;
   --ring: #9B8DFF;
 
   --ai: #9B8DFF;
   --ai-foreground: #141224;
-  --ai-surface: #23203A;
+  --ai-surface: #221E38;
 
   --success: #46C994;
   --success-foreground: #0B2118;
-  --success-surface: #152B23;
+  --success-surface: #142921;
 
   --warning: #F0B75D;
   --warning-foreground: #261A07;
-  --warning-surface: #2C2314;
+  --warning-surface: #2B2214;
 
   --info: #4AC3DA;
   --info-foreground: #092026;
-  --info-surface: #132830;
+  --info-surface: #13262E;
 
   --video: #9B8DFF;
   --audio: #4AC3DA;
   --image: #46C994;
-  --timeline: #151823;
-  --canvas: #0D0F16;
+  --timeline: #151518;
+  --canvas: #0B0B0E;
 
-  --sidebar: #151823;
-  --sidebar-foreground: #F4F5FB;
+  --sidebar: #141417;
+  --sidebar-foreground: #FAFAFA;
   --sidebar-primary: #9B8DFF;
-  --sidebar-accent: #26243A;
-  --sidebar-border: #2B3040;
+  --sidebar-accent: #242138;
+  --sidebar-border: #27272A;
 
   --chart-1: #9B8DFF;
   --chart-2: #4AC3DA;
@@ -149,6 +151,21 @@
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
+}
+
+/* Lovable-inspired restrained atmospheric bloom behind hero prompt composers */
+.aicos-hero-bloom {
+  background-image:
+    radial-gradient(65% 80% at 22% 10%, rgba(105, 86, 232, 0.16), transparent 65%),
+    radial-gradient(60% 75% at 78% 18%, rgba(236, 72, 153, 0.14), transparent 65%),
+    radial-gradient(55% 70% at 50% 95%, rgba(251, 146, 60, 0.12), transparent 65%);
+}
+
+.dark .aicos-hero-bloom {
+  background-image:
+    radial-gradient(65% 80% at 22% 10%, rgba(139, 124, 255, 0.22), transparent 65%),
+    radial-gradient(60% 75% at 78% 18%, rgba(236, 72, 153, 0.14), transparent 65%),
+    radial-gradient(55% 70% at 50% 95%, rgba(251, 146, 60, 0.10), transparent 65%);
 }
 
 @media (prefers-reduced-motion: reduce) {

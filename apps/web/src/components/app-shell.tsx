@@ -131,12 +131,12 @@ export function AuthScreen({ defaultMode = 'login' }: { defaultMode?: 'login' | 
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-background px-4 py-12 text-foreground">
+    <div className="aicos-hero-bloom relative flex min-h-screen items-center justify-center bg-background px-4 py-12 text-foreground">
       <div className="absolute right-4 top-4">
         <ThemeToggle />
       </div>
 
-      <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-sm">
+      <div className="w-full max-w-md rounded-3xl border border-border/80 bg-card/95 p-8 shadow-2xl ring-1 ring-black/5 backdrop-blur-xl dark:ring-white/10">
         <div className="mb-6">
           <Badge variant="ai">
             <Sparkles className="h-3 w-3" />
@@ -443,29 +443,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         {/* Desktop Topbar */}
-        <header className="hidden h-14 shrink-0 items-center justify-between gap-4 border-b border-border bg-card/70 px-6 backdrop-blur-sm lg:flex">
+        <header className="hidden h-14 shrink-0 items-center justify-between gap-4 border-b border-border/80 bg-card/80 px-6 backdrop-blur-xl lg:flex">
           <div className="flex shrink-0 items-center gap-2 whitespace-nowrap text-xs text-muted-foreground">
             <span className="font-mono uppercase tracking-wider">{currentNav.group}</span>
             <span>/</span>
             <span className="font-semibold text-foreground">{currentNav.label}</span>
           </div>
 
-          <div className="flex shrink-0 items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2.5">
             <button
               type="button"
               onClick={() => setCommandOpen(true)}
-              className="inline-flex h-8 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg border border-border bg-secondary px-3 text-xs text-muted-foreground transition-colors hover:text-foreground"
+              className="inline-flex h-8 shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-border bg-secondary/80 px-3.5 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             >
               <Command className="h-3.5 w-3.5 shrink-0" />
               <span>Quick jump</span>
-              <kbd className="rounded border border-border bg-card px-1.5 py-0.5 font-mono text-[10px]">
+              <kbd className="rounded-full border border-border bg-card px-1.5 py-0.5 font-mono text-[10px]">
                 Ctrl+K
               </kbd>
             </button>
             <ThemeToggle />
             <Link
               href="/studio"
-              className="inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground shadow-sm transition-opacity hover:opacity-95"
+              className="inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-primary px-3.5 text-xs font-medium text-primary-foreground shadow-sm transition-opacity hover:opacity-95"
             >
               <Sparkles className="h-3.5 w-3.5 shrink-0" />
               Create with AI

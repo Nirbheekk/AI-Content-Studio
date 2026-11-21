@@ -27,7 +27,6 @@ import {
   PageHeader,
   Select,
   StatusIndicator,
-  Textarea,
 } from '../../components/design-system/primitives';
 import { VideoPlayer } from '../../components/creative/video-player';
 import { useStudio } from '../../context/studio-context';
@@ -254,6 +253,17 @@ export default function AIStudioPage() {
     loadProjectAssets,
     setFeedback,
   ]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const qProjectId = params.get('projectId');
+    const qPrompt = params.get('prompt');
+    const qPlatform = params.get('platform');
+    if (qProjectId) setSelectedProjectId(qProjectId);
+    if (qPrompt) setPromptInput(qPrompt);
+    if (qPlatform) setTargetPlatform(qPlatform);
+  }, []);
 
   useEffect(() => {
     void loadStudioState();
@@ -977,9 +987,12 @@ export default function AIStudioPage() {
               </div>
             )}
 
-            {/* Multi-line Creative Prompt Composer */}
-            <form onSubmit={handleRunProduction} className="space-y-2.5 border-t border-border pt-3">
-              <Textarea
+            {/* Lovable-Inspired Floating Creative Prompt Composer */}
+            <form
+              onSubmit={handleRunProduction}
+              className="mt-2 overflow-hidden rounded-[20px] border border-border/80 bg-card shadow-lg ring-1 ring-black/5 transition-shadow focus-within:ring-2 focus-within:ring-primary/35 dark:ring-white/10"
+            >
+              <textarea
                 rows={3}
                 required
                 disabled={producing}
@@ -992,11 +1005,11 @@ export default function AIStudioPage() {
                   }
                 }}
                 placeholder="Describe your video objective, target audience, hook, and visual style (Ctrl+Enter to generate)..."
-                className="min-h-[76px] resize-none text-xs"
+                className="min-h-[78px] w-full resize-none border-0 bg-transparent px-4 pt-3.5 pb-2 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
               />
-              <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 bg-secondary/25 px-3 py-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-secondary px-2.5 py-1.5 text-[11px] font-medium text-foreground transition-colors hover:bg-secondary/80">
+                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-foreground transition-colors hover:bg-secondary">
                     <Upload className="h-3 w-3 text-primary" />
                     <span>{uploadingAsset ? 'Uploading...' : 'Attach Media'}</span>
                     <input
@@ -1013,7 +1026,7 @@ export default function AIStudioPage() {
                       checked={simulateDefectsOnce}
                       onChange={(e) => setSimulateDefectsOnce(e.target.checked)}
                     />
-                    <span>QA auto-revise test</span>
+                    <span>QA test</span>
                   </label>
                 </div>
 

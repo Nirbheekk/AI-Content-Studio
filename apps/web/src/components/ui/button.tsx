@@ -31,11 +31,11 @@ const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
 };
 
 const BUTTON_SIZES: Record<ButtonSize, string> = {
-  default: 'h-9 rounded-lg px-4 py-2 text-xs sm:text-sm',
-  sm: 'h-8 rounded-md px-3 text-xs',
-  md: 'h-9 rounded-lg px-4 text-xs sm:text-sm',
-  lg: 'h-10 rounded-xl px-5 text-sm',
-  icon: 'h-9 w-9 rounded-lg p-0',
+  default: 'h-9 rounded-full px-4 py-2 text-xs sm:text-sm',
+  sm: 'h-8 rounded-full px-3.5 text-xs',
+  md: 'h-9 rounded-full px-4 text-xs sm:text-sm',
+  lg: 'h-10 rounded-full px-5 text-sm',
+  icon: 'h-9 w-9 rounded-full p-0',
 };
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
