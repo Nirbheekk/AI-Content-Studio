@@ -36,6 +36,10 @@ erDiagram
 
     SocialAccount ||--o{ PublishPost : "targets"
     PublishPost ||--o{ PublishAttempt : "retries"
+    PublishPost ||--o{ AnalyticsSnapshot : "measures"
+    Workspace ||--o{ AnalyticsSnapshot : "tracks metrics"
+    Workspace ||--o{ InsightReport : "generates intelligence"
+    Workspace ||--o{ Invoice : "bills"
 ```
 
 ---
@@ -694,5 +698,66 @@ model AuditLog {
   user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([workspaceId, createdAt])
+}
+
+// -----------------------------------------------------------------------------
+// Phase 5: Analytics, Insights & Billing Foundations
+// -----------------------------------------------------------------------------
+
+model AnalyticsSnapshot {
+  id            String   @id @default(uuid())
+  workspaceId   String
+  publishPostId String
+  platform      TargetPlatform
+  source        String   // "POSTIZ_API", "MANUAL_IMPORT", "UNAVAILABLE"
+  collectedAt   DateTime @default(now())
+  views         Int?
+  impressions   Int?
+  reach         Int?
+  likes         Int?
+  comments      Int?
+  shares        Int?
+  watchTimeSec  Float?
+  completionRate Float?
+  followerDelta Int?
+  unavailableMetrics String[] @default([])
+  unavailableReason  String?
+
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  publishPost PublishPost @relation(fields: [publishPostId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, collectedAt])
+  @@index([publishPostId, collectedAt])
+}
+
+model InsightReport {
+  id              String   @id @default(uuid())
+  workspaceId     String
+  rangeStart      DateTime
+  rangeEnd        DateTime
+  evidenceJson    Json
+  suggestionsJson Json
+  generatedAt     DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, generatedAt])
+}
+
+model Invoice {
+  id          String   @id @default(uuid())
+  workspaceId String
+  periodStart DateTime
+  periodEnd   DateTime
+  planTier    String
+  amountUsd   Float
+  costKind    String   // "ESTIMATED" | "ACTUAL"
+  status      String   @default("DRAFT")
+  detailsJson Json?
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, periodStart])
 }
 ```

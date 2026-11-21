@@ -62,3 +62,15 @@
 - **Severity**: Low
 - **Description**: Posts left in PROCESSING are not polled for final confirmation. Timezone is chosen per post and calendar view; Workspace.timezone exists in the schema but is not yet used as a default.
 - **Mitigation**: Add a status-sync job and a workspace timezone setting.
+
+## 5. Phase 5 Analytics, Intelligence & Observability Disclosures
+
+### KI-012: Social Provider Metric Variations & Explicit Unavailable Handling
+- **Severity**: Low (Platform Constraint Mitigated by Design)
+- **Description**: Social media platforms vary widely in their public analytics APIs (e.g., video watch time is unavailable on text posts; impressions vs reach semantics vary between Instagram and X/Twitter). Without live connected accounts or API permissions, provider metric responses return empty or unsupported subsets.
+- **Mitigation**: The system explicitly stores unavailable metrics as `null` and records the exact reason in `unavailableReason` (`UNSUPPORTED_BY_PLATFORM`, `NOT_CONFIGURED`, `RATE_LIMITED`). Metrics are never fabricated or guessed. Users can import verified metrics via `POST /api/v1/analytics/import` (flagged `MANUAL_IMPORT`).
+
+### KI-013: Billing Draft Invoices Marked ESTIMATED
+- **Severity**: Commercial Disclosure Notice
+- **Description**: Generated invoices (`POST /api/v1/billing/invoices/generate`) are draft cost accounting calculations based on base unit rates (LLM token count, Remotion rendering time, S3 storage volume). They do not represent completed credit card transactions or Stripe charges.
+- **Mitigation**: All generated invoices strictly store and display `costKind: 'ESTIMATED'` and `status: 'DRAFT'` until an external billing provider (e.g. Stripe webhook) is connected.

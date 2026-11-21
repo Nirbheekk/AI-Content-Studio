@@ -35,7 +35,9 @@ export function authenticateRequest(request: FastifyRequest): AuthenticatedConte
 
   if (!rawToken) {
     const query = request.query as Record<string, unknown> | undefined;
-    if (query && typeof query['accessToken'] === 'string') {
+    // Query-string tokens leak into logs/history; permitted only for SSE streams where EventSource cannot set headers.
+    const isStream = (request.url.split('?')[0] ?? '').endsWith('/stream');
+    if (isStream && query && typeof query['accessToken'] === 'string') {
       rawToken = query['accessToken'];
     }
   }

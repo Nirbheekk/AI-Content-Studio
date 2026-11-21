@@ -144,3 +144,28 @@ export async function enqueueOrchestratorWorkflowJob(payload: {
     return null;
   }
 }
+
+export async function getQueueDepths(): Promise<
+  Record<string, { available: boolean; waiting: number; active: number; delayed: number; failed: number }>
+> {
+  const out: Record<string, { available: boolean; waiting: number; active: number; delayed: number; failed: number }> = {};
+  for (const name of Object.values(QUEUE_NAMES)) {
+    let q: Queue | null = null;
+    try {
+      q = new Queue(name, { connection: createRedisConnectionConfig() });
+      const c = await q.getJobCounts('waiting', 'active', 'delayed', 'failed');
+      out[name] = {
+        available: true,
+        waiting: c['waiting'] ?? 0,
+        active: c['active'] ?? 0,
+        delayed: c['delayed'] ?? 0,
+        failed: c['failed'] ?? 0,
+      };
+    } catch {
+      out[name] = { available: false, waiting: 0, active: 0, delayed: 0, failed: 0 };
+    } finally {
+      await q?.close().catch(() => null);
+    }
+  }
+  return out;
+}

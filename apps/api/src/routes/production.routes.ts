@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { assertQuotaAvailable } from './intelligence.routes.js';
 import {
   applyCompositionPatches,
   CompositionSpecSchema,
@@ -75,6 +76,7 @@ export async function registerProductionRoutes(
 
   app.post('/api/v1/workflows/produce', async (request, reply) => {
     const ctx = await authorizeWorkspace(request, 'EDITOR');
+    await assertQuotaAvailable(ctx.workspaceId, 'LLM_TOKENS');
     const parsed = ExecuteProductionWorkflowRequestSchema.safeParse(request.body);
     if (!parsed.success) {
       throw new ValidationError('Invalid production workflow payload', parsed.error.flatten());
@@ -639,6 +641,7 @@ export async function registerProductionRoutes(
 
   app.post('/api/v1/compositions/:compositionId/render', async (request, reply) => {
     const ctx = await authorizeWorkspace(request, 'EDITOR');
+    await assertQuotaAvailable(ctx.workspaceId, 'RENDER_SECONDS');
     const { compositionId } = request.params as { compositionId: string };
 
     const composition = await prisma.composition.findFirst({

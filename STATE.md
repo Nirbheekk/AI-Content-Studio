@@ -2,10 +2,16 @@
 
 - **Project**: AI Content Operating System
 - **Spec Status**: `FINALIZED` ([SPEC.md](./SPEC.md))
-- **Active Phase**: Phase 4 Completed & Verified — Awaiting User Approval for Phase 5
-- **Last Action**: Implemented Phase 4 Social Publishing & Content Calendar (`PostizPublishingAdapter` in `@ai-content-os/integrations`, OAuth account connection & disconnection flows, AES-256-GCM encrypted token storage, automatic & manual token refresh, connection & permission health checks, 7-platform capability matrix & validation, Human Approval Gate enforcement, immediate & timezone-aware scheduled publishing via BullMQ `publish-queue`, SHA-256 idempotency duplicate prevention, provider confirmation vs async processing verification, rate-limit/transient error classification, exponential backoff retries & dead-letter recovery, `/publish` Publishing Center, and `/calendar` Interactive Content Calendar with Monthly/Weekly/Daily views and drag-and-drop rescheduling).
+- **Active Phase**: Phase 5 Completed & Verified — Awaiting User Approval for Phase 6 (Docker Optimization & Production Deployment)
+- **Last Action**: Implemented Phase 5 Intelligence, Observability & Production Hardening:
+  - Real social media analytics snapshot collection (`AnalyticsSnapshot`) and manual CSV/JSON metric import labeled `MANUAL_IMPORT`.
+  - Content intelligence engine distinguishing deterministic evidence-based observations from speculative AI suggestions (`InsightReport`).
+  - Interactive `/analytics` dashboard with Performance charts, AI Insights generator, and Usage & Cost views.
+  - Production observability: structured JSON logging with secret redaction (`logEvent`), Prometheus-style metrics registry (`MetricsRegistry`), queue depth telemetry, and `/api/ready` readiness probe.
+  - Strict usage quota enforcement (`evaluateQuota`, 403 on limit breach), alert thresholds (`usageAlertThresholdPct`), and draft cost estimation invoices labeled `ESTIMATED` (`Invoice`).
+  - Security hardening: restricted CORS allowlist, security headers (`nosniff`, `DENY`, `no-referrer`, `same-site`, `no-store`), sliding window API rate limiting, and query parameter access token restriction strictly to `/stream` SSE endpoints.
 - **Empirical Verification**:
-  - Prisma migration `20261121060639_phase4_social_publishing_calendar` applied cleanly.
-  - `pnpm run build` (`8/8` packages), `pnpm run typecheck`, and `pnpm run lint` (`0` warnings/errors) passed.
-  - `pnpm run test` passed all **14 test files / 46 tests** against live PostgreSQL 16, Redis 7, and MinIO, including the complete Phase 4 end-to-end publishing and calendar test suite.
-- **Next Action**: Upon user approval, begin **Phase 5 — Intelligence, Observability & Production Hardening**.
+  - Prisma migration `20261121062855_phase5_analytics_insights_billing` applied cleanly.
+  - `pnpm run build` (`8/8` packages), `pnpm run typecheck` (`13/13` tasks), and `pnpm run lint` (`0` warnings/errors) passed.
+  - `pnpm run test` passed all **15 test files / 47 tests** against live PostgreSQL 16, Redis 7, and MinIO, including the complete Phase 5 intelligence, observability, quota enforcement, and security hardening test suite.
+- **Next Action**: Upon user approval, proceed to **Phase 6 — Docker Optimization & Production Deployment**.

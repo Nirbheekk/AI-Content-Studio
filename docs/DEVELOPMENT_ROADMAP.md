@@ -45,7 +45,17 @@ Development is structured into incremental, empirically verified phases. No phas
 
 ---
 
-## Phase 5: Intelligence, Observability & Production Hardening (NEXT)
-- [ ] **5.1 Analytics Agent & Performance Recommendations**
-- [ ] **5.2 Cost Management, Quotas & Admin Monitoring**
-- [ ] **5.3 Final Production Verification**
+## Phase 5: Intelligence, Observability & Production Hardening (COMPLETED)
+- [x] **5.1 Social Media Analytics & AI Content Intelligence**:
+  - `AnalyticsSnapshot` persistence with real provider metric collection (`fetchPostMetrics`), explicit unavailable metric logging without data fabrication, manual CSV/JSON metric import (`POST /api/v1/analytics/import`), evidence-based vs AI-generated insights (`computeEvidenceInsights`, `InsightReport`), and full-featured `/analytics` dashboard with CSV export and trend charts.
+- [x] **5.2 Observability, Usage Quotas & Cost Management**:
+  - Structured JSON logging (`logEvent`) with credential redaction, in-memory Prometheus-style metrics registry (`MetricsRegistry`), BullMQ queue telemetry (`getQueueDepths`), `/api/ready` readiness probe, real-time quota enforcement (403 blocks on LLM token/render second limits), usage alert thresholds (`usageAlertThresholdPct`), and draft cost estimation invoices labeled `ESTIMATED` (`Invoice`).
+- [x] **5.3 Security Hardening & Phase 5 Verification Gate**:
+  - Strict CORS origin allowlist, security headers (`nosniff`, `DENY`, `no-referrer`, `same-site`, `no-store`), sliding window API rate limiting, query parameter access token restriction to `/stream` SSE endpoints only, and verified end-to-end across 15 test suites (47/47 passing tests).
+
+---
+
+## Phase 6: Docker Optimization & Production Deployment (NEXT)
+- [ ] **6.1 Multi-Stage Production Container Builds & Lean Images**
+- [ ] **6.2 Production Orchestration & Reverse Proxy (Nginx / SSL)**
+- [ ] **6.3 Final End-to-End System Smoke Test & Operational Runbook**

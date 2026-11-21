@@ -1,58 +1,67 @@
 # Project Status (`docs/PROJECT_STATUS.md`)
 
 - **Last Updated**: 2026-11-21
-- **Current Phase**: Phase 4 — Social Publishing & Content Calendar (Completed & Verified)
-- **Next Phase**: Phase 5 — Intelligence, Observability & Production Hardening (Analytics Agent, Performance Recommendations, Cost & Quota Management, Admin Monitoring, and Final Production Verification)
+- **Current Phase**: Phase 5 — Intelligence, Observability & Production Hardening (Completed & Verified)
+- **Next Phase**: Phase 6 — Docker Optimization & Production Deployment
 
 ---
 
 ## 1. Completed Functionality
 
-### Phases 0, 0.2, 1, 2 & 3
-- Monorepo, 11-service Docker Compose stack, Authentication (`scrypt` + JWT + refresh-token rotation), Workspace RBAC & invitations, Project CRUD, S3/MinIO asset pipeline with magic-byte verification, `@ai-content-os/ai-providers` (Gemini, OpenAI, Anthropic, Whisper, ElevenLabs + labeled fallback), `@ai-content-os/remotion-engine` (9 templates, 16 motion components, AST compiler, binary MP4/PNG/WAV media inspection), 7-agent autonomous production pipeline, Visual QA auto-revision loop, Human Approval Gate, Multi-Track Video Editor (`/editor`), Granular AI Single-Scene Editing, Brand Kit Manager (`/brand-kit`), Content Repurposing Engine (`/repurpose`), SRT/VTT Subtitles, Version Diff Comparison, and Collaboration Comments.
+### Phases 0, 0.2, 1, 2, 3 & 4
+- Monorepo, 11-service Docker Compose stack, Authentication (`scrypt` + JWT + refresh-token rotation), Workspace RBAC & invitations, Project CRUD, S3/MinIO asset pipeline with magic-byte verification, `@ai-content-os/ai-providers` (Gemini, OpenAI, Anthropic, Whisper, ElevenLabs + labeled fallback), `@ai-content-os/remotion-engine` (9 templates, 16 motion components, AST compiler, binary MP4/PNG/WAV media inspection), 7-agent autonomous production pipeline, Visual QA auto-revision loop, Human Approval Gate, Multi-Track Video Editor (`/editor`), Granular AI Single-Scene Editing, Brand Kit Manager (`/brand-kit`), Content Repurposing Engine (`/repurpose`), SRT/VTT Subtitles, Version Diff Comparison, Collaboration Comments, Social Account OAuth integrations (`PostizPublishingAdapter` + encrypted tokens), Multi-Platform Publishing Engine (`/publish`), Interactive Content Calendar (`/calendar`), and Resilient BullMQ Publishing Queues with backoff retries.
 
-### Phase 4 (Social Publishing & Content Calendar)
-1. **Social Account Integration & Postiz Adapter (`packages/integrations/src/postiz.ts`, `apps/api/src/services/publishing.service.ts`)**:
-   - Implemented `PostizPublishingAdapter` communicating strictly over clean HTTP REST APIs (`POSTIZ_API_URL` / `POSTIZ_API_KEY`) to preserve AGPL-3.0 isolation, with an explicitly disclosed `[SIMULATED POSTIZ SANDBOX]` development fallback (`isSimulated: true`) when live credentials are absent.
-   - Implemented OAuth authorization URL generation (`POST /api/v1/publishing/accounts/oauth-url`), code exchange (`POST /api/v1/publishing/accounts/connect`), account disconnection (`DELETE /api/v1/publishing/accounts/:accountId`), token rotation/refresh (`POST /api/v1/publishing/accounts/:accountId/refresh`), and connection/scope health checks (`POST /api/v1/publishing/accounts/:accountId/health-check`) across all 7 platforms (`INSTAGRAM_REELS`, `TIKTOK`, `YOUTUBE_SHORTS`, `YOUTUBE_LONG`, `LINKEDIN`, `X_TWITTER`, `FACEBOOK`).
-   - All OAuth access and refresh tokens are encrypted at rest using AES-256-GCM (`v1:<iv>:<authTag>:<ciphertext>`) and are strictly redacted from API responses (`tokenPreview: ****...`).
-2. **Social Publishing Engine & Platform Capability Validation (`packages/shared/src/phase4.ts`, `apps/api/src/routes/publishing.routes.ts`)**:
-   - Defined `PLATFORM_PUBLISHING_CAPABILITIES` and `validatePostForPlatform` enforcing platform-specific rules (e.g., rejecting written-only posts on TikTok, enforcing required video titles on YouTube Shorts/Long, enforcing 280-char limit on X/Twitter, validating aspect ratios and video duration limits).
-   - Enforced the **Human Approval Gate**: content cannot be scheduled or published unless its linked `Composition` / `Workflow` is explicitly approved or `explicitApprovalConfirmed: true` is recorded with `approvedByUserId` + `approvedAt`.
-   - Enforced **Strict Provider Confirmation**: posts transition through `PUBLISHING` (`providerStatus: ACCEPTED | PROCESSING`) and are never marked `PUBLISHED` until the provider explicitly confirms publication (`providerStatus === 'PUBLISHED'`) with `externalPostId` and `externalPostUrl`.
-   - Implemented deterministic SHA-256 idempotency (`computePublishIdempotencyKey`) preventing duplicate social posts across retries or repeated submissions.
-3. **Resilient Queue Automation, Backoff Retries & Dead-Letter Recovery (`apps/api/src/lib/queues.ts`, `apps/workers/src/runtime.ts`)**:
-   - Enqueues timezone-aware delayed publishing jobs on BullMQ `publish-queue` (`QUEUE_NAMES.publishing`) and supports job cancellation on reschedule or cancel.
-   - Classifies provider errors (`RATE_LIMIT` 429, `TRANSIENT_NETWORK` 503, `AUTH_REVOKED` 401, `PROVIDER_REJECTED`), calculates exponential backoff (`calculatePublishRetryBackoffMs`), transitions exhausted/non-retryable jobs to `DEAD_LETTER`, and provides manual retry recovery (`POST /api/v1/publishing/posts/:postId/retry`).
-4. **Interactive Content Calendar (`/calendar`) & Publishing Center (`/publish`) (`apps/web/src/app/publish/page.tsx`, `apps/web/src/app/calendar/page.tsx`)**:
-   - Built `/publish` Publishing Center with Connected Social Accounts manager, OAuth connection modal, multi-platform Post Composer with live character/hashtag counters and capability badges, Upcoming Scheduled queue, In-Flight queue, Confirmed Published history, and Failed/Dead-Letter recovery actions.
-   - Built `/calendar` Interactive Content Calendar with Monthly, Weekly, and Daily view switchers, IANA timezone selector, platform/account/status filters, drag-and-drop post rescheduling across calendar dates (`PATCH /api/v1/publishing/posts/:postId/reschedule`), and an interactive Post Inspector modal for editing captions, rescheduling, publishing immediately, or cancelling scheduled posts.
+### Phase 5 (Intelligence, Observability & Production Hardening)
+1. **Social Media Analytics & Historical Snapshots (`packages/database/prisma/schema.prisma`, `packages/integrations/src/postiz.ts`, `apps/api/src/routes/intelligence.routes.ts`)**:
+   - Implemented `AnalyticsSnapshot` model persisting historical performance metrics: impressions, reach, views, watch time, likes, comments, shares, engagement rate, and snapshot collection timestamp.
+   - Live analytics fetching via `fetchPostMetrics` on `PostizPublishingAdapter`. When metrics are unsupported by specific platforms (e.g. watch time on text posts or reach on X), they are explicitly stored as `null` with `unavailableReason` (`UNSUPPORTED_BY_PLATFORM` / `RATE_LIMITED` / `NOT_CONFIGURED`) to avoid fabricating data.
+   - Built manual CSV/JSON metric import (`POST /api/v1/analytics/import`) with `isManualImport: true` and `MANUAL_IMPORT` source label.
+2. **AI-Powered Content Intelligence & Evidence Engine (`packages/shared/src/phase5.ts`, `apps/api/src/routes/intelligence.routes.ts`)**:
+   - Built `computeEvidenceInsights` and hook feature extraction (`hookFeatures`) analyzing high-performing vs underperforming content based strictly on historical data.
+   - Insight engine clearly segments deterministic evidence-based observations from speculative AI suggestions (`InsightReport`).
+   - Generates actionable recommendations on hooks, optimal video lengths, platform-specific engagement drivers, and schedule timing.
+3. **Analytics Dashboard (`/analytics`) (`apps/web/src/app/analytics/page.tsx`, `apps/web/src/components/app-shell.tsx`)**:
+   - Built full analytics workspace with Performance overview, engagement rate trends, platform performance breakdown, top/bottom post ranking, CSV report export, interactive post snapshot inspector, AI Insights generator, and Usage & Cost views. Added `/analytics` to main navigation.
+4. **Production Observability & Monitoring (`apps/api/src/lib/observability.ts`, `apps/api/src/lib/queues.ts`, `apps/api/src/server.ts`)**:
+   - Structured JSON logging (`logEvent`) with automatic redaction of sensitive credentials, JWTs, and passwords.
+   - Prometheus-style in-memory metrics registry (`MetricsRegistry`) tracking request counts, route latencies, error codes, and provider health.
+   - BullMQ queue telemetry via `getQueueDepths()` for `ai-orchestration`, `media-processing`, `composition-render`, and `publishing`.
+   - `/api/ready` readiness probe checking database connectivity for container orchestrators.
+5. **Usage Quotas, Cost Management & Invoicing (`packages/shared/src/phase5.ts`, `apps/api/src/routes/intelligence.routes.ts`, `apps/api/src/routes/production.routes.ts`)**:
+   - Real-time quota enforcement (`evaluateQuota`) with HTTP 403 blocks when workspace limits are exceeded for LLM tokens or render seconds.
+   - Usage alert threshold tracking (`usageAlertThresholdPct` on `Workspace`) with status alerts (`OK`, `APPROACHING_LIMIT`, `EXCEEDED`).
+   - Draft cost estimation invoice generation (`Invoice`) with explicit `costKind: 'ESTIMATED'` labeling.
+6. **Security Hardening & Production Hygiene (`apps/api/src/server.ts`, `apps/api/src/middleware/auth.ts`, `apps/api/src/lib/jwt.ts`, `apps/api/src/routes/publishing.routes.ts`)**:
+   - Strict CORS origin allowlist (`CORS_ALLOWED_ORIGINS`).
+   - Security response headers (`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Cross-Origin-Resource-Policy: same-site`, `Cache-Control: no-store`, `Strict-Transport-Security` in production).
+   - Sliding window API rate limiting (`SlidingWindowRateLimiter`).
+   - Query string access tokens strictly restricted to `/stream` SSE endpoints; rejected on standard REST APIs to prevent logging in access logs.
+   - Production error masking to prevent stack trace leaks.
 
 ---
 
-## 2. Files Created or Modified in Phase 4
+## 2. Files Created or Modified in Phase 5
 
-- `packages/shared/src/phase4.ts`, `packages/shared/src/index.ts`, `packages/shared/src/__tests__/shared.test.ts`
-- `packages/database/prisma/schema.prisma`, `packages/database/prisma/migrations/20261121060639_phase4_social_publishing_calendar/migration.sql`
-- `packages/integrations/src/postiz.ts`, `packages/integrations/src/index.ts`, `packages/integrations/src/__tests__/postiz.test.ts`
-- `apps/api/src/lib/queues.ts`, `apps/api/src/services/publishing.service.ts`, `apps/api/src/routes/publishing.routes.ts`, `apps/api/src/server.ts`, `apps/api/src/__tests__/phase4-publishing.test.ts`
-- `apps/workers/src/runtime.ts`
-- `apps/web/src/components/app-shell.tsx`, `apps/web/src/app/publish/page.tsx`, `apps/web/src/app/calendar/page.tsx`
-- `docs/DATABASE_SCHEMA.md`, `docs/API_DOCUMENTATION.md`, `docs/PROJECT_STATUS.md`, `docs/DEVELOPMENT_ROADMAP.md`, `STATE.md`
+- `packages/shared/src/phase5.ts`, `packages/shared/src/index.ts`, `packages/shared/src/__tests__/phase5.test.ts`
+- `packages/database/prisma/schema.prisma`, `packages/database/prisma/migrations/20261121062855_phase5_analytics_insights_billing/migration.sql`
+- `packages/integrations/src/postiz.ts`
+- `apps/api/src/lib/observability.ts`, `apps/api/src/lib/queues.ts`, `apps/api/src/routes/intelligence.routes.ts`, `apps/api/src/routes/production.routes.ts`, `apps/api/src/routes/publishing.routes.ts`, `apps/api/src/server.ts`, `apps/api/src/middleware/auth.ts`, `apps/api/src/lib/jwt.ts`, `apps/api/src/__tests__/phase5-intelligence.test.ts`
+- `apps/web/src/app/analytics/page.tsx`, `apps/web/src/components/app-shell.tsx`
+- `docs/DATABASE_SCHEMA.md`, `docs/API_DOCUMENTATION.md`, `docs/PROJECT_STATUS.md`, `docs/DEVELOPMENT_ROADMAP.md`, `docs/KNOWN_ISSUES.md`, `STATE.md`
 
 ---
 
 ## 3. Tests Performed & Empirical Results
 
-- `pnpm run build`: All 8 workspace packages built (`0` errors, including new `/publish` and `/calendar` Next.js routes).
-- `pnpm run typecheck`: All workspace packages typechecked (`0` errors).
+- `pnpm run build`: All 8 workspace packages built cleanly (`0` errors, including `/analytics` Next.js route).
+- `pnpm run typecheck`: All workspace packages typechecked cleanly (`13/13` tasks passed, `0` errors).
 - `pnpm run lint`: `0` warnings, `0` errors.
-- `pnpm run test`: **14 test files / 46 tests passed** against live PostgreSQL 16, Redis 7, and MinIO:
-  - `@ai-content-os/shared`: `11/11` passed (including platform publishing capability matrix, idempotency keys, exponential backoff, and IANA timezone formatting)
+- `pnpm run test`: **15 test files / 47 tests passed** against live PostgreSQL 16, Redis 7, and MinIO:
+  - `@ai-content-os/shared`: `12/12` passed (including `computeEngagementRate`, `listUnavailableMetrics`, `computeEvidenceInsights`, `evaluateQuota`, `redactSensitive`)
   - `@ai-content-os/database`: `7/7` passed
-  - `@ai-content-os/integrations`: `4/4` passed (including live MinIO storage + `PostizPublishingAdapter` OAuth, token refresh, health check, confirmation vs processing, and rate-limit classification)
+  - `@ai-content-os/integrations`: `4/4` passed
   - `@ai-content-os/ai-providers`: `3/3` passed
   - `@ai-content-os/remotion-engine`: `4/4` passed
-  - `@ai-content-os/api`: `11/11` passed (including [phase4-publishing.test.ts](file:///c:/Users/user/Desktop/AI%20-Content-Studio/apps/api/src/__tests__/phase4-publishing.test.ts) verifying the complete Phase 4 journey: `OAuth Connect & AES-256-GCM Encryption -> Health Check & Token Refresh -> Platform Capability Validation -> Human Approval Gate -> Immediate & Idempotent Publishing -> Provider Processing Guard -> Timezone-Aware Scheduled Publishing & Calendar Views -> Drag-and-Drop Reschedule & Cancel -> Rate-Limit Retry & Recovery -> RBAC Isolation`)
+  - `@ai-content-os/api`: `12/12` passed (including [phase5-intelligence.test.ts](file:///c:/Users/user/Desktop/AI%20-Content-Studio/apps/api/src/__tests__/phase5-intelligence.test.ts) verifying live metric collection, missing metric handling without fabrication, manual CSV/JSON metric import, evidence insights vs AI suggestions, analytics overview, quota enforcement 403, usage alerts, draft invoice generation, observability logs/metrics, and security hardening headers/tokens)
   - `@ai-content-os/workers`: `3/3` passed
   - `@ai-content-os/web`: `3/3` passed

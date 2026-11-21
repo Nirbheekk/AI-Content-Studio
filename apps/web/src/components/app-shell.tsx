@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: '/brand-kit', label: 'Brand Kit' },
   { href: '/publish', label: 'Publishing Center' },
   { href: '/calendar', label: 'Content Calendar' },
+  { href: '/analytics', label: 'Analytics' },
   { href: '/settings', label: 'Settings & RBAC' },
 ];
 

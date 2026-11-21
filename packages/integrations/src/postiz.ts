@@ -339,6 +339,66 @@ export class PostizPublishingAdapter {
   }
 
   /**
+   * Fetches post-level analytics from the live Postiz API. Never fabricates metrics:
+   * without live credentials or on any provider error, `available` is false with a reason.
+   */
+  public async fetchPostMetrics(params: {
+    platform: TargetPlatform;
+    externalPostId: string;
+  }): Promise<{
+    available: boolean;
+    reason?: string;
+    rateLimited?: boolean;
+    metrics: Partial<Record<string, number>>;
+  }> {
+    if (!this.isLiveConfigured()) {
+      return {
+        available: false,
+        reason: 'POSTIZ_API_KEY not configured; no live provider to collect analytics from.',
+        metrics: {},
+      };
+    }
+    try {
+      const res = await fetch(
+        `${this.apiUrl}/v1/posts/${encodeURIComponent(params.externalPostId)}/analytics`,
+        {
+          headers: { Authorization: `Bearer ${this.apiKey}` },
+          signal: AbortSignal.timeout(15_000),
+        },
+      );
+      if (res.status === 429) {
+        return { available: false, rateLimited: true, reason: 'Provider rate limit (429).', metrics: {} };
+      }
+      if (!res.ok) {
+        return { available: false, reason: `Provider returned HTTP ${res.status}.`, metrics: {} };
+      }
+      const body = (await res.json()) as Record<string, unknown>;
+      const out: Partial<Record<string, number>> = {};
+      for (const key of [
+        'views',
+        'impressions',
+        'reach',
+        'likes',
+        'comments',
+        'shares',
+        'watchTimeSec',
+        'completionRate',
+        'followerDelta',
+      ]) {
+        const v = body[key];
+        if (typeof v === 'number' && Number.isFinite(v)) out[key] = v;
+      }
+      return { available: Object.keys(out).length > 0, metrics: out, ...(Object.keys(out).length === 0 ? { reason: 'Provider returned no supported metrics for this post.' } : {}) };
+    } catch (err) {
+      return {
+        available: false,
+        reason: err instanceof Error ? `Provider unreachable: ${err.message}` : 'Provider unreachable.',
+        metrics: {},
+      };
+    }
+  }
+
+  /**
    * Publishes a post to the target social platform via Postiz.
    * Never reports a post as PUBLISHED unless the provider explicitly confirms publication.
    */

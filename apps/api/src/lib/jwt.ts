@@ -15,8 +15,11 @@ const ACCESS_TOKEN_TTL_SEC = 15 * 60; // 15 minutes
 export const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 function getJwtSecret(): string {
-  const secret =
-    process.env['JWT_SECRET'] ?? 'dev_jwt_secret_minimum_32_characters_long_for_local_testing_only';
+  const devDefault = 'dev_jwt_secret_minimum_32_characters_long_for_local_testing_only';
+  if (process.env['NODE_ENV'] === 'production' && (!process.env['JWT_SECRET'] || process.env['JWT_SECRET'] === devDefault)) {
+    throw new Error('JWT_SECRET must be set to a unique value in production');
+  }
+  const secret = process.env['JWT_SECRET'] ?? devDefault;
   if (secret.length < 32) {
     throw new Error('JWT_SECRET must be at least 32 characters long');
   }

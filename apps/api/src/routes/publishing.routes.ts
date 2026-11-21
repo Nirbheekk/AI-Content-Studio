@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import {
   CalendarQuerySchema,
   CompleteOAuthConnectSchema,
@@ -368,12 +369,18 @@ export async function registerPublishingRoutes(
       ? TargetPlatformSchema.safeParse(query['platform'])
       : undefined;
 
+    const statusFilter = z
+      .enum(['DRAFT', 'AWAITING_APPROVAL', 'APPROVED', 'SCHEDULED', 'PUBLISHING', 'PUBLISHED', 'FAILED', 'CANCELLED'])
+      .safeParse(query['status']);
+    if (query['status'] && !statusFilter.success) {
+      throw new ValidationError('Invalid status filter');
+    }
     const posts = await prisma.publishPost.findMany({
       where: {
         workspaceId,
         ...(platformFilter?.success ? { platform: platformFilter.data } : {}),
         ...(query['socialAccountId'] ? { socialAccountId: query['socialAccountId'] } : {}),
-        ...(query['status'] ? { status: query['status'] as never } : {}),
+        ...(statusFilter.success ? { status: statusFilter.data } : {}),
       },
       include: {
         socialAccount: true,

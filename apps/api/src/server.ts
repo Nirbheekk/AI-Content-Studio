@@ -17,6 +17,10 @@ import { registerStudioRoutes } from './routes/studio.routes.js';
 import { registerProductionRoutes } from './routes/production.routes.js';
 import { registerCreativeWorkflowRoutes } from './routes/creative.routes.js';
 import { registerPublishingRoutes } from './routes/publishing.routes.js';
+import { registerIntelligenceRoutes } from './routes/intelligence.routes.js';
+import { logEvent, metrics, routeKey } from './lib/observability.js';
+import { SlidingWindowRateLimiter } from './lib/jwt.js';
+import { sanitizeUrlForLog } from '@ai-content-os/shared';
 
 export interface ServerDependencies {
   checkPostgres?: () => Promise<DependencyHealth>;
@@ -76,8 +80,12 @@ export async function buildApiServer(deps: ServerDependencies = {}): Promise<Fas
     bodyLimit: 520 * 1024 * 1024,
   });
 
+  const allowedOrigins = (process.env['CORS_ALLOWED_ORIGINS'] ?? 'http://localhost:3000,http://127.0.0.1:3000,http://localhost,http://localhost:8080')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
   await app.register(cors, {
-    origin: true,
+    origin: (origin, cb) => cb(null, !origin || allowedOrigins.includes(origin)),
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Workspace-Id'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -110,8 +118,43 @@ export async function buildApiServer(deps: ServerDependencies = {}): Promise<Fas
   const probeRedis = deps.checkRedis ?? (() => checkRedisHealth(redisUrl));
   const probeMinio = deps.checkMinio ?? (() => checkMinioHealth(s3Endpoint));
 
-  app.setErrorHandler((error, _request, reply) => {
+  // ---- Security headers, API rate limiting, request metrics & structured logging ----
+  const apiLimiter = new SlidingWindowRateLimiter(
+    Number(process.env['API_RATE_LIMIT_PER_MIN'] ?? 1500),
+    60_000,
+  );
+  app.addHook('onRequest', async (request, reply) => {
+    reply.header('X-Content-Type-Options', 'nosniff');
+    reply.header('X-Frame-Options', 'DENY');
+    reply.header('Referrer-Policy', 'no-referrer');
+    reply.header('Cross-Origin-Resource-Policy', 'same-site');
+    reply.header('Cache-Control', 'no-store');
+    if (process.env['NODE_ENV'] === 'production') {
+      reply.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
+    (request as unknown as { _startedAt: number })._startedAt = performance.now();
+    if (request.url.startsWith('/api/v1/') && process.env['NODE_ENV'] !== 'test') {
+      apiLimiter.enforce(request, 'api');
+    }
+  });
+  app.addHook('onResponse', async (request, reply) => {
+    const started = (request as unknown as { _startedAt?: number })._startedAt ?? performance.now();
+    const ms = performance.now() - started;
+    const key = routeKey(request.method, request.url);
+    metrics.recordRequest(key, reply.statusCode, ms);
+    if (!request.url.startsWith('/api/health') && !request.url.startsWith('/api/ready')) {
+      logEvent(reply.statusCode >= 500 ? 'error' : 'info', 'request', {
+        method: request.method,
+        url: sanitizeUrlForLog(request.url),
+        statusCode: reply.statusCode,
+        durationMs: Math.round(ms),
+      });
+    }
+  });
+
+  app.setErrorHandler((error, request, reply) => {
     if (error instanceof AppError) {
+      if (error.statusCode >= 500) metrics.trackError(routeKey(request.method, request.url), error.errorCode, error.message);
       return reply.status(error.statusCode).send({
         success: false,
         error: {
@@ -122,7 +165,10 @@ export async function buildApiServer(deps: ServerDependencies = {}): Promise<Fas
       });
     }
 
-    const message = error instanceof Error ? error.message : 'Unexpected server error';
+    const rawMessage = error instanceof Error ? error.message : 'Unexpected server error';
+    metrics.trackError(routeKey(request.method, request.url), 'INTERNAL_SERVER_ERROR', rawMessage);
+    logEvent('error', 'unhandled error', { url: sanitizeUrlForLog(request.url), error: rawMessage });
+    const message = process.env['NODE_ENV'] === 'production' ? 'Unexpected server error' : rawMessage;
     return reply.status(500).send({
       success: false,
       error: {
@@ -196,6 +242,7 @@ export async function buildApiServer(deps: ServerDependencies = {}): Promise<Fas
   await registerProductionRoutes(app, deps.storage);
   await registerCreativeWorkflowRoutes(app, deps.storage);
   await registerPublishingRoutes(app, deps.storage);
+  await registerIntelligenceRoutes(app);
 
   return app;
 }

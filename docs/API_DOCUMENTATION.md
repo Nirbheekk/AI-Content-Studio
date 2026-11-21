@@ -33,7 +33,8 @@ export interface ApiResponse<T> {
 | Method | Endpoint | Auth / Role | Description |
 |--------|----------|-------------|-------------|
 | `GET` | `/api/health` | Public | Liveness & dependency readiness check (`postgres`, `redis`, `minio`, queue depths) |
-| `GET` | `/api/v1/admin/metrics` | `OWNER` / SystemAdmin | Queue depths, worker latency, token consumption, cost breakdown, error rates |
+| `GET` | `/api/ready` | Public | Readiness probe checking live database connectivity for container orchestrators |
+| `GET` | `/api/v1/admin/metrics` | `OWNER` / SystemAdmin | Queue depths, worker latency, token consumption, cost breakdown, error rates, alerts |
 
 ### 2.2 Authentication & Workspaces
 | Method | Endpoint | Auth / Role | Description |
@@ -136,6 +137,20 @@ export interface ApiResponse<T> {
 | `POST` | `/api/v1/publishing/posts/:postId/retry` | `EDITOR`+ | Retry and recover a `FAILED` or `DEAD_LETTER` publishing job |
 | `POST` | `/api/v1/publishing/posts/:postId/cancel` | `EDITOR`+ | Cancel an unpublished `DRAFT`, `SCHEDULED`, or `FAILED` post |
 | `GET` | `/api/v1/calendar` | `VIEWER`+ | Query timezone-aware calendar entries grouped by local date for `day`, `week`, and `month` views with platform, account, and status filters |
+
+### 2.7 Analytics, Content Intelligence, Quotas & Billing (Phase 5)
+| Method | Endpoint | Auth / Role | Description |
+|--------|----------|-------------|-------------|
+| `POST` | `/api/v1/analytics/collect` | `EDITOR`+ | Collect real provider analytics snapshots (`AnalyticsSnapshot`) or record explicit unavailable status |
+| `POST` | `/api/v1/analytics/import` | `EDITOR`+ | User-supplied metric import (CSV/JSON) strictly labeled `MANUAL_IMPORT` |
+| `GET` | `/api/v1/analytics/overview` | `VIEWER`+ | Overall workspace analytics summary, platform breakdown, top/bottom posts, daily trends, and CSV export (`?export=csv`) |
+| `GET` | `/api/v1/analytics/posts/:postId` | `VIEWER`+ | Historical metric snapshot series for an individual published post |
+| `POST` | `/api/v1/analytics/insights` | `EDITOR`+ | Generate and persist an `InsightReport` comparing deterministic evidence vs AI suggestions |
+| `GET` | `/api/v1/analytics/insights` | `VIEWER`+ | Retrieve the most recent workspace `InsightReport` |
+| `GET` | `/api/v1/usage` | `VIEWER`+ | Current workspace consumption vs quotas, usage status (`OK`, `APPROACHING_LIMIT`, `EXCEEDED`), and alerts |
+| `PUT` | `/api/v1/usage/quotas` | `ADMIN`+ | Update workspace quota limits and warning alert threshold percentage (`usageAlertThresholdPct`) |
+| `POST` | `/api/v1/billing/invoices/generate` | `ADMIN`+ | Generate a draft invoice marked `costKind: 'ESTIMATED'` based on recorded consumption |
+| `GET` | `/api/v1/billing/invoices` | `ADMIN`+ | List workspace invoices and historical billing records |
 
 ---
 
