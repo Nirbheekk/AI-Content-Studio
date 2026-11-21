@@ -35,3 +35,30 @@
 - **Severity**: Informational (Mitigated by Adapter Fallback)
 - **Description**: Local development and CI runs may operate without external paid SaaS API keys.
 - **Mitigation**: The AI Provider and Integration layers default to deterministic `SimulatedProviderAdapter` implementations labeled `[SIMULATED]` when external keys are omitted.
+
+## 4. Phase 4 Publishing Limitations
+
+### KI-007: Postiz Sandbox Fallback Is Not a Real Publication
+- **Severity**: High (disclosure requirement)
+- **Description**: Without POSTIZ_API_KEY the adapter runs a labeled sandbox (isSimulated = true, provider postiz-sandbox-fallback). Posts reaching PUBLISHED in this mode were NOT sent to any social network. The UI shows [SIMULATED SANDBOX].
+- **Mitigation**: Set POSTIZ_API_URL and POSTIZ_API_KEY to enable live mode.
+
+### KI-008: Live Postiz Endpoints Unverified Against a Running Postiz Instance
+- **Severity**: Medium
+- **Description**: The live-mode REST paths (/v1/posts, /v1/integrations/oauth/exchange, /v1/integrations/oauth/refresh) were written to the adapter contract but not exercised against a real Postiz deployment. Real Postiz handles OAuth via its own UI/provider apps, so path and payload mapping must be confirmed.
+- **Mitigation**: Validate against the Postiz public API docs before production.
+
+### KI-009: OAuth Code Exchange Is a Dev Flow
+- **Severity**: Medium
+- **Description**: The /publish modal generates a placeholder code instead of completing a real provider redirect and callback. Real connections need per-platform developer apps (client ID and secret) and a callback route.
+- **Mitigation**: Implement redirect callback handling in the live-integration phase.
+
+### KI-010: Worker Publishing Path Is Simplified
+- **Severity**: Medium
+- **Description**: The BullMQ publish.execute processor in apps/workers confirms posts via sandbox logic and does not call the live adapter, auto-refresh tokens, or re-enqueue retries. Delayed scheduled jobs persist in Redis across restarts, but live-provider execution from the worker is not implemented. Immediate publish and manual retry run through the API service.
+- **Mitigation**: Move executePostPublication into a shared package used by both API and worker.
+
+### KI-011: Provider Status Polling and Workspace Default Timezone
+- **Severity**: Low
+- **Description**: Posts left in PROCESSING are not polled for final confirmation. Timezone is chosen per post and calendar view; Workspace.timezone exists in the schema but is not yet used as a default.
+- **Mitigation**: Add a status-sync job and a workspace timezone setting.
