@@ -2,8 +2,162 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  background-color: #09090b;
-  color: #fafafa;
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+:root {
+  color-scheme: light;
+
+  --background: #F7F8FC;
+  --foreground: #191B2A;
+
+  --card: #FFFFFF;
+  --card-foreground: #191B2A;
+
+  --popover: #FFFFFF;
+  --popover-foreground: #191B2A;
+
+  --primary: #6956E8;
+  --primary-foreground: #FFFFFF;
+
+  --secondary: #F0F1F8;
+  --secondary-foreground: #292C3D;
+
+  --muted: #F0F1F8;
+  --muted-foreground: #585D70;
+
+  --accent: #EDEAFF;
+  --accent-foreground: #4C3BC2;
+
+  --destructive: #C83E4D;
+  --destructive-foreground: #FFFFFF;
+
+  --border: #E2E5F0;
+  --input: #D5D9E6;
+  --ring: #6956E8;
+
+  --ai: #6956E8;
+  --ai-foreground: #FFFFFF;
+  --ai-surface: #F3F1FF;
+
+  --success: #15805B;
+  --success-foreground: #FFFFFF;
+  --success-surface: #E9F7F1;
+
+  --warning: #9A5B08;
+  --warning-foreground: #FFFFFF;
+  --warning-surface: #FEF5E6;
+
+  --info: #087A92;
+  --info-foreground: #FFFFFF;
+  --info-surface: #E8F8FC;
+
+  --video: #6956E8;
+  --audio: #087A92;
+  --image: #15805B;
+  --timeline: #EAECEF;
+  --canvas: #141722;
+
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #292C3D;
+  --sidebar-primary: #6956E8;
+  --sidebar-accent: #F0EEFF;
+  --sidebar-border: #E5E7F0;
+
+  --chart-1: #6956E8;
+  --chart-2: #087A92;
+  --chart-3: #15805B;
+  --chart-4: #9A5B08;
+  --chart-5: #C83E4D;
+
+  --radius: 0.75rem;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: #11131B;
+  --foreground: #F4F5FB;
+
+  --card: #191C27;
+  --card-foreground: #F4F5FB;
+
+  --popover: #222636;
+  --popover-foreground: #F4F5FB;
+
+  --primary: #8B7CFF;
+  --primary-foreground: #11101D;
+
+  --secondary: #222636;
+  --secondary-foreground: #E8EAF5;
+
+  --muted: #222636;
+  --muted-foreground: #A5ACC0;
+
+  --accent: #2E294D;
+  --accent-foreground: #D3CDFF;
+
+  --destructive: #F07883;
+  --destructive-foreground: #1E0E12;
+
+  --border: #2F3446;
+  --input: #3A4054;
+  --ring: #9B8DFF;
+
+  --ai: #9B8DFF;
+  --ai-foreground: #141224;
+  --ai-surface: #23203A;
+
+  --success: #46C994;
+  --success-foreground: #0B2118;
+  --success-surface: #152B23;
+
+  --warning: #F0B75D;
+  --warning-foreground: #261A07;
+  --warning-surface: #2C2314;
+
+  --info: #4AC3DA;
+  --info-foreground: #092026;
+  --info-surface: #132830;
+
+  --video: #9B8DFF;
+  --audio: #4AC3DA;
+  --image: #46C994;
+  --timeline: #151823;
+  --canvas: #0D0F16;
+
+  --sidebar: #151823;
+  --sidebar-foreground: #F4F5FB;
+  --sidebar-primary: #9B8DFF;
+  --sidebar-accent: #26243A;
+  --sidebar-border: #2B3040;
+
+  --chart-1: #9B8DFF;
+  --chart-2: #4AC3DA;
+  --chart-3: #46C994;
+  --chart-4: #F0B75D;
+  --chart-5: #F07883;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased transition-colors duration-200;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

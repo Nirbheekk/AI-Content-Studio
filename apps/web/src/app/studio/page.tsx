@@ -1,7 +1,18 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { Sparkles } from 'lucide-react';
 import { AppShell } from '../../components/app-shell';
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  PageHeader,
+  Select,
+} from '../../components/design-system/primitives';
+import { VideoPlayer } from '../../components/creative/video-player';
 import { useStudio } from '../../context/studio-context';
 import {
   apiRequest,
@@ -387,78 +398,64 @@ export default function AIStudioPage() {
 
   return (
     <AppShell>
-      <div className="space-y-4">
-        {/* Top Configuration & Provider Disclosure Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-3">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-bold text-white">AI Studio Production Engine</span>
-            <span
-              className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
-                isSimulatedMode
-                  ? 'border border-amber-500/40 bg-amber-500/10 text-amber-300'
-                  : 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
-              }`}
-            >
-              {isSimulatedMode
-                ? '[SIMULATED FALLBACK MODE — Configure API Keys in .env for Live LLMs]'
-                : '[LIVE AI PROVIDER ACTIVE]'}
-            </span>
-          </div>
+      <div className="space-y-5">
+        <PageHeader
+          title="AI Studio"
+          description="Describe your creative goal — plan, script, storyboard, render, and review Visual QA in one place."
+          badge={
+            <Badge variant={isSimulatedMode ? 'warning' : 'success'}>
+              {isSimulatedMode ? 'Simulated Fallback Mode' : 'Live AI Provider Active'}
+            </Badge>
+          }
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <Select
+                aria-label="Target platform"
+                value={targetPlatform}
+                onChange={(e) => setTargetPlatform(e.target.value)}
+                className="w-auto"
+              >
+                <option value="INSTAGRAM_REELS">Instagram Reels (9:16)</option>
+                <option value="TIKTOK">TikTok (9:16)</option>
+                <option value="YOUTUBE_SHORTS">YouTube Shorts (9:16)</option>
+                <option value="YOUTUBE_LONG">YouTube 16:9</option>
+                <option value="LINKEDIN">LinkedIn Video</option>
+              </Select>
 
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <select
-              value={targetPlatform}
-              onChange={(e) => setTargetPlatform(e.target.value)}
-              className="rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-xs text-white"
-            >
-              <option value="INSTAGRAM_REELS">Instagram Reels (9:16)</option>
-              <option value="TIKTOK">TikTok (9:16)</option>
-              <option value="YOUTUBE_SHORTS">YouTube Shorts (9:16)</option>
-              <option value="YOUTUBE_LONG">YouTube 16:9</option>
-              <option value="LINKEDIN">LinkedIn Video</option>
-            </select>
-
-            <select
-              value={templateId}
-              onChange={(e) => setTemplateId(e.target.value)}
-              className="rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-xs text-white"
-            >
-              <option value="instagram-reel">Template: Instagram Reel Hook</option>
-              <option value="tiktok-short">Template: TikTok Kinetic</option>
-              <option value="youtube-short">Template: YouTube Short</option>
-              <option value="podcast-clip">Template: Podcast Dual Split</option>
-              <option value="product-demo">Template: Product Demo (60fps)</option>
-              <option value="educational-video">Template: Educational Explainer</option>
-              <option value="promotional-video">Template: Social Promo (4:5)</option>
-              <option value="data-explainer">Template: Data Chart Explainer (1:1)</option>
-            </select>
-
-            <label className="flex items-center gap-1.5 text-[11px] text-zinc-300">
-              <input
-                type="checkbox"
-                checked={simulateDefectsOnce}
-                onChange={(e) => setSimulateDefectsOnce(e.target.checked)}
-              />
-              Verify QA Auto-Revision Loop
-            </label>
-          </div>
-        </div>
+              <Select
+                aria-label="Template"
+                value={templateId}
+                onChange={(e) => setTemplateId(e.target.value)}
+                className="w-auto"
+              >
+                <option value="instagram-reel">Template: Instagram Reel Hook</option>
+                <option value="tiktok-short">Template: TikTok Kinetic</option>
+                <option value="youtube-short">Template: YouTube Short</option>
+                <option value="podcast-clip">Template: Podcast Dual Split</option>
+                <option value="product-demo">Template: Product Demo (60fps)</option>
+                <option value="educational-video">Template: Educational Explainer</option>
+                <option value="promotional-video">Template: Social Promo (4:5)</option>
+                <option value="data-explainer">Template: Data Chart Explainer (1:1)</option>
+              </Select>
+            </div>
+          }
+        />
 
         <div className="grid gap-4 lg:grid-cols-12">
           {/* Left Rail: Project & Conversation Selector */}
-          <div className="flex flex-col rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 lg:col-span-3">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+          <Card className="flex flex-col p-4 lg:col-span-3">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Project &amp; Sessions
             </h2>
 
             <form
               onSubmit={handleCreateConversation}
-              className="mt-3 space-y-2 border-b border-zinc-800 pb-3"
+              className="mt-3 space-y-2 border-b border-border pb-3"
             >
-              <select
+              <Select
+                aria-label="Select project"
                 value={selectedProjectId}
                 onChange={(e) => setSelectedProjectId(e.target.value)}
-                className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-xs text-white"
               >
                 <option value="">Select Project...</option>
                 {projects.map((p) => (
@@ -466,80 +463,92 @@ export default function AIStudioPage() {
                     {p.name}
                   </option>
                 ))}
-              </select>
+              </Select>
               <div className="flex gap-1.5">
-                <input
+                <Input
                   type="text"
                   required
                   value={newConvTitle}
                   onChange={(e) => setNewConvTitle(e.target.value)}
                   placeholder="New session title..."
-                  className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-xs text-white"
                 />
-                <button
-                  type="submit"
-                  className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500"
-                >
+                <Button type="submit" size="sm">
                   New
-                </button>
+                </Button>
               </div>
             </form>
 
             <div className="mt-3 max-h-96 flex-1 space-y-2 overflow-y-auto">
-              {conversations.map((conv) => (
-                <button
-                  key={conv.id}
-                  type="button"
-                  onClick={() => void handleSelectConversation(conv.id)}
-                  className={`w-full rounded-lg border p-2.5 text-left transition ${
-                    activeConversation?.id === conv.id
-                      ? 'border-indigo-500 bg-indigo-500/10 text-white'
-                      : 'border-zinc-800 bg-zinc-950/50 text-zinc-300 hover:bg-zinc-800/60'
-                  }`}
-                >
-                  <div className="truncate text-xs font-medium">{conv.title}</div>
-                  <div className="mt-0.5 truncate text-[10px] text-zinc-500">
-                    {conv.project?.name ?? 'Project'}
-                  </div>
-                </button>
-              ))}
+              {conversations.length === 0 ? (
+                <p className="py-4 text-center text-xs text-muted-foreground">
+                  No sessions yet. Create one above.
+                </p>
+              ) : (
+                conversations.map((conv) => (
+                  <button
+                    key={conv.id}
+                    type="button"
+                    onClick={() => void handleSelectConversation(conv.id)}
+                    className={`w-full rounded-lg border p-2.5 text-left transition-colors ${
+                      activeConversation?.id === conv.id
+                        ? 'border-primary bg-accent text-accent-foreground'
+                        : 'border-border bg-secondary/40 text-foreground hover:bg-secondary'
+                    }`}
+                  >
+                    <div className="truncate text-xs font-medium">{conv.title}</div>
+                    <div className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                      {conv.project?.name ?? 'Project'}
+                    </div>
+                  </button>
+                ))
+              )}
             </div>
-          </div>
+          </Card>
 
           {/* Center Pane: Prompt Input, Conversation & Storyboard Breakdown */}
-          <div className="flex flex-col rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 lg:col-span-5">
-            <div className="border-b border-zinc-800 pb-3">
-              <h1 className="text-base font-bold text-white">
+          <Card className="flex flex-col p-4 lg:col-span-5">
+            <div className="border-b border-border pb-3">
+              <h2 className="text-base font-semibold text-foreground">
                 {activeConversation?.title ?? 'AI Production Workspace'}
-              </h1>
-              <p className="text-[11px] text-zinc-400">
-                Upload → Analyze → Plan → Script → Compose → Render → Visual QA → Revise → Approve
+              </h2>
+              <p className="text-[11px] text-muted-foreground">
+                Describe → Plan → Script → Compose → Render → Visual QA → Approve
               </p>
             </div>
 
             <div className="my-3 max-h-80 flex-1 space-y-2.5 overflow-y-auto pr-1">
-              {activeConversation?.messages?.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`rounded-xl p-3 text-xs ${
-                    msg.role === 'USER'
-                      ? 'ml-6 bg-indigo-600 text-white'
-                      : 'mr-6 border border-zinc-800 bg-zinc-950 text-zinc-200'
-                  }`}
-                >
-                  <div className="mb-1 flex items-center justify-between text-[10px] opacity-75">
-                    <span className="font-semibold">{msg.agentName ?? msg.role}</span>
-                    <span>{new Date(msg.createdAt).toLocaleTimeString()}</span>
+              {!activeConversation?.messages?.length ? (
+                <EmptyState
+                  icon={<Sparkles className="h-5 w-5 text-primary" />}
+                  title="Describe your video idea below"
+                  description="Tell AI Studio the topic, audience, or hook. It will plan scenes, write captions, and render an MP4."
+                />
+              ) : (
+                activeConversation.messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`rounded-xl p-3 text-xs ${
+                      msg.role === 'USER'
+                        ? 'ml-6 bg-primary text-primary-foreground'
+                        : 'mr-6 border border-border bg-secondary text-foreground'
+                    }`}
+                  >
+                    <div className="mb-1 flex items-center justify-between text-[10px] opacity-75">
+                      <span className="font-semibold">{msg.agentName ?? msg.role}</span>
+                      <span className="tabular-nums">
+                        {new Date(msg.createdAt).toLocaleTimeString()}
+                      </span>
+                    </div>
+                    <p className="leading-relaxed">{msg.content}</p>
                   </div>
-                  <p className="leading-relaxed">{msg.content}</p>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
             {compiled && (
-              <div className="mb-3 rounded-lg border border-zinc-800 bg-zinc-950 p-3">
-                <div className="text-xs font-semibold text-indigo-300">
-                  Compiled Storyboard &amp; Scene Sequences ({compiled.sequences.length} Scenes •{' '}
+              <div className="mb-3 rounded-xl border border-border bg-secondary/40 p-3">
+                <div className="text-xs font-semibold text-primary">
+                  Compiled Storyboard &amp; Scenes ({compiled.sequences.length} •{' '}
                   {compiled.totalDurationSec}s)
                 </div>
                 <div className="mt-2 space-y-1.5">
@@ -547,88 +556,92 @@ export default function AIStudioPage() {
                     <div
                       key={seq.sceneId}
                       onClick={() => setCurrentFrame(seq.startFrame)}
-                      className="cursor-pointer rounded border border-zinc-800 bg-zinc-900/70 px-2.5 py-1.5 text-[11px] hover:border-indigo-500/40"
+                      className="cursor-pointer rounded-lg border border-border bg-card px-2.5 py-1.5 text-[11px] transition-colors hover:border-primary/50"
                     >
-                      <div className="flex items-center justify-between font-medium text-white">
+                      <div className="flex items-center justify-between font-medium text-foreground">
                         <span>
                           Scene {seq.orderIndex + 1}: {seq.headlineText}
                         </span>
-                        <span className="font-mono text-[10px] text-zinc-400">
+                        <span className="font-mono text-[10px] text-muted-foreground tabular-nums">
                           f{seq.startFrame}-{seq.endFrame} ({seq.layout})
                         </span>
                       </div>
-                      <div className="truncate text-zinc-400">{seq.narrationText}</div>
+                      <div className="truncate text-muted-foreground">{seq.narrationText}</div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            <form onSubmit={handleRunProduction} className="border-t border-zinc-800 pt-3">
-              <div className="flex gap-2">
-                <input
+            <form onSubmit={handleRunProduction} className="space-y-2 border-t border-border pt-3">
+              <div className="flex flex-col gap-2">
+                <Input
                   type="text"
                   required
                   disabled={producing}
                   value={promptInput}
                   onChange={(e) => setPromptInput(e.target.value)}
-                  placeholder="Describe your video (e.g. 'Create an Instagram Reel with dynamic captions and strong hook')..."
-                  className="flex-1 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white focus:border-indigo-500 focus:outline-none"
+                  placeholder="Describe your video (e.g. 15s SaaS launch reel)..."
+                  className="min-w-0 w-full"
                 />
-                <button
-                  type="submit"
-                  disabled={producing}
-                  className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
-                >
-                  {producing ? 'Producing...' : 'Produce & Render'}
-                </button>
+                <div className="flex items-center justify-between gap-2">
+                  <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={simulateDefectsOnce}
+                      onChange={(e) => setSimulateDefectsOnce(e.target.checked)}
+                    />
+                    QA stress test: inject sample defect once to verify auto-revision
+                  </label>
+                  <Button type="submit" variant="ai" disabled={producing} className="shrink-0">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    {producing ? 'Producing...' : 'Produce & Render'}
+                  </Button>
+                </div>
               </div>
             </form>
-          </div>
+          </Card>
 
-          {/* Right Panel: Remotion Player Preview, Version Undo/Redo, QA & Approval Gate */}
-          <div className="flex flex-col space-y-4 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 lg:col-span-4">
+          {/* Right Panel: Preview, Version Undo/Redo, QA & Approval Gate */}
+          <Card className="flex flex-col space-y-4 p-4 lg:col-span-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                Remotion Player &amp; QA Gate
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Preview &amp; QA Gate
               </h2>
               {activeVersion && (
                 <div className="flex items-center gap-1.5">
-                  <span className="rounded bg-indigo-500/20 px-2 py-0.5 text-[10px] font-bold text-indigo-300">
-                    v{activeVersion.versionNumber}
-                  </span>
-                  <button
-                    type="button"
+                  <Badge variant="ai">v{activeVersion.versionNumber}</Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => void handleUndoRedo('undo')}
-                    className="rounded border border-zinc-700 bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-200 hover:bg-zinc-700"
+                    className="h-7 px-2 text-[11px]"
                   >
                     Undo
-                  </button>
-                  <button
-                    type="button"
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => void handleUndoRedo('redo')}
-                    className="rounded border border-zinc-700 bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-200 hover:bg-zinc-700"
+                    className="h-7 px-2 text-[11px]"
                   >
                     Redo
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
 
-            {/* Interactive Remotion Composition Canvas Preview */}
             {compiled && activeScene ? (
               <div className="space-y-3">
                 <div
-                  className="relative mx-auto flex aspect-[9/16] max-h-72 w-44 flex-col justify-between overflow-hidden rounded-xl border border-zinc-700 p-3 shadow-xl"
-                  style={{
-                    backgroundColor: compiled.brand.secondaryColor,
-                  }}
+                  className="relative mx-auto flex aspect-[9/16] max-h-72 w-44 flex-col justify-between overflow-hidden rounded-xl border border-border p-3 shadow-md"
+                  style={{ backgroundColor: compiled.brand.secondaryColor }}
                 >
-                  <div className="flex items-center justify-between text-[9px] text-zinc-300">
-                    <span className="rounded bg-black/50 px-1.5 py-0.5 font-mono">
+                  <div className="flex items-center justify-between text-[9px] text-foreground">
+                    <span className="rounded bg-black/60 px-1.5 py-0.5 font-mono">
                       {activeScene.layout}
                     </span>
-                    <span className="font-mono">
+                    <span className="font-mono tabular-nums">
                       f{currentFrame}/{compiled.durationInFrames}
                     </span>
                   </div>
@@ -643,12 +656,12 @@ export default function AIStudioPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <div className="rounded bg-black/70 px-2 py-1 text-center text-[11px] font-extrabold">
+                    <div className="rounded bg-black/75 px-2 py-1 text-center text-[11px] font-bold">
                       <span style={{ color: compiled.captions.highlightColor }}>
                         {activeWord ?? activeScene.narrationText}
                       </span>
                     </div>
-                    <div className="h-1 w-full overflow-hidden rounded bg-zinc-800">
+                    <div className="h-1 w-full overflow-hidden rounded bg-black/40">
                       <div
                         className="h-full transition-all"
                         style={{
@@ -661,131 +674,93 @@ export default function AIStudioPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsPlaying((p) => !p)}
-                    className="rounded-md bg-indigo-600 px-3 py-1 text-xs font-semibold text-white hover:bg-indigo-500"
-                  >
+                  <Button size="sm" onClick={() => setIsPlaying((p) => !p)}>
                     {isPlaying ? 'Pause' : 'Play'}
-                  </button>
+                  </Button>
                   <input
                     type="range"
+                    aria-label="Timeline scrubber"
                     min={0}
                     max={Math.max(1, compiled.durationInFrames - 1)}
                     value={currentFrame}
                     onChange={(e) => setCurrentFrame(Number(e.target.value))}
-                    className="flex-1"
+                    className="flex-1 accent-primary"
                   />
                 </div>
               </div>
             ) : (
-              <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-6 text-center text-xs text-zinc-500">
-                Enter a prompt and click &ldquo;Produce &amp; Render&rdquo; to compile and preview
-                the Remotion composition.
-              </div>
+              <EmptyState
+                title="No preview compiled yet"
+                description="Enter a prompt and click Produce & Render to preview scenes and captions."
+              />
             )}
 
-            {/* Visual QA Report & Rendered MP4 Artifact */}
             {qaReport && (
-              <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-white">Visual QA Inspection</span>
-                  <span
-                    className={`rounded px-2 py-0.5 text-[10px] font-bold ${
-                      qaReport.passed
-                        ? 'bg-emerald-500/20 text-emerald-300'
-                        : 'bg-amber-500/20 text-amber-300'
-                    }`}
-                  >
+              <div className="space-y-2 rounded-xl border border-border bg-secondary/40 p-3 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-foreground">Visual QA Inspection</span>
+                  <Badge variant={qaReport.passed ? 'success' : 'warning'}>
                     Score: {qaReport.overallScore}/100 ({qaReport.passed ? 'PASSED' : 'REVISED'})
-                  </span>
+                  </Badge>
                 </div>
-                <p className="mt-1 text-[11px] text-zinc-400">{qaReport.summary}</p>
+                <p className="text-[11px] text-muted-foreground">{qaReport.summary}</p>
 
                 {renderJob?.downloadUrl && (
-                  <div className="mt-3 space-y-2 border-t border-zinc-800 pt-3">
-                    <video
-                      key={renderJob.downloadUrl}
-                      controls
-                      playsInline
-                      preload="metadata"
-                      src={renderJob.downloadUrl}
-                      className="max-h-72 w-full rounded-lg border border-zinc-800 bg-black object-contain"
-                    />
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-zinc-400">
-                        MP4 ({renderJob.outputSizeBytes} bytes)
-                      </span>
-                      <a
-                        href={renderJob.downloadUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs font-semibold text-indigo-400 hover:underline"
-                      >
-                        Download Rendered MP4
-                      </a>
-                    </div>
-                  </div>
+                  <VideoPlayer
+                    src={renderJob.downloadUrl}
+                    sizeBytes={renderJob.outputSizeBytes}
+                  />
                 )}
               </div>
             )}
 
-            {/* Conversational Revision & Human Approval Checkpoint */}
             {activeWorkflow && (
-              <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+              <div className="space-y-3 rounded-xl border border-border bg-secondary/40 p-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-indigo-300">
-                    Stage: {activeWorkflow.stage}
-                  </span>
-                  <span className="text-[10px] text-zinc-400">{activeWorkflow.status}</span>
+                  <Badge variant="ai">Stage: {activeWorkflow.stage}</Badge>
+                  <span className="text-[10px] text-muted-foreground">{activeWorkflow.status}</span>
                 </div>
 
                 <form onSubmit={handleReviseWorkflow} className="flex gap-1.5">
-                  <input
+                  <Input
                     type="text"
                     value={revisionInput}
                     onChange={(e) => setRevisionInput(e.target.value)}
-                    placeholder="Ask AI to revise (e.g. 'Make captions larger')..."
-                    className="flex-1 rounded border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 text-xs text-white"
+                    placeholder="Ask AI to revise..."
                   />
-                  <button
-                    type="submit"
-                    disabled={producing}
-                    className="rounded bg-zinc-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-700"
-                  >
+                  <Button type="submit" variant="secondary" size="sm" disabled={producing}>
                     Revise
-                  </button>
+                  </Button>
                 </form>
 
                 {activeWorkflow.stage === 'AWAITING_APPROVAL' && (
-                  <button
+                  <Button
                     type="button"
                     onClick={() => void handleApproveWorkflow()}
-                    className="w-full rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-500"
+                    className="w-full bg-success text-success-foreground hover:opacity-95"
                   >
                     Approve Content (Human Approval Gate)
-                  </button>
+                  </Button>
                 )}
               </div>
             )}
 
-            {/* Real-Time SSE Feed */}
             {sseEvents.length > 0 && (
-              <div className="max-h-36 space-y-1 overflow-y-auto border-t border-zinc-800 pt-2">
-                <div className="text-[10px] font-semibold uppercase text-zinc-500">
+              <div className="max-h-36 space-y-1 overflow-y-auto border-t border-border pt-2">
+                <div className="text-[10px] font-semibold uppercase text-muted-foreground">
                   Live SSE Stream
                 </div>
                 {sseEvents.map((ev) => (
                   <div
                     key={ev.eventId}
-                    className="rounded border border-indigo-500/20 bg-indigo-500/5 px-2 py-1 text-[10px] text-zinc-300"
+                    className="rounded border border-primary/20 bg-ai-surface px-2 py-1 text-[10px] text-foreground"
                   >
-                    <strong className="text-indigo-300">{ev.stage}:</strong> {ev.message}
+                    <strong className="text-primary">{ev.stage}:</strong> {ev.message}
                   </div>
                 ))}
               </div>
             )}
-          </div>
+          </Card>
         </div>
       </div>
     </AppShell>

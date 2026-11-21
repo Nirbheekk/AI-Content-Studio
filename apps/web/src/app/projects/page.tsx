@@ -157,16 +157,16 @@ export default function ProjectsPage() {
   return (
     <AppShell>
       <div className="space-y-8">
-        <div className="border-b border-zinc-800 pb-5">
-          <h1 className="text-2xl font-bold text-white">Projects</h1>
-          <p className="mt-1 text-xs text-zinc-400">
+        <div className="border-b border-border pb-5">
+          <h1 className="text-2xl font-bold text-foreground">Projects</h1>
+          <p className="mt-1 text-xs text-muted-foreground">
             Organize raw media uploads, AI Studio conversations, and video compositions by project.
           </p>
         </div>
 
         <form
           onSubmit={handleCreate}
-          className="grid gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 md:grid-cols-3"
+          className="grid gap-3 rounded-xl border border-border bg-card/70 p-4 md:grid-cols-3"
         >
           <input
             type="text"
@@ -174,19 +174,19 @@ export default function ProjectsPage() {
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="New Project Name..."
-            className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+            className="rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
           />
           <input
             type="text"
             value={newDesc}
             onChange={(e) => setNewDesc(e.target.value)}
             placeholder="Optional description or campaign brief..."
-            className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+            className="rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
           />
           <button
             type="submit"
             disabled={creating}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+            className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             {creating ? 'Creating...' : '+ Create Project'}
           </button>
@@ -201,8 +201,8 @@ export default function ProjectsPage() {
                 onClick={() => setStatusFilter(st)}
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
                   statusFilter === st
-                    ? 'bg-indigo-600 text-white'
-                    : 'border border-zinc-800 bg-zinc-900 text-zinc-400'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'border border-border bg-card text-muted-foreground'
                 }`}
               >
                 {st}
@@ -215,14 +215,14 @@ export default function ProjectsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search projects..."
-            className="w-64 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs text-white"
+            className="w-64 rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-foreground"
           />
         </div>
 
         {loading ? (
-          <div className="text-xs text-zinc-400">Loading projects...</div>
+          <div className="text-xs text-muted-foreground">Loading projects...</div>
         ) : projects.length === 0 ? (
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-8 text-center text-xs text-zinc-500">
+          <div className="rounded-xl border border-border bg-muted/40 p-8 text-center text-xs text-muted-foreground/80">
             No matching projects found in this workspace.
           </div>
         ) : (
@@ -230,41 +230,41 @@ export default function ProjectsPage() {
             {projects.map((proj) => (
               <div
                 key={proj.id}
-                className="flex flex-col justify-between rounded-xl border border-zinc-800 bg-zinc-900/60 p-5"
+                className="flex flex-col justify-between rounded-xl border border-border bg-card/80 p-5"
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <h2 className="text-base font-semibold text-white">{proj.name}</h2>
+                    <h2 className="text-base font-semibold text-foreground">{proj.name}</h2>
                     <span
                       className={`rounded px-2 py-0.5 text-[10px] font-semibold ${
                         proj.status === 'ACTIVE'
-                          ? 'bg-emerald-500/20 text-emerald-300'
-                          : 'bg-amber-500/20 text-amber-300'
+                          ? 'bg-success/15 text-success'
+                          : 'bg-warning/15 text-warning'
                       }`}
                     >
                       {proj.status}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-zinc-400">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     {proj.description || 'No description provided'}
                   </p>
-                  <div className="mt-3 flex gap-4 text-[11px] text-zinc-500">
+                  <div className="mt-3 flex gap-4 text-[11px] text-muted-foreground/80">
                     <span>{proj._count?.assets ?? 0} Assets</span>
                     <span>{proj._count?.conversations ?? 0} Conversations</span>
                     <span>{proj._count?.workflows ?? 0} Workflows</span>
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2 border-t border-zinc-800/80 pt-3">
+                <div className="mt-4 flex flex-wrap gap-2 border-t border-border/80 pt-3">
                   <Link
                     href={`/studio?projectId=${proj.id}`}
-                    className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500"
+                    className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
                   >
                     Open AI Studio
                   </Link>
                   <Link
                     href={`/library?projectId=${proj.id}`}
-                    className="rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs text-zinc-200 hover:bg-zinc-700"
+                    className="rounded-md border border-input bg-secondary px-3 py-1.5 text-xs text-foreground hover:bg-muted/80"
                   >
                     Assets
                   </Link>
@@ -275,14 +275,14 @@ export default function ProjectsPage() {
                       setEditName(proj.name);
                       setEditDesc(proj.description ?? '');
                     }}
-                    className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800"
+                    className="rounded-md border border-input px-3 py-1.5 text-xs text-foreground/90 hover:bg-secondary/80"
                   >
                     Rename / Edit
                   </button>
                   <button
                     type="button"
                     onClick={() => void handleArchiveToggle(proj)}
-                    className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800"
+                    className="rounded-md border border-input px-3 py-1.5 text-xs text-foreground/90 hover:bg-secondary/80"
                   >
                     {proj.status === 'ACTIVE' ? 'Archive' : 'Restore'}
                   </button>
@@ -301,39 +301,39 @@ export default function ProjectsPage() {
 
         {editingProject && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-            <div className="w-full max-w-md rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-              <h2 className="text-base font-semibold text-white">Edit Project</h2>
+            <div className="w-full max-w-md rounded-xl border border-border bg-card p-6">
+              <h2 className="text-base font-semibold text-foreground">Edit Project</h2>
               <form onSubmit={handleUpdate} className="mt-4 space-y-4">
                 <div>
-                  <label className="block text-xs text-zinc-300">Project Name</label>
+                  <label className="block text-xs text-foreground/90">Project Name</label>
                   <input
                     type="text"
                     required
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-300">Description</label>
+                  <label className="block text-xs text-foreground/90">Description</label>
                   <textarea
                     rows={3}
                     value={editDesc}
                     onChange={(e) => setEditDesc(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                   />
                 </div>
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setEditingProject(null)}
-                    className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300"
+                    className="rounded-lg border border-input px-3 py-1.5 text-xs text-foreground/90"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white"
+                    className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
                   >
                     Save Changes
                   </button>
@@ -345,9 +345,9 @@ export default function ProjectsPage() {
 
         {confirmDeleteProject && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-            <div className="w-full max-w-md rounded-xl border border-red-500/40 bg-zinc-900 p-6">
-              <h2 className="text-base font-semibold text-white">Confirm Project Deletion</h2>
-              <p className="mt-2 text-xs text-zinc-300">
+            <div className="w-full max-w-md rounded-xl border border-red-500/40 bg-card p-6">
+              <h2 className="text-base font-semibold text-foreground">Confirm Project Deletion</h2>
+              <p className="mt-2 text-xs text-foreground/90">
                 Are you sure you want to permanently delete{' '}
                 <strong>{confirmDeleteProject.name}</strong>? This action cannot be undone.
               </p>
@@ -355,14 +355,14 @@ export default function ProjectsPage() {
                 <button
                   type="button"
                   onClick={() => setConfirmDeleteProject(null)}
-                  className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300"
+                  className="rounded-lg border border-input px-3 py-1.5 text-xs text-foreground/90"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={() => void handleConfirmedDelete()}
-                  className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-500"
+                  className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-red-500"
                 >
                   Confirm Delete
                 </button>

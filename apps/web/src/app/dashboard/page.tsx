@@ -2,7 +2,19 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { FolderPlus, RefreshCw, Sparkles } from 'lucide-react';
 import { AppShell } from '../../components/app-shell';
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  MetricCard,
+  PageHeader,
+  Skeleton,
+  Textarea,
+} from '../../components/design-system/primitives';
 import { useStudio } from '../../context/studio-context';
 import { apiRequest, DashboardDataDto, ProjectDto } from '../../lib/api-client';
 
@@ -78,117 +90,148 @@ function DashboardContent() {
   };
 
   if (loading && !data) {
-    return <div className="text-sm text-zinc-400">Loading workspace dashboard telemetry...</div>;
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-16 w-full" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Skeleton className="h-28" />
+          <Skeleton className="h-28" />
+          <Skeleton className="h-28" />
+          <Skeleton className="h-28" />
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800 pb-6">
-        <div>
-          <span className="text-xs font-medium uppercase tracking-wider text-indigo-400">
-            Workspace Overview — {data?.workspace.name} ({data?.workspace.planTier})
-          </span>
-          <h1 className="mt-1 text-2xl font-bold text-white">Production Control Dashboard</h1>
-          <p className="mt-1 text-xs text-zinc-400">
-            Role: {data?.workspace.role} • Slug: {data?.workspace.slug}
-          </p>
-        </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Production Control Dashboard"
+        description={`${data?.workspace.name ?? 'Workspace'} • Role: ${data?.workspace.role ?? 'MEMBER'} • Slug: ${data?.workspace.slug ?? ''}`}
+        badge={<Badge variant="ai">{data?.workspace.planTier ?? 'PRO'}</Badge>}
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={() => void loadDashboard()}>
+              <RefreshCw className="h-3.5 w-3.5" />
+              Refresh Data
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => setShowNewProject(true)}>
+              <FolderPlus className="h-3.5 w-3.5" />
+              + Create New Project
+            </Button>
+          </>
+        }
+      />
 
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => void loadDashboard()}
-            className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs font-medium text-zinc-200 hover:bg-zinc-800"
-          >
-            Refresh Data
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowNewProject(true)}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500"
-          >
-            + Create New Project
-          </button>
+      {/* Quick Create Hero */}
+      <Card className="border-primary/25 bg-ai-surface p-5">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+              <Sparkles className="h-3.5 w-3.5" />
+              Describe it. Create it. Refine it. Publish it.
+            </div>
+            <h2 className="mt-1 text-base font-semibold text-foreground">
+              Launch a new AI video production in seconds
+            </h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Upload raw media, describe your creative goal in AI Studio, review Visual QA, and schedule across platforms.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Link
+              href="/studio"
+              className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-xs font-medium text-primary-foreground shadow-sm transition-opacity hover:opacity-95"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Open AI Studio
+            </Link>
+            <Link
+              href="/library"
+              className="inline-flex h-9 items-center rounded-lg border border-border bg-card px-3 text-xs font-medium text-foreground hover:bg-secondary"
+            >
+              Upload Media
+            </Link>
+          </div>
         </div>
-      </div>
+      </Card>
 
+      {/* Metrics */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
-          <div className="text-xs text-zinc-400">Total Projects</div>
-          <div className="mt-2 text-3xl font-bold text-white">
-            {data?.stats.totalProjects ?? 0}
-          </div>
-          <div className="mt-1 text-[11px] text-zinc-500">
-            {data?.stats.activeProjects ?? 0} active • {data?.stats.archivedProjects ?? 0} archived
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
-          <div className="text-xs text-zinc-400">Total Content Assets</div>
-          <div className="mt-2 text-3xl font-bold text-white">{data?.stats.totalAssets ?? 0}</div>
-          <div className="mt-1 text-[11px] text-zinc-500">
-            Storage Used: {formatBytes(data?.stats.totalStorageBytes ?? 0)}
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
-          <div className="text-xs text-zinc-400">Active AI Workflows</div>
-          <div className="mt-2 text-3xl font-bold text-white">
-            {data?.stats.activeWorkflowCount ?? 0}
-          </div>
-          <div className="mt-1 text-[11px] text-zinc-500">
-            {data?.processingJobs.length ?? 0} total workflow runs recorded
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
-          <div className="text-xs text-zinc-400">Brand Kit Identity</div>
+        <MetricCard
+          label="Total Projects"
+          value={data?.stats.totalProjects ?? 0}
+          sublabel={`${data?.stats.activeProjects ?? 0} active • ${data?.stats.archivedProjects ?? 0} archived`}
+        />
+        <MetricCard
+          label="Content Assets"
+          value={data?.stats.totalAssets ?? 0}
+          sublabel={`Storage: ${formatBytes(data?.stats.totalStorageBytes ?? 0)}`}
+        />
+        <MetricCard
+          label="Active AI Workflows"
+          value={data?.stats.activeWorkflowCount ?? 0}
+          tone="ai"
+          sublabel={`${data?.processingJobs.length ?? 0} workflow runs recorded`}
+        />
+        <Card className="p-4">
+          <div className="text-xs font-medium text-muted-foreground">Brand Kit Identity</div>
           <div className="mt-2 flex items-center gap-2">
             <span
-              className="inline-block h-4 w-4 rounded-full border border-zinc-700"
-              style={{
-                backgroundColor: data?.workspace.brandKit?.primaryColor ?? '#6366F1',
-              }}
+              className="inline-block h-4 w-4 shrink-0 rounded-full border border-border"
+              style={{ backgroundColor: data?.workspace.brandKit?.primaryColor ?? '#6956E8' }}
             />
-            <span className="truncate text-sm font-semibold text-white">
+            <span className="truncate text-sm font-semibold text-foreground">
               {data?.workspace.brandKit?.brandName ?? data?.workspace.name}
             </span>
           </div>
-          <div className="mt-1 truncate text-[11px] text-zinc-500">
-            {data?.workspace.brandKit?.toneOfVoice ?? 'Configured'}
+          <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
+            <span className="truncate">{data?.workspace.brandKit?.toneOfVoice ?? 'Configured'}</span>
+            <Link href="/brand-kit" className="font-medium text-primary hover:underline">
+              Edit
+            </Link>
           </div>
-        </div>
+        </Card>
       </div>
 
+      {/* Projects & Workflows */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+        <Card className="p-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-white">Recent Projects</h2>
-            <Link href="/projects" className="text-xs text-indigo-400 hover:underline">
+            <h2 className="text-sm font-semibold text-foreground">Recent Projects</h2>
+            <Link href="/projects" className="text-xs font-medium text-primary hover:underline">
               Manage All Projects
             </Link>
           </div>
           {!data?.recentProjects.length ? (
-            <p className="mt-4 text-xs text-zinc-500">
-              No projects in this workspace yet. Click &ldquo;Create New Project&rdquo; to begin.
-            </p>
+            <div className="mt-4">
+              <EmptyState
+                title="No projects yet"
+                description="Create your first project to organize assets, scripts, and video compositions."
+                action={
+                  <Button size="sm" onClick={() => setShowNewProject(true)}>
+                    Create New Project
+                  </Button>
+                }
+              />
+            </div>
           ) : (
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 space-y-2.5">
               {data.recentProjects.map((proj) => (
                 <div
                   key={proj.id}
-                  className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950/60 p-3"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-secondary/50 p-3"
                 >
-                  <div>
-                    <div className="text-sm font-medium text-white">{proj.name}</div>
-                    <div className="text-[11px] text-zinc-400">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium text-foreground">{proj.name}</div>
+                    <div className="text-[11px] text-muted-foreground tabular-nums">
                       {proj._count?.assets ?? 0} assets • {proj._count?.conversations ?? 0}{' '}
                       conversations • {proj.status}
                     </div>
                   </div>
                   <Link
                     href={`/studio?projectId=${proj.id}`}
-                    className="rounded-md bg-indigo-600/20 px-3 py-1.5 text-xs font-medium text-indigo-300 hover:bg-indigo-600/30"
+                    className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-foreground transition-colors hover:opacity-90"
                   >
                     Open in AI Studio
                   </Link>
@@ -196,61 +239,65 @@ function DashboardContent() {
               ))}
             </div>
           )}
-        </div>
+        </Card>
 
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+        <Card className="p-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-white">Active AI Production Workflows</h2>
-            <Link href="/studio" className="text-xs text-indigo-400 hover:underline">
+            <h2 className="text-sm font-semibold text-foreground">Active AI Production Workflows</h2>
+            <Link href="/studio" className="text-xs font-medium text-primary hover:underline">
               Open AI Studio
             </Link>
           </div>
           {!data?.processingJobs.length ? (
-            <p className="mt-4 text-xs text-zinc-500">
-              No AI workflows triggered yet. Start a conversation in AI Studio.
-            </p>
+            <div className="mt-4">
+              <EmptyState
+                title="No AI workflows triggered yet"
+                description="Describe a video concept in AI Studio to kick off planning, scripting, and rendering."
+              />
+            </div>
           ) : (
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 space-y-2.5">
               {data.processingJobs.map((wf) => (
                 <div
                   key={wf.id}
-                  className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-3"
+                  className="rounded-lg border border-border bg-secondary/50 p-3"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-indigo-300">{wf.stage}</span>
-                    <span className="text-[11px] text-zinc-500">
+                  <div className="flex items-center justify-between gap-2">
+                    <Badge variant="ai">{wf.stage}</Badge>
+                    <span className="text-[11px] text-muted-foreground">
                       {wf.project?.name ?? 'Project'}
                     </span>
                   </div>
-                  <p className="mt-1 truncate text-xs text-zinc-200">{wf.userPrompt}</p>
+                  <p className="mt-1.5 truncate text-xs text-foreground">{wf.userPrompt}</p>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
+      {/* Conversations & Audit */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
-          <h2 className="text-sm font-semibold text-white">Recent AI Studio Conversations</h2>
+        <Card className="p-5">
+          <h2 className="text-sm font-semibold text-foreground">Recent AI Studio Conversations</h2>
           {!data?.recentConversations.length ? (
-            <p className="mt-4 text-xs text-zinc-500">No conversations recorded yet.</p>
+            <p className="mt-4 text-xs text-muted-foreground">No conversations recorded yet.</p>
           ) : (
             <div className="mt-4 space-y-2.5">
               {data.recentConversations.map((conv) => (
                 <div
                   key={conv.id}
-                  className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950/60 p-3"
+                  className="flex items-center justify-between gap-2 rounded-lg border border-border bg-secondary/50 p-3"
                 >
-                  <div>
-                    <div className="text-xs font-medium text-white">{conv.title}</div>
-                    <div className="text-[11px] text-zinc-500">
+                  <div className="min-w-0">
+                    <div className="truncate text-xs font-medium text-foreground">{conv.title}</div>
+                    <div className="text-[11px] text-muted-foreground tabular-nums">
                       Project: {conv.project?.name} • {conv._count?.messages ?? 0} messages
                     </div>
                   </div>
                   <Link
                     href={`/studio?conversationId=${conv.id}`}
-                    className="text-xs text-indigo-400 hover:underline"
+                    className="shrink-0 text-xs font-medium text-primary hover:underline"
                   >
                     Resume
                   </Link>
@@ -258,74 +305,68 @@ function DashboardContent() {
               ))}
             </div>
           )}
-        </div>
+        </Card>
 
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
-          <h2 className="text-sm font-semibold text-white">Recent Workspace Audit Activity</h2>
+        <Card className="p-5">
+          <h2 className="text-sm font-semibold text-foreground">Recent Workspace Audit Activity</h2>
           {!data?.recentActivity.length ? (
-            <p className="mt-4 text-xs text-zinc-500">No activity events yet.</p>
+            <p className="mt-4 text-xs text-muted-foreground">No activity events yet.</p>
           ) : (
             <div className="mt-4 space-y-2">
               {data.recentActivity.map((act) => (
                 <div
                   key={act.id}
-                  className="flex items-center justify-between border-b border-zinc-800/60 pb-2 text-xs"
+                  className="flex items-center justify-between gap-2 border-b border-border/60 pb-2 text-xs last:border-0"
                 >
-                  <span className="font-mono text-zinc-300">{act.action}</span>
-                  <span className="text-[11px] text-zinc-500">
+                  <span className="truncate font-mono text-foreground">{act.action}</span>
+                  <span className="shrink-0 text-[11px] text-muted-foreground">
                     {act.user?.fullName ?? act.entityType}
                   </span>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {showNewProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-md rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-            <h2 className="text-lg font-semibold text-white">Create New Project</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <Card className="w-full max-w-md p-6 shadow-xl">
+            <h2 className="text-lg font-semibold text-foreground">Create New Project</h2>
             <form onSubmit={handleCreateProject} className="mt-4 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-zinc-300">Project Name</label>
-                <input
+                <label className="mb-1 block text-xs font-medium text-foreground">
+                  Project Name
+                </label>
+                <Input
                   type="text"
                   required
                   value={newProjectName}
                   onChange={(e) => setNewProjectName(e.target.value)}
                   placeholder="Podcast Season 2 Reels"
-                  className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-zinc-300">Description</label>
-                <textarea
+                <label className="mb-1 block text-xs font-medium text-foreground">
+                  Description
+                </label>
+                <Textarea
                   rows={3}
                   value={newProjectDesc}
                   onChange={(e) => setNewProjectDesc(e.target.value)}
                   placeholder="Describe project goals, target platforms, or campaign notes"
-                  className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white"
                 />
               </div>
               <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowNewProject(false)}
-                  className="rounded-lg border border-zinc-700 px-4 py-2 text-xs text-zinc-300"
-                >
+                <Button type="button" variant="outline" onClick={() => setShowNewProject(false)}>
                   Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={creating}
-                  className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-medium text-white hover:bg-indigo-500"
-                >
+                </Button>
+                <Button type="submit" disabled={creating}>
                   {creating ? 'Creating...' : 'Create Project'}
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
+          </Card>
         </div>
       )}
     </div>

@@ -373,10 +373,10 @@ export default function ContentCalendarPage() {
     <AppShell>
       <div className="space-y-6">
         {/* Top Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800 pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
           <div>
-            <h1 className="text-2xl font-bold text-white">Interactive Content Calendar</h1>
-            <p className="mt-1 text-sm text-zinc-400">
+            <h1 className="text-2xl font-bold text-foreground">Interactive Content Calendar</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
               Drag and drop scheduled posts across dates, switch between Monthly, Weekly, and Daily
               views, and filter by platform or social account.
             </p>
@@ -384,7 +384,7 @@ export default function ContentCalendarPage() {
           <div className="flex items-center gap-2">
             <Link
               href="/publish"
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500"
+              className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
             >
               + Compose &amp; Schedule Post
             </Link>
@@ -392,9 +392,9 @@ export default function ContentCalendarPage() {
         </div>
 
         {/* Controls Bar: View Switcher, Date Nav, Filters & Timezone */}
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card/80 p-4">
           {/* View Mode Switcher */}
-          <div className="flex items-center gap-1 rounded-lg bg-zinc-950 p-1">
+          <div className="flex items-center gap-1 rounded-lg bg-background p-1">
             {(['month', 'week', 'day'] as const).map((mode) => (
               <button
                 key={mode}
@@ -402,8 +402,8 @@ export default function ContentCalendarPage() {
                 onClick={() => setView(mode)}
                 className={`rounded-md px-3 py-1.5 text-xs font-semibold capitalize transition ${
                   view === mode
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-zinc-400 hover:text-white'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {mode} View
@@ -416,25 +416,25 @@ export default function ContentCalendarPage() {
             <button
               type="button"
               onClick={() => navigateAnchor(-1)}
-              className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800"
+              className="rounded-lg border border-input bg-background px-3 py-1.5 text-xs text-foreground/90 hover:bg-secondary/80"
             >
               Prev
             </button>
             <button
               type="button"
               onClick={() => navigateAnchor(0)}
-              className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800"
+              className="rounded-lg border border-input bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary/80"
             >
               Today
             </button>
             <button
               type="button"
               onClick={() => navigateAnchor(1)}
-              className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800"
+              className="rounded-lg border border-input bg-background px-3 py-1.5 text-xs text-foreground/90 hover:bg-secondary/80"
             >
               Next
             </button>
-            <span className="ml-2 text-sm font-bold text-white">{monthHeading}</span>
+            <span className="ml-2 text-sm font-bold text-foreground">{monthHeading}</span>
           </div>
 
           {/* Platform, Account, Status & Timezone Filters */}
@@ -443,7 +443,7 @@ export default function ContentCalendarPage() {
               aria-label="Filter by Platform"
               value={platformFilter}
               onChange={(e) => setPlatformFilter(e.target.value)}
-              className="rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-xs text-white"
+              className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground"
             >
               <option value="">All Platforms</option>
               {PLATFORMS.filter(Boolean).map((p) => (
@@ -457,7 +457,7 @@ export default function ContentCalendarPage() {
               aria-label="Filter by Social Account"
               value={accountFilter}
               onChange={(e) => setAccountFilter(e.target.value)}
-              className="rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-xs text-white"
+              className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground"
             >
               <option value="">All Accounts</option>
               {accounts.map((acc) => (
@@ -471,7 +471,7 @@ export default function ContentCalendarPage() {
               aria-label="Filter by Status"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-xs text-white"
+              className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground"
             >
               <option value="">All Statuses</option>
               {STATUSES.filter(Boolean).map((s) => (
@@ -485,7 +485,7 @@ export default function ContentCalendarPage() {
               aria-label="Calendar Timezone"
               value={timezone}
               onChange={(e) => setTimezone(e.target.value)}
-              className="rounded-lg border border-indigo-500/40 bg-zinc-950 px-2.5 py-1.5 text-xs text-indigo-300"
+              className="rounded-lg border border-primary/40 bg-background px-2.5 py-1.5 text-xs text-primary"
             >
               {TIMEZONES.map((tz) => (
                 <option key={tz} value={tz}>
@@ -497,9 +497,9 @@ export default function ContentCalendarPage() {
         </div>
 
         {/* Calendar Grid */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+        <div className="rounded-xl border border-border bg-card/70 p-4">
           {view !== 'day' && (
-            <div className="mb-2 grid grid-cols-7 gap-2 text-center text-xs font-semibold text-zinc-400">
+            <div className="mb-2 grid grid-cols-7 gap-2 text-center text-xs font-semibold text-muted-foreground">
               <div>Sun</div>
               <div>Mon</div>
               <div>Tue</div>
@@ -511,7 +511,7 @@ export default function ContentCalendarPage() {
           )}
 
           {loading && !calendarData ? (
-            <div className="py-12 text-center text-xs text-zinc-500">
+            <div className="py-12 text-center text-xs text-muted-foreground/80">
               Loading calendar schedule...
             </div>
           ) : (
@@ -543,24 +543,24 @@ export default function ContentCalendarPage() {
                     }}
                     className={`min-h-[135px] rounded-lg border p-2.5 transition ${
                       isDragTarget
-                        ? 'border-indigo-400 bg-indigo-950/40'
+                        ? 'border-primary bg-primary/15'
                         : isToday
-                          ? 'border-indigo-500/50 bg-zinc-950'
+                          ? 'border-primary/50 bg-background'
                           : cell.inCurrentMonth
-                            ? 'border-zinc-800 bg-zinc-950/80'
-                            : 'border-zinc-900 bg-zinc-950/30 opacity-60'
+                            ? 'border-border bg-background/80'
+                            : 'border-border/60 bg-muted/30 opacity-60'
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <span
                         className={`text-xs font-semibold ${
-                          isToday ? 'text-indigo-400' : 'text-zinc-300'
+                          isToday ? 'text-primary' : 'text-foreground/90'
                         }`}
                       >
                         {cell.dateKey}
                       </span>
                       {dayEntries.length > 0 && (
-                        <span className="rounded-full bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-400">
+                        <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground">
                           {dayEntries.length}
                         </span>
                       )}
@@ -576,15 +576,15 @@ export default function ContentCalendarPage() {
                             draggable={canDrag}
                             onDragStart={() => setDraggedPostId(entry.id)}
                             onClick={() => openPostInspector(entry)}
-                            className={`cursor-pointer rounded border p-2 text-left text-[11px] transition hover:border-indigo-400 ${
+                            className={`cursor-pointer rounded border p-2 text-left text-[11px] transition hover:border-primary ${
                               entry.status === 'PUBLISHED'
-                                ? 'border-emerald-500/30 bg-emerald-950/20 text-emerald-200'
+                                ? 'border-success/30 bg-success/10 text-success'
                                 : entry.status === 'SCHEDULED'
-                                  ? 'border-indigo-500/30 bg-indigo-950/25 text-indigo-200'
+                                  ? 'border-primary/30 bg-primary/10 text-primary'
                                   : entry.status === 'FAILED'
                                     ? 'border-red-500/40 bg-red-950/25 text-red-200'
                                     : entry.status === 'CANCELLED'
-                                      ? 'border-zinc-800 bg-zinc-900/50 text-zinc-500 line-through'
+                                      ? 'border-border bg-card/70 text-muted-foreground/80 line-through'
                                       : 'border-cyan-500/30 bg-cyan-950/20 text-cyan-200'
                             }`}
                           >
@@ -617,31 +617,31 @@ export default function ContentCalendarPage() {
       {/* Post Inspector & Reschedule / Edit Modal */}
       {selectedPost && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
-          <div className="w-full max-w-lg rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+          <div className="w-full max-w-lg rounded-xl border border-border bg-card p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="rounded bg-indigo-500/20 px-2 py-0.5 text-xs font-bold text-indigo-300">
+                <span className="rounded bg-primary/15 px-2 py-0.5 text-xs font-bold text-primary">
                   {selectedPost.platform}
                 </span>
-                <span className="text-xs text-zinc-300">
+                <span className="text-xs text-foreground/90">
                   {selectedPost.socialAccount.accountHandle}
                 </span>
-                <span className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] font-semibold text-zinc-200">
+                <span className="rounded bg-secondary px-2 py-0.5 text-[10px] font-semibold text-foreground">
                   {selectedPost.status}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedPost(null)}
-                className="text-xs text-zinc-400 hover:text-white"
+                className="text-xs text-muted-foreground hover:text-foreground"
               >
                 Close
               </button>
             </div>
 
             {selectedPost.status === 'PUBLISHED' ? (
-              <div className="mt-4 space-y-3 text-xs text-zinc-300">
-                <div className="rounded-lg border border-emerald-500/30 bg-emerald-950/20 p-3 text-emerald-200">
+              <div className="mt-4 space-y-3 text-xs text-foreground/90">
+                <div className="rounded-lg border border-success/30 bg-success/10 p-3 text-success">
                   Confirmed Published at {selectedPost.localDateTimeLabel} ({selectedPost.displayTimezone})
                 </div>
                 {selectedPost.title && (
@@ -651,7 +651,7 @@ export default function ContentCalendarPage() {
                 )}
                 <div>
                   <strong>Caption:</strong>
-                  <p className="mt-1 rounded bg-zinc-950 p-2.5 text-zinc-200">
+                  <p className="mt-1 rounded bg-background p-2.5 text-foreground">
                     {selectedPost.captionText}
                   </p>
                 </div>
@@ -660,7 +660,7 @@ export default function ContentCalendarPage() {
                     href={selectedPost.externalPostUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-block rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white"
+                    className="inline-block rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
                   >
                     Open External Post URL
                   </a>
@@ -669,47 +669,47 @@ export default function ContentCalendarPage() {
             ) : (
               <form onSubmit={handleSavePostEdits} className="mt-4 space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-zinc-300">Post Title</label>
+                  <label className="block text-xs font-medium text-foreground/90">Post Title</label>
                   <input
                     type="text"
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-zinc-300">Caption</label>
+                  <label className="block text-xs font-medium text-foreground/90">Caption</label>
                   <textarea
                     rows={3}
                     required
                     value={editCaption}
                     onChange={(e) => setEditCaption(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-zinc-300">
+                  <label className="block text-xs font-medium text-foreground/90">
                     Hashtags (comma-separated)
                   </label>
                   <input
                     type="text"
                     value={editHashtags}
                     onChange={(e) => setEditHashtags(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-zinc-300">
+                  <label className="block text-xs font-medium text-foreground/90">
                     Reschedule Date &amp; Time ({timezone})
                   </label>
                   <input
                     type="datetime-local"
                     value={editScheduleIso}
                     onChange={(e) => setEditScheduleIso(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                   />
                 </div>
 
@@ -718,7 +718,7 @@ export default function ContentCalendarPage() {
                     <button
                       type="button"
                       onClick={() => void handlePublishImmediatelyFromInspector(selectedPost.id)}
-                      className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-500"
+                      className="rounded-lg bg-success px-3 py-2 text-xs font-semibold text-white hover:bg-success/90"
                     >
                       Publish Now
                     </button>
@@ -736,7 +736,7 @@ export default function ContentCalendarPage() {
                   <button
                     type="submit"
                     disabled={savingEdit}
-                    className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500"
+                    className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
                   >
                     {savingEdit ? 'Saving...' : 'Save Changes & Reschedule'}
                   </button>

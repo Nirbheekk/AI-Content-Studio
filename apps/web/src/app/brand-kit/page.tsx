@@ -124,9 +124,9 @@ export default function BrandKitPage() {
   return (
     <AppShell>
       <div className="space-y-8">
-        <div className="border-b border-zinc-800 pb-5">
-          <h1 className="text-2xl font-bold text-white">Workspace Brand Kit &amp; Visual Language</h1>
-          <p className="mt-1 text-xs text-zinc-400">
+        <div className="border-b border-border pb-5">
+          <h1 className="text-2xl font-bold text-foreground">Workspace Brand Kit &amp; Visual Language</h1>
+          <p className="mt-1 text-xs text-muted-foreground">
             Configure brand colors, typography, caption style presets, tone of voice, and editing
             choreography automatically inherited by all AI-generated compositions.
           </p>
@@ -134,74 +134,74 @@ export default function BrandKitPage() {
 
         <form
           onSubmit={handleSave}
-          className="grid gap-6 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 lg:grid-cols-2"
+          className="grid gap-6 rounded-xl border border-border bg-card/70 p-6 lg:grid-cols-2"
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-xs text-zinc-300">Brand Name</label>
+              <label className="block text-xs text-foreground/90">Brand Name</label>
               <input
                 type="text"
                 required
                 value={brandName}
                 onChange={(e) => setBrandName(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
               />
             </div>
 
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs text-zinc-300">Primary Color</label>
+                <label className="block text-xs text-foreground/90">Primary Color</label>
                 <input
                   type="text"
                   value={primaryColor}
                   onChange={(e) => setPrimaryColor(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                 />
               </div>
               <div>
-                <label className="block text-xs text-zinc-300">Secondary Background</label>
+                <label className="block text-xs text-foreground/90">Secondary Background</label>
                 <input
                   type="text"
                   value={secondaryColor}
                   onChange={(e) => setSecondaryColor(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                 />
               </div>
               <div>
-                <label className="block text-xs text-zinc-300">Accent Highlight</label>
+                <label className="block text-xs text-foreground/90">Accent Highlight</label>
                 <input
                   type="text"
                   value={accentColor}
                   onChange={(e) => setAccentColor(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-zinc-300">Heading Font</label>
+                <label className="block text-xs text-foreground/90">Heading Font</label>
                 <input
                   type="text"
                   value={headingFont}
                   onChange={(e) => setHeadingFont(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                 />
               </div>
               <div>
-                <label className="block text-xs text-zinc-300">Body Font</label>
+                <label className="block text-xs text-foreground/90">Body Font</label>
                 <input
                   type="text"
                   value={bodyFont}
                   onChange={(e) => setBodyFont(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-zinc-300">Caption Preset</label>
+                <label className="block text-xs text-foreground/90">Caption Preset</label>
                 <select
                   value={captionStyle}
                   onChange={(e) =>
@@ -213,7 +213,7 @@ export default function BrandKitPage() {
                         | 'kinetic-center',
                     )
                   }
-                  className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                 >
                   <option value="word-highlight">word-highlight</option>
                   <option value="karaoke-pop">karaoke-pop</option>
@@ -222,14 +222,14 @@ export default function BrandKitPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-zinc-300">Caption Font Size (px)</label>
+                <label className="block text-xs text-foreground/90">Caption Font Size (px)</label>
                 <input
                   type="number"
                   min={24}
                   max={84}
                   value={captionFontSizePx}
                   onChange={(e) => setCaptionFontSizePx(Number(e.target.value))}
-                  className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                 />
               </div>
             </div>
@@ -237,51 +237,51 @@ export default function BrandKitPage() {
 
           <div className="space-y-4">
             <div>
-              <label className="block text-xs text-zinc-300">Tone of Voice</label>
+              <label className="block text-xs text-foreground/90">Tone of Voice</label>
               <input
                 type="text"
                 required
                 value={toneOfVoice}
                 onChange={(e) => setToneOfVoice(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
               />
             </div>
 
             <div>
-              <label className="block text-xs text-zinc-300">Editing Style &amp; Choreography</label>
+              <label className="block text-xs text-foreground/90">Editing Style &amp; Choreography</label>
               <input
                 type="text"
                 required
                 value={editingStyle}
                 onChange={(e) => setEditingStyle(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
               />
             </div>
 
             <div>
-              <label className="block text-xs text-zinc-300">Target Audience</label>
+              <label className="block text-xs text-foreground/90">Target Audience</label>
               <input
                 type="text"
                 value={targetAudience}
                 onChange={(e) => setTargetAudience(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
               />
             </div>
 
             <div>
-              <label className="block text-xs text-zinc-300">Brand Guidelines Notes</label>
+              <label className="block text-xs text-foreground/90">Brand Guidelines Notes</label>
               <textarea
                 rows={3}
                 value={guidelinesText}
                 onChange={(e) => setGuidelinesText(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
               />
             </div>
 
             <button
               type="submit"
               disabled={saving}
-              className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+              className="w-full rounded-lg bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               {saving ? 'Saving Brand Kit...' : 'Save Workspace Brand Kit'}
             </button>

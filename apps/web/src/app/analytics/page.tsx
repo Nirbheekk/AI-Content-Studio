@@ -68,7 +68,7 @@ const pct = (v: number | null) => (v === null ? 'Unavailable' : `${(v * 100).toF
 function TrendChart({ data }: { data: Array<{ date: string; value: number | null }> }) {
   const pts = data.filter((d) => d.value !== null) as Array<{ date: string; value: number }>;
   if (pts.length === 0) {
-    return <p className="text-xs text-zinc-500">No metric data in this range to chart.</p>;
+    return <p className="text-xs text-muted-foreground/80">No metric data in this range to chart.</p>;
   }
   const max = Math.max(...pts.map((p) => p.value), 1);
   return (
@@ -76,11 +76,11 @@ function TrendChart({ data }: { data: Array<{ date: string; value: number | null
       {pts.map((p) => (
         <div key={p.date} className="group flex flex-1 flex-col items-center justify-end">
           <div
-            className="w-full rounded-t bg-indigo-500/80"
+            className="w-full rounded-t bg-primary/80"
             style={{ height: `${Math.max(4, (p.value / max) * 100)}%` }}
             title={`${p.date}: ${p.value}`}
           />
-          <span className="mt-1 text-[9px] text-zinc-500">{p.date.slice(5)}</span>
+          <span className="mt-1 text-[9px] text-muted-foreground/80">{p.date.slice(5)}</span>
         </div>
       ))}
     </div>
@@ -206,7 +206,7 @@ export default function AnalyticsPage() {
       type="button"
       onClick={() => setTab(id)}
       aria-pressed={tab === id}
-      className={`rounded-lg px-3 py-1.5 text-xs font-medium ${tab === id ? 'bg-indigo-600 text-white' : 'bg-zinc-900 text-zinc-400 hover:text-white'}`}
+      className={`rounded-lg px-3 py-1.5 text-xs font-medium ${tab === id ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:text-foreground'}`}
     >
       {label}
     </button>
@@ -215,26 +215,26 @@ export default function AnalyticsPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
           <div>
-            <h1 className="text-2xl font-bold text-white">Analytics &amp; Intelligence</h1>
-            <p className="mt-1 text-sm text-zinc-400">
+            <h1 className="text-2xl font-bold text-foreground">Analytics &amp; Intelligence</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
               Real stored metric snapshots only. Unavailable metrics are never estimated.
               {overview && !overview.liveProviderConfigured && (
-                <span className="mt-1 inline-block max-w-full whitespace-normal break-words rounded border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[11px] text-amber-300 sm:ml-2 sm:mt-0">
+                <span className="mt-1 inline-block max-w-full whitespace-normal break-words rounded border border-warning/40 bg-warning/10 px-2 py-0.5 text-[11px] text-warning sm:ml-2 sm:mt-0">
                   No live Postiz provider configured: automatic collection returns &quot;Unavailable&quot;
                 </span>
               )}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => void collect()} className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-800">
+            <button type="button" onClick={() => void collect()} className="rounded-lg border border-input bg-card px-3 py-2 text-xs text-foreground hover:bg-secondary/80">
               Collect Metrics
             </button>
-            <button type="button" onClick={() => void exportCsv()} className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-800">
+            <button type="button" onClick={() => void exportCsv()} className="rounded-lg border border-input bg-card px-3 py-2 text-xs text-foreground hover:bg-secondary/80">
               Export CSV
             </button>
-            <button type="button" onClick={() => void generateInsights()} className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-500">
+            <button type="button" onClick={() => void generateInsights()} className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90">
               Generate Insights
             </button>
           </div>
@@ -246,15 +246,15 @@ export default function AnalyticsPage() {
             {tabBtn('insights', 'AI Insights')}
             {tabBtn('usage', 'Usage & Billing')}
           </div>
-          <label className="text-[11px] text-zinc-400">
+          <label className="text-[11px] text-muted-foreground">
             From
-            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="ml-1 rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs text-white" />
+            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="ml-1 rounded border border-border bg-background px-2 py-1 text-xs text-foreground" />
           </label>
-          <label className="text-[11px] text-zinc-400">
+          <label className="text-[11px] text-muted-foreground">
             To
-            <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="ml-1 rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs text-white" />
+            <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="ml-1 rounded border border-border bg-background px-2 py-1 text-xs text-foreground" />
           </label>
-          <select aria-label="Platform filter" value={platform} onChange={(e) => setPlatform(e.target.value)} className="rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs text-white">
+          <select aria-label="Platform filter" value={platform} onChange={(e) => setPlatform(e.target.value)} className="rounded border border-border bg-background px-2 py-1 text-xs text-foreground">
             <option value="">All platforms</option>
             {['INSTAGRAM_REELS', 'TIKTOK', 'YOUTUBE_SHORTS', 'YOUTUBE_LONG', 'LINKEDIN', 'X_TWITTER', 'FACEBOOK'].map((p) => (
               <option key={p} value={p}>{p}</option>
@@ -262,64 +262,64 @@ export default function AnalyticsPage() {
           </select>
         </div>
 
-        {loading && !overview && <p className="text-xs text-zinc-500">Loading analytics...</p>}
+        {loading && !overview && <p className="text-xs text-muted-foreground/80">Loading analytics...</p>}
 
         {tab === 'overview' && overview && (
           <div className="space-y-6">
             {overview.overall.postCount === 0 ? (
-              <div className="rounded-xl border border-dashed border-zinc-800 p-10 text-center text-sm text-zinc-400">
+              <div className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
                 No metric snapshots in this range. Publish content, then use &quot;Collect Metrics&quot;.
               </div>
             ) : (
               <>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
                   {['views', 'impressions', 'reach', 'likes', 'comments', 'shares'].map((k) => (
-                    <div key={k} className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3.5">
-                      <div className="text-[11px] capitalize text-zinc-400">{k}</div>
-                      <div className="mt-1 text-lg font-bold text-white">{fmt(overview.overall.totals[k])}</div>
+                    <div key={k} className="rounded-xl border border-border bg-card/80 p-3.5">
+                      <div className="text-[11px] capitalize text-muted-foreground">{k}</div>
+                      <div className="mt-1 text-lg font-bold text-foreground">{fmt(overview.overall.totals[k])}</div>
                     </div>
                   ))}
                 </div>
-                <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
-                  <h2 className="mb-3 text-sm font-semibold text-white">
+                <div className="rounded-xl border border-border bg-card/80 p-4">
+                  <h2 className="mb-3 text-sm font-semibold text-foreground">
                     Average engagement rate: {pct(overview.overall.avgEngagementRate)}
-                    <span className="ml-2 text-[11px] font-normal text-zinc-500">
+                    <span className="ml-2 text-[11px] font-normal text-muted-foreground/80">
                       ({overview.overall.postsWithEngagementData} of {overview.overall.postCount} posts have data)
                     </span>
                   </h2>
                   <TrendChart data={overview.trend.map((t) => ({ date: t.date, value: t.totals['likes'] ?? null }))} />
-                  <p className="mt-1 text-[10px] text-zinc-500">Daily likes across snapshots collected that day.</p>
+                  <p className="mt-1 text-[10px] text-muted-foreground/80">Daily likes across snapshots collected that day.</p>
                 </div>
                 <div className="grid gap-4 lg:grid-cols-2">
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
-                    <h2 className="mb-2 text-sm font-semibold text-white">By platform</h2>
+                  <div className="rounded-xl border border-border bg-card/80 p-4">
+                    <h2 className="mb-2 text-sm font-semibold text-foreground">By platform</h2>
                     {overview.platforms.map((p) => (
-                      <div key={p.platform} className="flex justify-between border-t border-zinc-800 py-1.5 text-xs text-zinc-300">
+                      <div key={p.platform} className="flex justify-between border-t border-border py-1.5 text-xs text-foreground/90">
                         <span>{p.platform} ({p.postCount})</span>
                         <span>{pct(p.avgEngagementRate)}</span>
                       </div>
                     ))}
                   </div>
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
-                    <h2 className="mb-2 text-sm font-semibold text-white">By campaign (project)</h2>
+                  <div className="rounded-xl border border-border bg-card/80 p-4">
+                    <h2 className="mb-2 text-sm font-semibold text-foreground">By campaign (project)</h2>
                     {overview.campaigns.map((c) => (
-                      <div key={c.campaign} className="flex justify-between border-t border-zinc-800 py-1.5 text-xs text-zinc-300">
+                      <div key={c.campaign} className="flex justify-between border-t border-border py-1.5 text-xs text-foreground/90">
                         <span>{c.campaign} ({c.postCount})</span>
                         <span>{pct(c.avgEngagementRate)}</span>
                       </div>
                     ))}
                   </div>
                 </div>
-                <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
-                  <h2 className="mb-2 text-sm font-semibold text-white">Post performance</h2>
+                <div className="rounded-xl border border-border bg-card/80 p-4">
+                  <h2 className="mb-2 text-sm font-semibold text-foreground">Post performance</h2>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs text-zinc-300">
-                      <thead className="text-zinc-500">
+                    <table className="w-full text-left text-xs text-foreground/90">
+                      <thead className="text-muted-foreground/80">
                         <tr><th className="py-1">Post</th><th>Platform</th><th>Source</th><th>Views</th><th>Likes</th><th>Eng. rate</th></tr>
                       </thead>
                       <tbody>
                         {overview.posts.map((p) => (
-                          <tr key={p.publishPostId} onClick={() => setSelectedPost(p)} className="cursor-pointer border-t border-zinc-800 hover:bg-zinc-800/40">
+                          <tr key={p.publishPostId} onClick={() => setSelectedPost(p)} className="cursor-pointer border-t border-border hover:bg-secondary/80/40">
                             <td className="max-w-[240px] truncate py-1.5">{p.title ?? p.caption}</td>
                             <td>{p.platform}</td>
                             <td>{p.source}</td>
@@ -340,29 +340,29 @@ export default function AnalyticsPage() {
         {tab === 'insights' && (
           <div className="space-y-4">
             {!insights ? (
-              <div className="rounded-xl border border-dashed border-zinc-800 p-10 text-center text-sm text-zinc-400">
+              <div className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
                 Click &quot;Generate Insights&quot; to analyze stored snapshots.
               </div>
             ) : (
               <>
-                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
-                  <h2 className="text-sm font-semibold text-emerald-300">Evidence-based insights (computed from your data)</h2>
-                  {insights.evidence.insights.length === 0 && <p className="mt-2 text-xs text-zinc-400">Not enough data.</p>}
+                <div className="rounded-xl border border-success/30 bg-success/5 p-4">
+                  <h2 className="text-sm font-semibold text-success">Evidence-based insights (computed from your data)</h2>
+                  {insights.evidence.insights.length === 0 && <p className="mt-2 text-xs text-muted-foreground">Not enough data.</p>}
                   <ul className="mt-2 space-y-2">
                     {insights.evidence.insights.map((i, idx) => (
-                      <li key={idx} className="text-xs text-zinc-200">
-                        <span className="mr-2 rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] text-emerald-300">EVIDENCE · {i.type} · n={i.sampleSize}</span>
+                      <li key={idx} className="text-xs text-foreground">
+                        <span className="mr-2 rounded bg-success/15 px-1.5 py-0.5 text-[10px] text-success">EVIDENCE · {i.type} · n={i.sampleSize}</span>
                         {i.summary}
                       </li>
                     ))}
                   </ul>
                 </div>
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
-                  <h2 className="text-sm font-semibold text-amber-300">AI-generated suggestions (hypotheses, not measured)</h2>
-                  <p className="mt-1 text-[11px] text-zinc-400">{insights.aiSuggestions.note}</p>
+                <div className="rounded-xl border border-warning/30 bg-warning/5 p-4">
+                  <h2 className="text-sm font-semibold text-warning">AI-generated suggestions (hypotheses, not measured)</h2>
+                  <p className="mt-1 text-[11px] text-muted-foreground">{insights.aiSuggestions.note}</p>
                   <ul className="mt-2 list-disc space-y-1 pl-5">
                     {insights.aiSuggestions.items.map((s, idx) => (
-                      <li key={idx} className="text-xs text-zinc-200">{s.text}</li>
+                      <li key={idx} className="text-xs text-foreground">{s.text}</li>
                     ))}
                   </ul>
                 </div>
@@ -373,27 +373,27 @@ export default function AnalyticsPage() {
 
         {tab === 'usage' && usage && (
           <div className="space-y-4">
-            <p className="rounded border border-zinc-800 bg-zinc-900/60 p-3 text-xs text-zinc-400">{usage.costDisclosure}</p>
+            <p className="rounded border border-border bg-card/80 p-3 text-xs text-muted-foreground">{usage.costDisclosure}</p>
             {usage.alerts.map((a) => (
-              <div key={a} role="alert" className="rounded border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">{a}</div>
+              <div key={a} role="alert" className="rounded border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">{a}</div>
             ))}
             <div className="grid gap-3 sm:grid-cols-3">
               {usage.statuses.map((s) => (
-                <div key={s.category} className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
-                  <div className="text-[11px] text-zinc-400">{s.category}</div>
-                  <div className="mt-1 text-sm font-bold text-white">{s.used.toLocaleString()} / {s.limit.toLocaleString()}</div>
-                  <div className="mt-2 h-2 rounded bg-zinc-800">
-                    <div className={`h-2 rounded ${s.exceeded ? 'bg-red-500' : s.alert ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(100, s.percentUsed)}%` }} />
+                <div key={s.category} className="rounded-xl border border-border bg-card/80 p-4">
+                  <div className="text-[11px] text-muted-foreground">{s.category}</div>
+                  <div className="mt-1 text-sm font-bold text-foreground">{s.used.toLocaleString()} / {s.limit.toLocaleString()}</div>
+                  <div className="mt-2 h-2 rounded bg-secondary">
+                    <div className={`h-2 rounded ${s.exceeded ? 'bg-red-500' : s.alert ? 'bg-warning' : 'bg-success'}`} style={{ width: `${Math.min(100, s.percentUsed)}%` }} />
                   </div>
-                  <div className="mt-1 text-[10px] text-zinc-500">{s.percentUsed}% used{s.exceeded ? ' · QUOTA EXCEEDED' : ''}</div>
+                  <div className="mt-1 text-[10px] text-muted-foreground/80">{s.percentUsed}% used{s.exceeded ? ' · QUOTA EXCEEDED' : ''}</div>
                 </div>
               ))}
             </div>
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
-              <h2 className="mb-2 text-sm font-semibold text-white">Estimated cost by provider (this month)</h2>
-              {usage.usageByProvider.length === 0 && <p className="text-xs text-zinc-500">No usage recorded.</p>}
+            <div className="rounded-xl border border-border bg-card/80 p-4">
+              <h2 className="mb-2 text-sm font-semibold text-foreground">Estimated cost by provider (this month)</h2>
+              {usage.usageByProvider.length === 0 && <p className="text-xs text-muted-foreground/80">No usage recorded.</p>}
               {usage.usageByProvider.map((u) => (
-                <div key={`${u.provider}-${u.category}`} className="flex justify-between border-t border-zinc-800 py-1.5 text-xs text-zinc-300">
+                <div key={`${u.provider}-${u.category}`} className="flex justify-between border-t border-border py-1.5 text-xs text-foreground/90">
                   <span>{u.provider} · {u.category}</span>
                   <span>{u.quantity.toLocaleString()} · est. ${u.estimatedCostUsd.toFixed(4)}</span>
                 </div>
@@ -401,20 +401,20 @@ export default function AnalyticsPage() {
             </div>
             {canAdmin ? (
               <div className="grid gap-4 lg:grid-cols-2">
-                <form onSubmit={saveQuotas} className="space-y-2 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
-                  <h2 className="text-sm font-semibold text-white">Quotas (plan: {usage.workspace.planTier})</h2>
-                  <input aria-label="Monthly token quota" type="number" min={1} value={tokenQuota} onChange={(e) => setTokenQuota(e.target.value)} placeholder="Monthly LLM token quota" className="w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white" />
-                  <input aria-label="Monthly render minutes quota" type="number" min={1} value={renderQuota} onChange={(e) => setRenderQuota(e.target.value)} placeholder="Monthly render minutes quota" className="w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white" />
-                  <button type="submit" className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white">Save Quotas</button>
+                <form onSubmit={saveQuotas} className="space-y-2 rounded-xl border border-border bg-card/80 p-4">
+                  <h2 className="text-sm font-semibold text-foreground">Quotas (plan: {usage.workspace.planTier})</h2>
+                  <input aria-label="Monthly token quota" type="number" min={1} value={tokenQuota} onChange={(e) => setTokenQuota(e.target.value)} placeholder="Monthly LLM token quota" className="w-full rounded border border-border bg-background px-3 py-2 text-xs text-foreground" />
+                  <input aria-label="Monthly render minutes quota" type="number" min={1} value={renderQuota} onChange={(e) => setRenderQuota(e.target.value)} placeholder="Monthly render minutes quota" className="w-full rounded border border-border bg-background px-3 py-2 text-xs text-foreground" />
+                  <button type="submit" className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground">Save Quotas</button>
                 </form>
-                <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
+                <div className="rounded-xl border border-border bg-card/80 p-4">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-semibold text-white">Invoices (drafts)</h2>
-                    <button type="button" onClick={() => void generateInvoice()} className="rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-200 hover:bg-zinc-800">Generate draft</button>
+                    <h2 className="text-sm font-semibold text-foreground">Invoices (drafts)</h2>
+                    <button type="button" onClick={() => void generateInvoice()} className="rounded border border-input px-2 py-1 text-xs text-foreground hover:bg-secondary/80">Generate draft</button>
                   </div>
-                  {invoices.length === 0 && <p className="mt-2 text-xs text-zinc-500">No invoices yet.</p>}
+                  {invoices.length === 0 && <p className="mt-2 text-xs text-muted-foreground/80">No invoices yet.</p>}
                   {invoices.map((i) => (
-                    <div key={i.id} className="flex justify-between border-t border-zinc-800 py-1.5 text-xs text-zinc-300">
+                    <div key={i.id} className="flex justify-between border-t border-border py-1.5 text-xs text-foreground/90">
                       <span>{i.periodStart.slice(0, 7)} · {i.status}</span>
                       <span>${i.amountUsd.toFixed(2)} ({i.costKind})</span>
                     </div>
@@ -422,7 +422,7 @@ export default function AnalyticsPage() {
                 </div>
               </div>
             ) : (
-              <p className="text-xs text-zinc-500">Quota and billing management requires ADMIN or OWNER role.</p>
+              <p className="text-xs text-muted-foreground/80">Quota and billing management requires ADMIN or OWNER role.</p>
             )}
           </div>
         )}
@@ -430,19 +430,19 @@ export default function AnalyticsPage() {
 
       {selectedPost && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4" role="dialog" aria-modal="true">
-          <div className="w-full max-w-md rounded-xl border border-zinc-800 bg-zinc-900 p-6 text-xs text-zinc-300">
+          <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 text-xs text-foreground/90">
             <div className="flex justify-between">
-              <h3 className="text-sm font-semibold text-white">{selectedPost.platform} post analytics</h3>
-              <button type="button" onClick={() => setSelectedPost(null)} className="text-zinc-400 hover:text-white">Close</button>
+              <h3 className="text-sm font-semibold text-foreground">{selectedPost.platform} post analytics</h3>
+              <button type="button" onClick={() => setSelectedPost(null)} className="text-muted-foreground hover:text-foreground">Close</button>
             </div>
             <p className="mt-2">{selectedPost.caption}</p>
-            <p className="mt-2 text-zinc-500">Source: {selectedPost.source} · collected {selectedPost.collectedAt}</p>
+            <p className="mt-2 text-muted-foreground/80">Source: {selectedPost.source} · collected {selectedPost.collectedAt}</p>
             <dl className="mt-3 grid grid-cols-2 gap-2">
               {Object.entries(selectedPost.metrics).map(([k, v]) => (
-                <div key={k}><dt className="text-zinc-500">{k}</dt><dd>{fmt(v, 2)}</dd></div>
+                <div key={k}><dt className="text-muted-foreground/80">{k}</dt><dd>{fmt(v, 2)}</dd></div>
               ))}
             </dl>
-            {selectedPost.unavailableReason && <p className="mt-3 text-amber-300">Unavailable: {selectedPost.unavailableReason}</p>}
+            {selectedPost.unavailableReason && <p className="mt-3 text-warning">Unavailable: {selectedPost.unavailableReason}</p>}
           </div>
         </div>
       )}

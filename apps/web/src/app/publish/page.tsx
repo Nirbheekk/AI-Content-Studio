@@ -459,17 +459,17 @@ export default function PublishCenterPage() {
     <AppShell>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800 pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-white">Social Publishing Center</h1>
+              <h1 className="text-2xl font-bold text-foreground">Social Publishing Center</h1>
               {dashboard?.isSimulatedProvider && (
-                <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-medium text-amber-300">
+                <span className="rounded-full border border-warning/40 bg-warning/10 px-2.5 py-0.5 text-[11px] font-medium text-warning">
                   [SIMULATED POSTIZ SANDBOX]
                 </span>
               )}
             </div>
-            <p className="mt-1 text-sm text-zinc-400">
+            <p className="mt-1 text-sm text-muted-foreground">
               Connect OAuth accounts, validate platform capabilities, enforce human approval, and
               manage scheduled or immediate social campaigns.
             </p>
@@ -477,7 +477,7 @@ export default function PublishCenterPage() {
           <div className="flex items-center gap-2">
             <Link
               href="/calendar"
-              className="rounded-lg border border-zinc-700 bg-zinc-900 px-3.5 py-2 text-xs font-medium text-zinc-200 hover:bg-zinc-800"
+              className="rounded-lg border border-input bg-card px-3.5 py-2 text-xs font-medium text-foreground hover:bg-secondary/80"
             >
               Open Interactive Calendar
             </Link>
@@ -487,7 +487,7 @@ export default function PublishCenterPage() {
                 setShowOAuthModal(true);
                 void handleGenerateOAuthUrl(oauthPlatform);
               }}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500"
+              className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
             >
               + Connect Social Account (OAuth)
             </button>
@@ -497,32 +497,32 @@ export default function PublishCenterPage() {
         {/* KPI Summary Cards */}
         {dashboard && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3.5">
-              <div className="text-[11px] text-zinc-400">Connected Accounts</div>
-              <div className="mt-1 text-xl font-bold text-white">
+            <div className="rounded-xl border border-border bg-card/80 p-3.5">
+              <div className="text-[11px] text-muted-foreground">Connected Accounts</div>
+              <div className="mt-1 text-xl font-bold text-foreground">
                 {dashboard.stats.connectedAccounts} / {dashboard.stats.totalAccounts}
               </div>
             </div>
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3.5">
-              <div className="text-[11px] text-zinc-400">Upcoming Scheduled</div>
-              <div className="mt-1 text-xl font-bold text-indigo-400">
+            <div className="rounded-xl border border-border bg-card/80 p-3.5">
+              <div className="text-[11px] text-muted-foreground">Upcoming Scheduled</div>
+              <div className="mt-1 text-xl font-bold text-primary">
                 {dashboard.stats.scheduledCount}
               </div>
             </div>
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3.5">
-              <div className="text-[11px] text-zinc-400">In-Flight Queue</div>
+            <div className="rounded-xl border border-border bg-card/80 p-3.5">
+              <div className="text-[11px] text-muted-foreground">In-Flight Queue</div>
               <div className="mt-1 text-xl font-bold text-cyan-400">
                 {dashboard.stats.publishingCount}
               </div>
             </div>
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3.5">
-              <div className="text-[11px] text-zinc-400">Confirmed Published</div>
-              <div className="mt-1 text-xl font-bold text-emerald-400">
+            <div className="rounded-xl border border-border bg-card/80 p-3.5">
+              <div className="text-[11px] text-muted-foreground">Confirmed Published</div>
+              <div className="mt-1 text-xl font-bold text-success">
                 {dashboard.stats.publishedCount}
               </div>
             </div>
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3.5">
-              <div className="text-[11px] text-zinc-400">Failed / Dead-Letter</div>
+            <div className="rounded-xl border border-border bg-card/80 p-3.5">
+              <div className="text-[11px] text-muted-foreground">Failed / Dead-Letter</div>
               <div className="mt-1 text-xl font-bold text-red-400">
                 {dashboard.stats.failedCount} ({dashboard.stats.deadLetterCount} DLQ)
               </div>
@@ -533,17 +533,17 @@ export default function PublishCenterPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           {/* Left Column: Connected Social Accounts & Health */}
           <div className="space-y-4 lg:col-span-5">
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
+            <div className="rounded-xl border border-border bg-card/80 p-5">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-white">Connected Social Accounts</h2>
-                <span className="text-[11px] text-zinc-400">AES-256-GCM Encrypted</span>
+                <h2 className="text-sm font-semibold text-foreground">Connected Social Accounts</h2>
+                <span className="text-[11px] text-muted-foreground">AES-256-GCM Encrypted</span>
               </div>
 
               {loading && !dashboard ? (
-                <p className="mt-4 text-xs text-zinc-500">Loading accounts...</p>
+                <p className="mt-4 text-xs text-muted-foreground/80">Loading accounts...</p>
               ) : !dashboard || dashboard.accounts.length === 0 ? (
-                <div className="mt-4 rounded-lg border border-dashed border-zinc-800 p-6 text-center">
-                  <p className="text-xs text-zinc-400">
+                <div className="mt-4 rounded-lg border border-dashed border-border p-6 text-center">
+                  <p className="text-xs text-muted-foreground">
                     No social accounts connected to this workspace yet.
                   </p>
                   <button
@@ -552,7 +552,7 @@ export default function PublishCenterPage() {
                       setShowOAuthModal(true);
                       void handleGenerateOAuthUrl(oauthPlatform);
                     }}
-                    className="mt-3 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500"
+                    className="mt-3 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
                   >
                     Connect First Social Account
                   </button>
@@ -564,36 +564,36 @@ export default function PublishCenterPage() {
                       key={acc.id}
                       className={`rounded-lg border p-3.5 transition ${
                         selectedAccountId === acc.id
-                          ? 'border-indigo-500 bg-indigo-950/20'
-                          : 'border-zinc-800 bg-zinc-950/70'
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border bg-background/70'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] font-bold text-indigo-300">
+                            <span className="rounded bg-secondary px-2 py-0.5 text-[10px] font-bold text-primary">
                               {acc.platform}
                             </span>
                             <span
                               className={`rounded px-2 py-0.5 text-[10px] font-semibold ${
                                 acc.status === 'CONNECTED'
-                                  ? 'bg-emerald-500/20 text-emerald-300'
+                                  ? 'bg-success/15 text-success'
                                   : acc.status === 'EXPIRED'
-                                    ? 'bg-amber-500/20 text-amber-300'
+                                    ? 'bg-warning/15 text-warning'
                                     : 'bg-red-500/20 text-red-300'
                               }`}
                             >
                               {acc.status}
                             </span>
                           </div>
-                          <div className="mt-1.5 text-sm font-semibold text-white">
+                          <div className="mt-1.5 text-sm font-semibold text-foreground">
                             {acc.accountName}{' '}
-                            <span className="text-xs font-normal text-zinc-400">
+                            <span className="text-xs font-normal text-muted-foreground">
                               ({acc.accountHandle})
                             </span>
                           </div>
-                          <div className="mt-1 text-[11px] text-zinc-500">
-                            Token: <code className="text-zinc-400">{acc.tokenPreview}</code> •
+                          <div className="mt-1 text-[11px] text-muted-foreground/80">
+                            Token: <code className="text-muted-foreground">{acc.tokenPreview}</code> •
                             Scopes: {acc.scopes.length}
                           </div>
                           {acc.connectionError && (
@@ -605,24 +605,24 @@ export default function PublishCenterPage() {
                         <button
                           type="button"
                           onClick={() => setSelectedAccountId(acc.id)}
-                          className="rounded border border-zinc-700 px-2 py-1 text-[11px] text-zinc-300 hover:bg-zinc-800"
+                          className="rounded border border-input px-2 py-1 text-[11px] text-foreground/90 hover:bg-secondary/80"
                         >
                           {selectedAccountId === acc.id ? 'Selected' : 'Select'}
                         </button>
                       </div>
 
-                      <div className="mt-3 flex flex-wrap gap-1.5 border-t border-zinc-800/80 pt-2.5">
+                      <div className="mt-3 flex flex-wrap gap-1.5 border-t border-border/80 pt-2.5">
                         <button
                           type="button"
                           onClick={() => void handleHealthCheck(acc.id)}
-                          className="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-300 hover:bg-zinc-800"
+                          className="rounded border border-input bg-card px-2 py-1 text-[11px] text-foreground/90 hover:bg-secondary/80"
                         >
                           Check Health
                         </button>
                         <button
                           type="button"
                           onClick={() => void handleRefreshToken(acc.id)}
-                          className="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-indigo-300 hover:bg-zinc-800"
+                          className="rounded border border-input bg-card px-2 py-1 text-[11px] text-primary hover:bg-secondary/80"
                         >
                           Rotate Token
                         </button>
@@ -643,11 +643,11 @@ export default function PublishCenterPage() {
 
           {/* Right Column: Post Composer */}
           <div className="lg:col-span-7">
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
-              <h2 className="text-sm font-semibold text-white">
+            <div className="rounded-xl border border-border bg-card/80 p-5">
+              <h2 className="text-sm font-semibold text-foreground">
                 Multi-Platform Post Composer &amp; Scheduler
               </h2>
-              <p className="mt-0.5 text-xs text-zinc-400">
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 Validates platform media requirements, aspect ratios, caption limits, and human
                 approval gate before publishing.
               </p>
@@ -655,7 +655,7 @@ export default function PublishCenterPage() {
               <form onSubmit={handleCreateOrPublishPost} className="mt-4 space-y-4">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="block text-xs font-medium text-zinc-300">
+                    <label className="block text-xs font-medium text-foreground/90">
                       Target Connected Account
                     </label>
                     <select
@@ -663,7 +663,7 @@ export default function PublishCenterPage() {
                       required
                       value={selectedAccountId}
                       onChange={(e) => setSelectedAccountId(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                      className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                     >
                       <option value="">-- Select Connected Account --</option>
                       {dashboard?.accounts.map((acc) => (
@@ -675,14 +675,14 @@ export default function PublishCenterPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-zinc-300">Content Type</label>
+                    <label className="block text-xs font-medium text-foreground/90">Content Type</label>
                     <select
                       aria-label="Content Type"
                       value={contentType}
                       onChange={(e) =>
                         setContentType(e.target.value as 'VIDEO' | 'IMAGE' | 'WRITTEN')
                       }
-                      className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                      className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                     >
                       <option value="VIDEO">VIDEO (Rendered Composition / Video Asset)</option>
                       <option value="IMAGE">IMAGE (Graphic / Frame Asset)</option>
@@ -693,9 +693,9 @@ export default function PublishCenterPage() {
 
                 {/* Platform Capability Guidance Banner */}
                 {activeCap && (
-                  <div className="rounded-lg border border-indigo-500/30 bg-indigo-950/20 p-3 text-xs text-indigo-200">
+                  <div className="rounded-lg border border-primary/30 bg-primary/10 p-3 text-xs text-primary">
                     <div className="font-semibold">{activeCap.displayName} Capabilities:</div>
-                    <div className="mt-1 text-[11px] text-zinc-300">
+                    <div className="mt-1 text-[11px] text-foreground/90">
                       Allowed Types: <strong>{activeCap.supportedContentTypes.join(', ')}</strong> •
                       Aspect Ratios: <strong>{activeCap.allowedAspectRatios.join(', ')}</strong> •
                       Max Caption: <strong>{activeCap.maxCaptionLength} chars</strong> • Max
@@ -708,7 +708,7 @@ export default function PublishCenterPage() {
                 {contentType !== 'WRITTEN' && (
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
-                      <label className="block text-xs font-medium text-zinc-300">
+                      <label className="block text-xs font-medium text-foreground/90">
                         Attach Approved Composition
                       </label>
                       <select
@@ -718,7 +718,7 @@ export default function PublishCenterPage() {
                           setSelectedCompositionId(e.target.value);
                           if (e.target.value) setSelectedAssetId('');
                         }}
-                        className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                       >
                         <option value="">-- Optional: Select Composition --</option>
                         {dashboard?.compositions.map((c) => (
@@ -730,7 +730,7 @@ export default function PublishCenterPage() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-zinc-300">
+                      <label className="block text-xs font-medium text-foreground/90">
                         Or Attach Library Asset
                       </label>
                       <select
@@ -740,7 +740,7 @@ export default function PublishCenterPage() {
                           setSelectedAssetId(e.target.value);
                           if (e.target.value) setSelectedCompositionId('');
                         }}
-                        className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                       >
                         <option value="">-- Optional: Select Library Asset --</option>
                         {dashboard?.readyAssets.map((a) => (
@@ -754,7 +754,7 @@ export default function PublishCenterPage() {
                 )}
 
                 <div>
-                  <label className="block text-xs font-medium text-zinc-300">
+                  <label className="block text-xs font-medium text-foreground/90">
                     Post / Video Title {activeCap?.requiresTitle ? '(Required for Platform)' : '(Optional)'}
                   </label>
                   <input
@@ -762,20 +762,20 @@ export default function PublishCenterPage() {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="How AI Agents Automate Creative Video Production"
-                    className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                   />
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between">
-                    <label className="block text-xs font-medium text-zinc-300">
+                    <label className="block text-xs font-medium text-foreground/90">
                       Caption / Post Body
                     </label>
                     <span
                       className={`text-[11px] ${
                         activeCap && captionText.length > activeCap.maxCaptionLength
                           ? 'font-bold text-red-400'
-                          : 'text-zinc-400'
+                          : 'text-muted-foreground'
                       }`}
                     >
                       {captionText.length} / {activeCap?.maxCaptionLength ?? 2200} chars
@@ -787,16 +787,16 @@ export default function PublishCenterPage() {
                     value={captionText}
                     onChange={(e) => setCaptionText(e.target.value)}
                     placeholder="Write your platform-tailored caption..."
-                    className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                   />
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between">
-                    <label className="block text-xs font-medium text-zinc-300">
+                    <label className="block text-xs font-medium text-foreground/90">
                       Hashtags (comma-separated)
                     </label>
-                    <span className="text-[11px] text-zinc-400">
+                    <span className="text-[11px] text-muted-foreground">
                       {parsedHashtags.length} / {activeCap?.maxHashtags ?? 30} tags
                     </span>
                   </div>
@@ -805,21 +805,21 @@ export default function PublishCenterPage() {
                     value={hashtagsText}
                     onChange={(e) => setHashtagsText(e.target.value)}
                     placeholder="ai, videoediting, saas, contentcreator"
-                    className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                   />
                 </div>
 
                 {/* Scheduling & Timezone Controls */}
-                <div className="grid grid-cols-1 gap-3 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3 sm:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-background/60 p-3 sm:grid-cols-3">
                   <div>
-                    <label className="block text-xs font-medium text-zinc-300">Delivery Mode</label>
+                    <label className="block text-xs font-medium text-foreground/90">Delivery Mode</label>
                     <select
                       aria-label="Delivery Mode"
                       value={publishMode}
                       onChange={(e) =>
                         setPublishMode(e.target.value as 'IMMEDIATE' | 'SCHEDULED')
                       }
-                      className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 text-xs text-white"
+                      className="mt-1 w-full rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground"
                     >
                       <option value="IMMEDIATE">Publish Immediately</option>
                       <option value="SCHEDULED">Schedule for Date &amp; Time</option>
@@ -828,27 +828,27 @@ export default function PublishCenterPage() {
 
                   {publishMode === 'SCHEDULED' && (
                     <div>
-                      <label className="block text-xs font-medium text-zinc-300">
+                      <label className="block text-xs font-medium text-foreground/90">
                         Scheduled Date &amp; Time
                       </label>
                       <input
                         type="datetime-local"
                         value={scheduledDateTime}
                         onChange={(e) => setScheduledDateTime(e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 text-xs text-white"
+                        className="mt-1 w-full rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground"
                       />
                     </div>
                   )}
 
                   <div>
-                    <label className="block text-xs font-medium text-zinc-300">
+                    <label className="block text-xs font-medium text-foreground/90">
                       Target Timezone
                     </label>
                     <select
                       aria-label="Target Timezone"
                       value={timezone}
                       onChange={(e) => setTimezone(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 text-xs text-white"
+                      className="mt-1 w-full rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground"
                     >
                       {(dashboard?.supportedTimezones ?? ['UTC']).map((tz) => (
                         <option key={tz} value={tz}>
@@ -860,12 +860,12 @@ export default function PublishCenterPage() {
                 </div>
 
                 {/* Human Approval Gate Checkbox */}
-                <label className="flex items-center gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2.5 text-xs text-emerald-200">
+                <label className="flex items-center gap-2.5 rounded-lg border border-success/30 bg-success/10 px-3.5 py-2.5 text-xs text-success">
                   <input
                     type="checkbox"
                     checked={explicitApprovalConfirmed}
                     onChange={(e) => setExplicitApprovalConfirmed(e.target.checked)}
-                    className="rounded border-zinc-700"
+                    className="rounded border-input"
                   />
                   <span>
                     <strong>Human Approval Gate:</strong> I explicitly approve this content and
@@ -876,7 +876,7 @@ export default function PublishCenterPage() {
                 <button
                   type="submit"
                   disabled={submittingPost || !selectedAccountId}
-                  className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-indigo-500 disabled:opacity-50"
+                  className="w-full rounded-lg bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
                 >
                   {submittingPost
                     ? 'Validating & Submitting...'
@@ -890,16 +890,16 @@ export default function PublishCenterPage() {
         </div>
 
         {/* Bottom Section: Queues, History & Recovery */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 pb-3">
+        <div className="rounded-xl border border-border bg-card/80 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setActiveTab('SCHEDULED')}
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
                   activeTab === 'SCHEDULED'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-zinc-950 text-zinc-400 hover:text-white'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-background text-muted-foreground hover:text-foreground'
                 }`}
               >
                 Upcoming Scheduled ({dashboard?.upcomingScheduled.length ?? 0})
@@ -909,8 +909,8 @@ export default function PublishCenterPage() {
                 onClick={() => setActiveTab('PUBLISHED')}
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
                   activeTab === 'PUBLISHED'
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-zinc-950 text-zinc-400 hover:text-white'
+                    ? 'bg-success text-white'
+                    : 'bg-background text-muted-foreground hover:text-foreground'
                 }`}
               >
                 Confirmed Published ({dashboard?.recentlyPublished.length ?? 0})
@@ -920,8 +920,8 @@ export default function PublishCenterPage() {
                 onClick={() => setActiveTab('FAILED')}
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
                   activeTab === 'FAILED'
-                    ? 'bg-red-600 text-white'
-                    : 'bg-zinc-950 text-zinc-400 hover:text-white'
+                    ? 'bg-red-600 text-foreground'
+                    : 'bg-background text-muted-foreground hover:text-foreground'
                 }`}
               >
                 Failed &amp; Recovery ({dashboard?.failedJobs.length ?? 0})
@@ -931,8 +931,8 @@ export default function PublishCenterPage() {
                 onClick={() => setActiveTab('QUEUE')}
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
                   activeTab === 'QUEUE'
-                    ? 'bg-cyan-600 text-white'
-                    : 'bg-zinc-950 text-zinc-400 hover:text-white'
+                    ? 'bg-cyan-600 text-foreground'
+                    : 'bg-background text-muted-foreground hover:text-foreground'
                 }`}
               >
                 In-Flight Queue ({dashboard?.publishingQueue.length ?? 0})
@@ -946,33 +946,33 @@ export default function PublishCenterPage() {
                 dashboard.upcomingScheduled.map((post) => (
                   <div
                     key={post.id}
-                    className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4"
+                    className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border bg-background p-4"
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="rounded bg-indigo-500/20 px-2 py-0.5 text-[10px] font-bold text-indigo-300">
+                        <span className="rounded bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">
                           {post.platform}
                         </span>
-                        <span className="text-xs font-medium text-zinc-300">
+                        <span className="text-xs font-medium text-foreground/90">
                           {post.socialAccount.accountHandle}
                         </span>
-                        <span className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-300">
+                        <span className="rounded bg-secondary px-2 py-0.5 text-[10px] text-foreground/90">
                           {post.contentType}
                         </span>
-                        <span className="text-xs text-indigo-400">
+                        <span className="text-xs text-primary">
                           Scheduled: {post.localScheduledLabel} ({post.timezone})
                         </span>
                       </div>
                       {post.title && (
-                        <div className="text-xs font-semibold text-white">{post.title}</div>
+                        <div className="text-xs font-semibold text-foreground">{post.title}</div>
                       )}
-                      <p className="text-xs text-zinc-300">{post.captionText}</p>
+                      <p className="text-xs text-foreground/90">{post.captionText}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => void handlePublishNow(post.id)}
-                        className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500"
+                        className="rounded-lg bg-success px-3 py-1.5 text-xs font-medium text-white hover:bg-success/90"
                       >
                         Publish Now
                       </button>
@@ -987,7 +987,7 @@ export default function PublishCenterPage() {
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-zinc-500">No upcoming scheduled posts.</p>
+                <p className="text-xs text-muted-foreground/80">No upcoming scheduled posts.</p>
               ))}
 
             {activeTab === 'PUBLISHED' &&
@@ -995,27 +995,27 @@ export default function PublishCenterPage() {
                 dashboard.recentlyPublished.map((post) => (
                   <div
                     key={post.id}
-                    className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4"
+                    className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border bg-background p-4"
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
+                        <span className="rounded bg-success/15 px-2 py-0.5 text-[10px] font-bold text-success">
                           CONFIRMED PUBLISHED
                         </span>
-                        <span className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] font-bold text-indigo-300">
+                        <span className="rounded bg-secondary px-2 py-0.5 text-[10px] font-bold text-primary">
                           {post.platform}
                         </span>
-                        <span className="text-xs text-zinc-300">
+                        <span className="text-xs text-foreground/90">
                           {post.socialAccount.accountHandle}
                         </span>
                         {post.isSimulated && (
-                          <span className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-300">
+                          <span className="rounded border border-warning/30 bg-warning/10 px-2 py-0.5 text-[10px] text-warning">
                             [SIMULATED SANDBOX]
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-zinc-200">{post.captionText}</p>
-                      <div className="text-[11px] text-zinc-500">
+                      <p className="text-xs text-foreground">{post.captionText}</p>
+                      <div className="text-[11px] text-muted-foreground/80">
                         External ID: <code>{post.externalPostId}</code> • Published:{' '}
                         {post.localEffectiveLabel} ({post.timezone}) • Idempotency:{' '}
                         <code>{post.idempotencyKey.slice(0, 16)}...</code>
@@ -1026,7 +1026,7 @@ export default function PublishCenterPage() {
                         href={post.externalPostUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-indigo-300 hover:bg-zinc-800"
+                        className="rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-primary hover:bg-secondary/80"
                       >
                         View Post Reference
                       </a>
@@ -1034,7 +1034,7 @@ export default function PublishCenterPage() {
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-zinc-500">No published posts yet.</p>
+                <p className="text-xs text-muted-foreground/80">No published posts yet.</p>
               ))}
 
             {activeTab === 'FAILED' &&
@@ -1042,24 +1042,24 @@ export default function PublishCenterPage() {
                 dashboard.failedJobs.map((post) => (
                   <div
                     key={post.id}
-                    className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-red-500/30 bg-zinc-950 p-4"
+                    className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-red-500/30 bg-background p-4"
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="rounded bg-red-500/20 px-2 py-0.5 text-[10px] font-bold text-red-300">
                           {post.providerStatus}
                         </span>
-                        <span className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] font-bold text-indigo-300">
+                        <span className="rounded bg-secondary px-2 py-0.5 text-[10px] font-bold text-primary">
                           {post.platform}
                         </span>
-                        <span className="text-xs text-zinc-400">
+                        <span className="text-xs text-muted-foreground">
                           Retries: {post.retryCount} / {post.maxRetries}
                         </span>
                       </div>
-                      <p className="text-xs text-zinc-200">{post.captionText}</p>
+                      <p className="text-xs text-foreground">{post.captionText}</p>
                       <div className="text-xs text-red-400">Error: {post.errorMessage}</div>
                       {post.nextRetryAt && (
-                        <div className="text-[11px] text-amber-300">
+                        <div className="text-[11px] text-warning">
                           Next Backoff Retry: {post.nextRetryAt}
                         </div>
                       )}
@@ -1068,14 +1068,14 @@ export default function PublishCenterPage() {
                       <button
                         type="button"
                         onClick={() => void handleRetryFailedPost(post.id)}
-                        className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500"
+                        className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
                       >
                         Retry &amp; Recover Now
                       </button>
                       <button
                         type="button"
                         onClick={() => void handleCancelPost(post.id)}
-                        className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800"
+                        className="rounded-lg border border-input px-3 py-1.5 text-xs text-foreground/90 hover:bg-secondary/80"
                       >
                         Cancel
                       </button>
@@ -1083,7 +1083,7 @@ export default function PublishCenterPage() {
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-zinc-500">No failed publishing jobs.</p>
+                <p className="text-xs text-muted-foreground/80">No failed publishing jobs.</p>
               ))}
 
             {activeTab === 'QUEUE' &&
@@ -1091,18 +1091,18 @@ export default function PublishCenterPage() {
                 dashboard.publishingQueue.map((post) => (
                   <div
                     key={post.id}
-                    className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950 p-4"
+                    className="flex items-center justify-between rounded-lg border border-border bg-background p-4"
                   >
                     <div>
                       <span className="rounded bg-cyan-500/20 px-2 py-0.5 text-[10px] font-bold text-cyan-300">
                         {post.status} ({post.providerStatus})
                       </span>
-                      <p className="mt-1 text-xs text-zinc-200">{post.captionText}</p>
+                      <p className="mt-1 text-xs text-foreground">{post.captionText}</p>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-zinc-500">No in-flight publishing jobs.</p>
+                <p className="text-xs text-muted-foreground/80">No in-flight publishing jobs.</p>
               ))}
           </div>
         </div>
@@ -1111,15 +1111,15 @@ export default function PublishCenterPage() {
       {/* OAuth Connection Modal */}
       {showOAuthModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
-          <div className="w-full max-w-lg rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-            <h2 className="text-lg font-bold text-white">Connect Social Account via OAuth</h2>
-            <p className="mt-1 text-xs text-zinc-400">
+          <div className="w-full max-w-lg rounded-xl border border-border bg-card p-6">
+            <h2 className="text-lg font-bold text-foreground">Connect Social Account via OAuth</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
               Tokens are encrypted at rest with AES-256-GCM and scoped strictly to this workspace.
             </p>
 
             <form onSubmit={handleCompleteOAuthConnect} className="mt-4 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-zinc-300">Social Platform</label>
+                <label className="block text-xs font-medium text-foreground/90">Social Platform</label>
                 <select
                   aria-label="Social Platform"
                   value={oauthPlatform}
@@ -1127,7 +1127,7 @@ export default function PublishCenterPage() {
                     setOauthPlatform(e.target.value);
                     void handleGenerateOAuthUrl(e.target.value);
                   }}
-                  className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                 >
                   {PLATFORMS.map((p) => (
                     <option key={p} value={p}>
@@ -1138,35 +1138,35 @@ export default function PublishCenterPage() {
               </div>
 
               {oauthAuthorizationUrl && (
-                <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-[11px] text-zinc-400">
-                  <div className="font-semibold text-zinc-300">
+                <div className="rounded-lg border border-border bg-background p-3 text-[11px] text-muted-foreground">
+                  <div className="font-semibold text-foreground/90">
                     Required OAuth Scopes: {oauthScopes.join(', ')}
                   </div>
-                  <div className="mt-1 truncate text-zinc-500">
+                  <div className="mt-1 truncate text-muted-foreground/80">
                     Endpoint: {oauthAuthorizationUrl}
                   </div>
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-medium text-zinc-300">Account Name</label>
+                <label className="block text-xs font-medium text-foreground/90">Account Name</label>
                 <input
                   type="text"
                   required
                   value={oauthAccountName}
                   onChange={(e) => setOauthAccountName(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-zinc-300">Account Handle</label>
+                <label className="block text-xs font-medium text-foreground/90">Account Handle</label>
                 <input
                   type="text"
                   required
                   value={oauthAccountHandle}
                   onChange={(e) => setOauthAccountHandle(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                 />
               </div>
 
@@ -1174,14 +1174,14 @@ export default function PublishCenterPage() {
                 <button
                   type="button"
                   onClick={() => setShowOAuthModal(false)}
-                  className="rounded-lg border border-zinc-700 px-4 py-2 text-xs text-zinc-300"
+                  className="rounded-lg border border-input px-4 py-2 text-xs text-foreground/90"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={connectingOAuth}
-                  className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500"
+                  className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
                 >
                   {connectingOAuth ? 'Exchanging OAuth Code...' : 'Authorize & Connect Account'}
                 </button>

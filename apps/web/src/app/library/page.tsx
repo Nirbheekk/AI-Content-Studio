@@ -205,23 +205,23 @@ export default function ContentLibraryPage() {
   return (
     <AppShell>
       <div className="space-y-8">
-        <div className="border-b border-zinc-800 pb-5">
-          <h1 className="text-2xl font-bold text-white">Content Asset Library &amp; AI Analysis</h1>
-          <p className="mt-1 text-xs text-zinc-400">
+        <div className="border-b border-border pb-5">
+          <h1 className="text-2xl font-bold text-foreground">Content Asset Library &amp; AI Analysis</h1>
+          <p className="mt-1 text-xs text-muted-foreground">
             Upload raw media to MinIO object storage with magic-byte validation, SHA-256 duplicate
             detection, automated STT transcription, and scene hook extraction.
           </p>
         </div>
 
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
-          <h2 className="text-sm font-semibold text-white">Upload Media to MinIO Storage</h2>
+        <div className="rounded-xl border border-border bg-card/70 p-5">
+          <h2 className="text-sm font-semibold text-foreground">Upload Media to MinIO Storage</h2>
           <div className="mt-3 grid gap-3 md:grid-cols-4">
             <div>
-              <label className="block text-[11px] text-zinc-400">Assign to Project</label>
+              <label className="block text-[11px] text-muted-foreground">Assign to Project</label>
               <select
                 value={uploadProjectId}
                 onChange={(e) => setUploadProjectId(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
               >
                 <option value="">Workspace Global Library</option>
                 {projects.map((p) => (
@@ -233,30 +233,30 @@ export default function ContentLibraryPage() {
             </div>
 
             <div>
-              <label className="block text-[11px] text-zinc-400">Virtual Folder Path</label>
+              <label className="block text-[11px] text-muted-foreground">Virtual Folder Path</label>
               <input
                 type="text"
                 value={folderPath}
                 onChange={(e) => setFolderPath(e.target.value)}
                 placeholder="/podcast/clips"
-                className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] text-zinc-400">Tags (comma-separated)</label>
+              <label className="block text-[11px] text-muted-foreground">Tags (comma-separated)</label>
               <input
                 type="text"
                 value={tagsInput}
                 onChange={(e) => setTagsInput(e.target.value)}
                 placeholder="hook, b-roll, ep1"
-                className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] text-zinc-400">Select File(s)</label>
-              <label className="mt-1 flex cursor-pointer items-center justify-center rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-500">
+              <label className="block text-[11px] text-muted-foreground">Select File(s)</label>
+              <label className="mt-1 flex cursor-pointer items-center justify-center rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90">
                 <span>{uploading ? 'Uploading & Verifying...' : 'Choose Files to Upload'}</span>
                 <input
                   type="file"
@@ -275,7 +275,7 @@ export default function ContentLibraryPage() {
             <select
               value={selectedProjectId}
               onChange={(e) => setSelectedProjectId(e.target.value)}
-              className="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs text-white"
+              className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-foreground"
             >
               <option value="">All Projects</option>
               {projects.map((p) => (
@@ -288,7 +288,7 @@ export default function ContentLibraryPage() {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs text-white"
+              className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-foreground"
             >
               <option value="">All Media Types</option>
               <option value="VIDEO">VIDEO</option>
@@ -303,14 +303,14 @@ export default function ContentLibraryPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by filename..."
-            className="w-64 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs text-white"
+            className="w-64 rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-foreground"
           />
         </div>
 
         {loading ? (
-          <div className="text-xs text-zinc-400">Loading content library...</div>
+          <div className="text-xs text-muted-foreground">Loading content library...</div>
         ) : assets.length === 0 ? (
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-10 text-center text-xs text-zinc-500">
+          <div className="rounded-xl border border-border bg-muted/40 p-10 text-center text-xs text-muted-foreground/80">
             No assets uploaded yet. Use the upload panel above to add videos, images, audio, or
             documents.
           </div>
@@ -319,36 +319,36 @@ export default function ContentLibraryPage() {
             {assets.map((asset) => (
               <div
                 key={asset.id}
-                className="flex flex-col justify-between rounded-xl border border-zinc-800 bg-zinc-900/60 p-4"
+                className="flex flex-col justify-between rounded-xl border border-border bg-card/80 p-4"
               >
                 <div>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="rounded bg-indigo-500/20 px-2 py-0.5 text-[10px] font-semibold text-indigo-300">
+                    <span className="rounded bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">
                       {asset.assetType}
                     </span>
                     <span
                       className={`rounded px-2 py-0.5 text-[10px] font-semibold ${
                         asset.status === 'READY'
-                          ? 'bg-emerald-500/20 text-emerald-300'
-                          : 'bg-amber-500/20 text-amber-300'
+                          ? 'bg-success/15 text-success'
+                          : 'bg-warning/15 text-warning'
                       }`}
                     >
                       {asset.status}
                     </span>
                   </div>
 
-                  <h3 className="mt-2 truncate text-sm font-semibold text-white">
+                  <h3 className="mt-2 truncate text-sm font-semibold text-foreground">
                     {asset.originalName}
                   </h3>
-                  <div className="mt-1 text-[11px] text-zinc-400">
+                  <div className="mt-1 text-[11px] text-muted-foreground">
                     {formatBytes(asset.sizeBytes)} • {asset.mimeType}
                   </div>
-                  <div className="mt-1 text-[11px] text-zinc-500">
+                  <div className="mt-1 text-[11px] text-muted-foreground/80">
                     Folder: {asset.folderPath} • Project: {asset.project?.name ?? 'Global'}
                   </div>
 
                   {asset.aiSummary && (
-                    <p className="mt-2 line-clamp-2 rounded border border-zinc-800 bg-zinc-950/70 p-2 text-[11px] text-zinc-300">
+                    <p className="mt-2 line-clamp-2 rounded border border-border bg-background/70 p-2 text-[11px] text-foreground/90">
                       {asset.aiSummary}
                     </p>
                   )}
@@ -358,7 +358,7 @@ export default function ContentLibraryPage() {
                       {asset.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-300"
+                          className="rounded bg-secondary px-2 py-0.5 text-[10px] text-foreground/90"
                         >
                           #{tag}
                         </span>
@@ -367,19 +367,19 @@ export default function ContentLibraryPage() {
                   )}
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2 border-t border-zinc-800 pt-3">
+                <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-3">
                   <button
                     type="button"
                     disabled={analyzingId === asset.id}
                     onClick={() => void handleAnalyzeAsset(asset)}
-                    className="rounded-md bg-indigo-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+                    className="rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                   >
                     {analyzingId === asset.id ? 'Analyzing...' : 'AI Analyze & Transcribe'}
                   </button>
                   <button
                     type="button"
                     onClick={() => void handleOpenPreview(asset)}
-                    className="rounded-md bg-zinc-800 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-zinc-700"
+                    className="rounded-md bg-secondary px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted/80"
                   >
                     Inspect
                   </button>
@@ -398,18 +398,18 @@ export default function ContentLibraryPage() {
 
         {previewAsset && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
-            <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+            <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-border bg-card p-6">
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-semibold text-white">{previewAsset.originalName}</h2>
+                <h2 className="text-base font-semibold text-foreground">{previewAsset.originalName}</h2>
                 <button
                   type="button"
                   onClick={() => setPreviewAsset(null)}
-                  className="text-xs text-zinc-400 hover:text-white"
+                  className="text-xs text-muted-foreground hover:text-foreground"
                 >
                   Close
                 </button>
               </div>
-              <div className="mt-3 space-y-2 text-xs text-zinc-300">
+              <div className="mt-3 space-y-2 text-xs text-foreground/90">
                 <div>
                   <strong>MIME Type (Magic-Byte Verified):</strong> {previewAsset.mimeType}
                 </div>
@@ -421,42 +421,42 @@ export default function ContentLibraryPage() {
                   <span className="font-mono text-[11px]">{previewAsset.checksumSha256}</span>
                 </div>
                 {previewAsset.aiSummary && (
-                  <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-3 text-indigo-200">
+                  <div className="rounded-lg border border-primary/30 bg-primary/10 p-3 text-primary">
                     <strong>Content Intelligence Summary:</strong> {previewAsset.aiSummary}
                   </div>
                 )}
               </div>
 
               {previewAsset.transcript && (
-                <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-950 p-3">
-                  <div className="flex items-center justify-between text-xs font-semibold text-white">
+                <div className="mt-4 rounded-lg border border-border bg-background p-3">
+                  <div className="flex items-center justify-between text-xs font-semibold text-foreground">
                     <span>Word-Synchronized Transcript ({previewAsset.transcript.language})</span>
-                    <span className="text-[10px] text-zinc-400">
+                    <span className="text-[10px] text-muted-foreground">
                       Provider: {previewAsset.transcript.provider}
                     </span>
                   </div>
-                  <p className="mt-2 text-xs text-zinc-300">{previewAsset.transcript.fullText}</p>
+                  <p className="mt-2 text-xs text-foreground/90">{previewAsset.transcript.fullText}</p>
                 </div>
               )}
 
               {previewAsset.scenes && previewAsset.scenes.length > 0 && (
                 <div className="mt-4 space-y-2">
-                  <h3 className="text-xs font-semibold text-white">
+                  <h3 className="text-xs font-semibold text-foreground">
                     Detected Scenes &amp; Hook Scores
                   </h3>
                   {previewAsset.scenes.map((sc) => (
                     <div
                       key={sc.id}
-                      className="flex items-center justify-between rounded border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs"
+                      className="flex items-center justify-between rounded border border-border bg-background px-3 py-2 text-xs"
                     >
                       <div>
-                        <span className="font-semibold text-indigo-300">
+                        <span className="font-semibold text-primary">
                           Scene #{sc.sceneIndex + 1} ({sc.startSec}s - {sc.endSec}s)
                         </span>
-                        <div className="text-[11px] text-zinc-400">{sc.description}</div>
+                        <div className="text-[11px] text-muted-foreground">{sc.description}</div>
                       </div>
                       <div className="text-right">
-                        <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
+                        <span className="rounded bg-success/15 px-2 py-0.5 text-[10px] font-semibold text-success">
                           Hook: {Math.round((sc.hookScore ?? 0.8) * 100)}%
                         </span>
                         {sc.isBroll && (
@@ -474,7 +474,7 @@ export default function ContentLibraryPage() {
                     href={previewAsset.downloadUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-block rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500"
+                    className="inline-block rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
                   >
                     Open Presigned MinIO Download URL
                   </a>
@@ -486,9 +486,9 @@ export default function ContentLibraryPage() {
 
         {deleteTarget && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
-            <div className="w-full max-w-md rounded-xl border border-red-500/40 bg-zinc-900 p-6">
-              <h2 className="text-base font-semibold text-white">Delete Asset</h2>
-              <p className="mt-2 text-xs text-zinc-300">
+            <div className="w-full max-w-md rounded-xl border border-red-500/40 bg-card p-6">
+              <h2 className="text-base font-semibold text-foreground">Delete Asset</h2>
+              <p className="mt-2 text-xs text-foreground/90">
                 Delete <strong>{deleteTarget.originalName}</strong> from MinIO object storage and
                 workspace metadata?
               </p>
@@ -496,14 +496,14 @@ export default function ContentLibraryPage() {
                 <button
                   type="button"
                   onClick={() => setDeleteTarget(null)}
-                  className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300"
+                  className="rounded-lg border border-input px-3 py-1.5 text-xs text-foreground/90"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={() => void handleConfirmDelete()}
-                  className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white"
+                  className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-foreground"
                 >
                   Delete Asset
                 </button>

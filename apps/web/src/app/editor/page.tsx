@@ -579,7 +579,7 @@ export default function InteractiveEditorPage() {
     <AppShell>
       <div className="space-y-6">
         {/* Top Editor Toolbar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card/80 p-4">
           <div className="flex flex-wrap items-center gap-3">
             <select
               value={selectedCompId}
@@ -587,7 +587,7 @@ export default function InteractiveEditorPage() {
                 setSelectedCompId(e.target.value);
                 void loadCompositionDetail(e.target.value);
               }}
-              className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-xs font-semibold text-white"
+              className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground"
             >
               {compositions.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -597,18 +597,18 @@ export default function InteractiveEditorPage() {
             </select>
 
             {detail?.activeVersion && (
-              <span className="rounded bg-indigo-500/20 px-2.5 py-1 text-xs font-bold text-indigo-300">
+              <span className="rounded bg-primary/15 px-2.5 py-1 text-xs font-bold text-primary">
                 v{detail.activeVersion.versionNumber} ({detail.approvalStatus})
               </span>
             )}
 
-            <h1 className="text-sm font-bold text-white">Video Editor</h1>
+            <h1 className="text-sm font-bold text-foreground">Video Editor</h1>
 
             <button
               type="button"
               disabled={busy || !selectedCompId}
               onClick={() => void handleUndoRedo('undo')}
-              className="rounded border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-xs text-zinc-200 hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded border border-input bg-secondary px-2.5 py-1 text-xs text-foreground hover:bg-muted/80 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Undo
             </button>
@@ -616,7 +616,7 @@ export default function InteractiveEditorPage() {
               type="button"
               disabled={busy || !selectedCompId}
               onClick={() => void handleUndoRedo('redo')}
-              className="rounded border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-xs text-zinc-200 hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded border border-input bg-secondary px-2.5 py-1 text-xs text-foreground hover:bg-muted/80 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Redo
             </button>
@@ -624,7 +624,7 @@ export default function InteractiveEditorPage() {
               type="button"
               disabled={busy || !selectedCompId}
               onClick={() => void handleCompareVersions()}
-              className="rounded border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-xs text-zinc-200 hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded border border-input bg-secondary px-2.5 py-1 text-xs text-foreground hover:bg-muted/80 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Compare Versions
             </button>
@@ -646,8 +646,8 @@ export default function InteractiveEditorPage() {
                 onClick={() => void handleSwitchAspectRatio(ratio)}
                 className={`rounded px-2.5 py-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
                   detail?.aspectRatio === ratio
-                    ? 'bg-indigo-600 text-white'
-                    : 'border border-zinc-800 bg-zinc-950 text-zinc-400'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'border border-border bg-background text-muted-foreground'
                 }`}
               >
                 {label}
@@ -658,7 +658,7 @@ export default function InteractiveEditorPage() {
               type="button"
               disabled={busy || !selectedCompId}
               onClick={() => void handleApplyBrandKit()}
-              className="rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-3 py-1.5 text-xs font-semibold text-indigo-300 hover:bg-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/90/20 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Apply Brand Kit
             </button>
@@ -667,7 +667,7 @@ export default function InteractiveEditorPage() {
               type="button"
               disabled={busy || !selectedCompId}
               onClick={() => void handleRenderComposition()}
-              className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Render MP4
             </button>
@@ -676,7 +676,7 @@ export default function InteractiveEditorPage() {
               type="button"
               disabled={busy || !selectedCompId}
               onClick={() => void handleApproveComposition()}
-              className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-lg bg-success px-3 py-1.5 text-xs font-semibold text-white hover:bg-success/90 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Approve
             </button>
@@ -686,14 +686,14 @@ export default function InteractiveEditorPage() {
         {/* Main Editor Grid: Player + Inspector + Collaboration */}
         <div className="grid gap-6 lg:grid-cols-12">
           {/* Left: Remotion Preview Canvas & Multi-Track Timeline */}
-          <div className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 lg:col-span-7">
+          <div className="space-y-4 rounded-xl border border-border bg-card/70 p-4 lg:col-span-7">
             {compiled && frameScene ? (
               <>
                 <div
-                  className="mx-auto flex h-64 max-w-md flex-col justify-between rounded-xl border border-zinc-700 p-4 shadow-2xl"
+                  className="mx-auto flex h-64 max-w-md flex-col justify-between rounded-xl border border-input p-4 shadow-2xl"
                   style={{ backgroundColor: compiled.brand.secondaryColor }}
                 >
-                  <div className="flex items-center justify-between text-[10px] text-zinc-300">
+                  <div className="flex items-center justify-between text-[10px] text-foreground/90">
                     <span className="rounded bg-black/60 px-2 py-0.5 font-mono">
                       {compiled.width}x{compiled.height} • {compiled.fps}fps • {frameScene.layout}
                     </span>
@@ -704,7 +704,7 @@ export default function InteractiveEditorPage() {
 
                   <div className="my-auto text-center">
                     <div
-                      className="inline-block rounded-lg px-4 py-2 text-sm font-bold text-white shadow"
+                      className="inline-block rounded-lg px-4 py-2 text-sm font-bold text-foreground shadow"
                       style={{ backgroundColor: compiled.brand.primaryColor }}
                     >
                       {frameScene.headlineText}
@@ -718,7 +718,7 @@ export default function InteractiveEditorPage() {
                     >
                       {frameScene.narrationText}
                     </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded bg-zinc-800">
+                    <div className="h-1.5 w-full overflow-hidden rounded bg-secondary">
                       <div
                         className="h-full"
                         style={{
@@ -734,7 +734,7 @@ export default function InteractiveEditorPage() {
                   <button
                     type="button"
                     onClick={() => setIsPlaying((p) => !p)}
-                    className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white"
+                    className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
                   >
                     {isPlaying ? 'Pause' : 'Play'}
                   </button>
@@ -755,14 +755,14 @@ export default function InteractiveEditorPage() {
                   const latestMp4 = activeVer?.renderJobs.find((r) => r.downloadUrl)?.downloadUrl;
                   if (!latestMp4) return null;
                   return (
-                    <div className="space-y-2 rounded-lg border border-zinc-800 bg-zinc-950 p-3">
-                      <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                    <div className="space-y-2 rounded-lg border border-border bg-background p-3">
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                         <span>Rendered MP4 Preview (v{activeVer?.versionNumber})</span>
                         <a
                           href={latestMp4}
                           target="_blank"
                           rel="noreferrer"
-                          className="font-semibold text-indigo-400 hover:underline"
+                          className="font-semibold text-primary hover:underline"
                         >
                           Download MP4
                         </a>
@@ -773,37 +773,37 @@ export default function InteractiveEditorPage() {
                         playsInline
                         preload="metadata"
                         src={latestMp4}
-                        className="max-h-64 w-full rounded-lg border border-zinc-800 bg-black object-contain"
+                        className="max-h-64 w-full rounded-lg border border-border bg-black object-contain"
                       />
                     </div>
                   );
                 })()}
 
                 {/* Multi-Track Timeline */}
-                <div className="space-y-2 border-t border-zinc-800 pt-4">
+                <div className="space-y-2 border-t border-border pt-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase text-zinc-400">
+                    <span className="text-xs font-semibold uppercase text-muted-foreground">
                       Multi-Track Scene Timeline ({compiled.sequences.length} Scenes)
                     </span>
                     <div className="flex gap-1.5">
                       <button
                         type="button"
                         onClick={() => void handleReorderScene(-1)}
-                        className="rounded border border-zinc-700 px-2 py-1 text-[11px] text-zinc-300 hover:bg-zinc-800"
+                        className="rounded border border-input px-2 py-1 text-[11px] text-foreground/90 hover:bg-secondary/80"
                       >
                         Move Left
                       </button>
                       <button
                         type="button"
                         onClick={() => void handleReorderScene(1)}
-                        className="rounded border border-zinc-700 px-2 py-1 text-[11px] text-zinc-300 hover:bg-zinc-800"
+                        className="rounded border border-input px-2 py-1 text-[11px] text-foreground/90 hover:bg-secondary/80"
                       >
                         Move Right
                       </button>
                       <button
                         type="button"
                         onClick={() => void handleAddScene()}
-                        className="rounded bg-indigo-600 px-2.5 py-1 text-[11px] font-semibold text-white"
+                        className="rounded bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground"
                       >
                         + Add Scene
                       </button>
@@ -822,18 +822,18 @@ export default function InteractiveEditorPage() {
                         }}
                         className={`min-w-[150px] flex-1 rounded-lg border p-2.5 text-left transition ${
                           selectedScene?.sceneId === seq.sceneId
-                            ? 'border-indigo-500 bg-indigo-500/15 text-white'
-                            : 'border-zinc-800 bg-zinc-950 text-zinc-300'
+                            ? 'border-primary bg-primary/15 text-foreground'
+                            : 'border-border bg-background text-foreground/90'
                         }`}
                       >
-                        <div className="flex items-center justify-between text-[10px] text-indigo-300">
+                        <div className="flex items-center justify-between text-[10px] text-primary">
                           <span>Scene #{seq.orderIndex + 1}</span>
                           <span>{seq.durationInFrames}f</span>
                         </div>
                         <div className="mt-1 truncate text-xs font-semibold">
                           {seq.headlineText}
                         </div>
-                        <div className="mt-0.5 text-[10px] text-zinc-500">
+                        <div className="mt-0.5 text-[10px] text-muted-foreground/80">
                           {seq.layout} • {seq.transitionIn} • {seq.overlays.length} overlays
                         </div>
                       </button>
@@ -842,7 +842,7 @@ export default function InteractiveEditorPage() {
                 </div>
               </>
             ) : (
-              <div className="p-8 text-center text-xs text-zinc-500">
+              <div className="p-8 text-center text-xs text-muted-foreground/80">
                 No composition selected. Generate one in AI Studio or Repurpose Engine.
               </div>
             )}
@@ -851,8 +851,8 @@ export default function InteractiveEditorPage() {
           {/* Right: Scene Inspector, Granular AI Edit, Subtitles & Collaboration Comments */}
           <div className="space-y-4 lg:col-span-5">
             {selectedScene && (
-              <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              <div className="rounded-xl border border-border bg-card/70 p-4">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Selected Scene Inspector ({selectedScene.sceneId})
                 </h2>
 
@@ -863,12 +863,12 @@ export default function InteractiveEditorPage() {
                     value={aiScenePrompt}
                     onChange={(e) => setAiScenePrompt(e.target.value)}
                     placeholder="AI Scene Command (e.g. 'Use zoom-punch and stronger hook')..."
-                    className="flex-1 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-xs text-white"
+                    className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground"
                   />
                   <button
                     type="submit"
                     disabled={busy}
-                    className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white"
+                    className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
                   >
                     AI Edit Scene
                   </button>
@@ -877,30 +877,30 @@ export default function InteractiveEditorPage() {
                 {/* Manual Scene Property Form */}
                 <form onSubmit={handleSaveSceneTrackEdit} className="mt-3 space-y-3">
                   <div>
-                    <label className="block text-[11px] text-zinc-400">Headline Text</label>
+                    <label className="block text-[11px] text-muted-foreground">Headline Text</label>
                     <input
                       type="text"
                       value={editHeadline}
                       onChange={(e) => setEditHeadline(e.target.value)}
-                      className="mt-1 w-full rounded border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-xs text-white"
+                      className="mt-1 w-full rounded border border-border bg-background px-2.5 py-1.5 text-xs text-foreground"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] text-zinc-400">Narration / Captions</label>
+                    <label className="block text-[11px] text-muted-foreground">Narration / Captions</label>
                     <textarea
                       rows={2}
                       value={editNarration}
                       onChange={(e) => setEditNarration(e.target.value)}
-                      className="mt-1 w-full rounded border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-xs text-white"
+                      className="mt-1 w-full rounded border border-border bg-background px-2.5 py-1.5 text-xs text-foreground"
                     />
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <div>
-                      <label className="block text-[11px] text-zinc-400">Layout</label>
+                      <label className="block text-[11px] text-muted-foreground">Layout</label>
                       <select
                         value={editLayout}
                         onChange={(e) => setEditLayout(e.target.value)}
-                        className="mt-1 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1.5 text-xs text-white"
+                        className="mt-1 w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground"
                       >
                         <option value="talking-head">talking-head</option>
                         <option value="podcast-split">podcast-split</option>
@@ -910,11 +910,11 @@ export default function InteractiveEditorPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[11px] text-zinc-400">Transition</label>
+                      <label className="block text-[11px] text-muted-foreground">Transition</label>
                       <select
                         value={editTransition}
                         onChange={(e) => setEditTransition(e.target.value)}
-                        className="mt-1 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1.5 text-xs text-white"
+                        className="mt-1 w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground"
                       >
                         <option value="fade">fade</option>
                         <option value="spring-slide">spring-slide</option>
@@ -924,14 +924,14 @@ export default function InteractiveEditorPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[11px] text-zinc-400">Duration (Frames)</label>
+                      <label className="block text-[11px] text-muted-foreground">Duration (Frames)</label>
                       <input
                         type="number"
                         min={15}
                         max={1800}
                         value={editDurationFrames}
                         onChange={(e) => setEditDurationFrames(Number(e.target.value))}
-                        className="mt-1 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1.5 text-xs text-white"
+                        className="mt-1 w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground"
                       />
                     </div>
                   </div>
@@ -941,7 +941,7 @@ export default function InteractiveEditorPage() {
                       <select
                         value={newOverlayType}
                         onChange={(e) => setNewOverlayType(e.target.value)}
-                        className="rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs text-white"
+                        className="rounded border border-border bg-background px-2 py-1 text-xs text-foreground"
                       >
                         <option value="KineticTypography">KineticTypography</option>
                         <option value="AnimatedHeadline">AnimatedHeadline</option>
@@ -954,7 +954,7 @@ export default function InteractiveEditorPage() {
                       <button
                         type="button"
                         onClick={() => void handleAddOverlay()}
-                        className="rounded border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-xs text-zinc-200"
+                        className="rounded border border-input bg-secondary px-2.5 py-1 text-xs text-foreground"
                       >
                         + Add Overlay
                       </button>
@@ -963,7 +963,7 @@ export default function InteractiveEditorPage() {
                     <button
                       type="submit"
                       disabled={busy}
-                      className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white"
+                      className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
                     >
                       Save Scene Changes
                     </button>
@@ -974,21 +974,21 @@ export default function InteractiveEditorPage() {
 
             {/* Version Comparison Diff Report */}
             {diffReport && (
-              <div className="rounded-xl border border-indigo-500/40 bg-zinc-900/70 p-4 text-xs">
+              <div className="rounded-xl border border-primary/40 bg-card/70 p-4 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-indigo-300">
+                  <span className="font-semibold text-primary">
                     Version Diff: v{diffReport.diff.fromVersionNumber} vs v
                     {diffReport.diff.toVersionNumber} ({diffReport.diff.totalChangesCount} changes)
                   </span>
                   <button
                     type="button"
                     onClick={() => setDiffReport(null)}
-                    className="text-zinc-400 hover:text-white"
+                    className="text-muted-foreground hover:text-foreground"
                   >
                     Close
                   </button>
                 </div>
-                <ul className="mt-2 space-y-1 text-[11px] text-zinc-300">
+                <ul className="mt-2 space-y-1 text-[11px] text-foreground/90">
                   {diffReport.diff.brandChanges.map((c, i) => (
                     <li key={`b-${i}`}>• Brand: {c}</li>
                   ))}
@@ -1007,8 +1007,8 @@ export default function InteractiveEditorPage() {
             )}
 
             {/* Collaboration Comments & Subtitles */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            <div className="rounded-xl border border-border bg-card/70 p-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Frame Comments &amp; Subtitles (.SRT)
               </h3>
               <form onSubmit={handleAddComment} className="mt-2 flex gap-1.5">
@@ -1017,11 +1017,11 @@ export default function InteractiveEditorPage() {
                   value={newCommentText}
                   onChange={(e) => setNewCommentText(e.target.value)}
                   placeholder={`Comment on frame ${currentFrame}...`}
-                  className="flex-1 rounded border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-xs text-white"
+                  className="flex-1 rounded border border-border bg-background px-2.5 py-1.5 text-xs text-foreground"
                 />
                 <button
                   type="submit"
-                  className="rounded bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white"
+                  className="rounded bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
                 >
                   Comment
                 </button>
@@ -1031,26 +1031,26 @@ export default function InteractiveEditorPage() {
                 {comments.map((cm) => (
                   <div
                     key={cm.id}
-                    className="rounded border border-zinc-800 bg-zinc-950 p-2 text-[11px]"
+                    className="rounded border border-border bg-background p-2 text-[11px]"
                   >
-                    <div className="flex justify-between text-zinc-400">
+                    <div className="flex justify-between text-muted-foreground">
                       <span>
                         <strong>{cm.author.fullName}</strong> (v{cm.versionNumber} • f
                         {cm.frameIndex ?? 0})
                       </span>
                       <span>{cm.resolved ? 'Resolved' : 'Open'}</span>
                     </div>
-                    <div className="mt-0.5 text-zinc-200">{cm.content}</div>
+                    <div className="mt-0.5 text-foreground">{cm.content}</div>
                   </div>
                 ))}
               </div>
 
               {subtitlesSrt && (
                 <details className="mt-3 text-xs">
-                  <summary className="cursor-pointer font-medium text-indigo-400">
+                  <summary className="cursor-pointer font-medium text-primary">
                     View Generated SubRip (.SRT) Subtitles
                   </summary>
-                  <pre className="mt-2 max-h-28 overflow-y-auto rounded bg-zinc-950 p-2 font-mono text-[10px] text-zinc-300">
+                  <pre className="mt-2 max-h-28 overflow-y-auto rounded bg-background p-2 font-mono text-[10px] text-foreground/90">
                     {subtitlesSrt}
                   </pre>
                 </details>

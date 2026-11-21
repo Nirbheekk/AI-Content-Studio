@@ -134,9 +134,9 @@ export default function RepurposeEnginePage() {
   return (
     <AppShell>
       <div className="space-y-8">
-        <div className="border-b border-zinc-800 pb-5">
-          <h1 className="text-2xl font-bold text-white">Multi-Format Content Repurposing Engine</h1>
-          <p className="mt-1 text-xs text-zinc-400">
+        <div className="border-b border-border pb-5">
+          <h1 className="text-2xl font-bold text-foreground">Multi-Format Content Repurposing Engine</h1>
+          <p className="mt-1 text-xs text-muted-foreground">
             Transform one source recording into Instagram Reels, TikTok videos, YouTube Shorts,
             LinkedIn video posts, quote graphics, and written social copy.
           </p>
@@ -144,15 +144,15 @@ export default function RepurposeEnginePage() {
 
         <form
           onSubmit={handleRunRepurpose}
-          className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5"
+          className="space-y-4 rounded-xl border border-border bg-card/70 p-5"
         >
           <div className="grid gap-4 md:grid-cols-3">
             <div>
-              <label className="block text-xs text-zinc-300">Target Project</label>
+              <label className="block text-xs text-foreground/90">Target Project</label>
               <select
                 value={projectId}
                 onChange={(e) => setProjectId(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
               >
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -163,11 +163,11 @@ export default function RepurposeEnginePage() {
             </div>
 
             <div>
-              <label className="block text-xs text-zinc-300">Source Long-Form Asset</label>
+              <label className="block text-xs text-foreground/90">Source Long-Form Asset</label>
               <select
                 value={sourceAssetId}
                 onChange={(e) => setSourceAssetId(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
               >
                 <option value="">Project Default Asset</option>
                 {assets.map((a) => (
@@ -179,32 +179,32 @@ export default function RepurposeEnginePage() {
             </div>
 
             <div>
-              <label className="block text-xs text-zinc-300">Campaign Title</label>
+              <label className="block text-xs text-foreground/90">Campaign Title</label>
               <input
                 type="text"
                 required
                 value={campaignTitle}
                 onChange={(e) => setCampaignTitle(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs text-zinc-300">Creative Repurposing Brief</label>
+            <label className="block text-xs text-foreground/90">Creative Repurposing Brief</label>
             <textarea
               rows={2}
               required
               value={creativeBrief}
               onChange={(e) => setCreativeBrief(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white"
+              className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
             />
           </div>
 
           <button
             type="submit"
             disabled={running}
-            className="rounded-lg bg-indigo-600 px-5 py-2.5 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+            className="rounded-lg bg-primary px-5 py-2.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             {running
               ? 'Generating & Rendering Multi-Platform Batch...'
@@ -215,31 +215,31 @@ export default function RepurposeEnginePage() {
         {result && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-base font-semibold text-white">
+              <h2 className="text-base font-semibold text-foreground">
                 Generated Platform Video Compositions ({result.compositions.length})
               </h2>
               <div className="mt-3 grid gap-4 md:grid-cols-3">
                 {result.compositions.map((comp) => (
                   <div
                     key={comp.id}
-                    className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4"
+                    className="rounded-xl border border-border bg-card/80 p-4"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="rounded bg-indigo-500/20 px-2 py-0.5 text-[10px] font-semibold text-indigo-300">
+                      <span className="rounded bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">
                         {comp.targetPlatform}
                       </span>
-                      <span className="text-[10px] text-zinc-400">
+                      <span className="text-[10px] text-muted-foreground">
                         {comp.width}x{comp.height} ({comp.aspectRatio})
                       </span>
                     </div>
-                    <h3 className="mt-2 text-sm font-semibold text-white">{comp.title}</h3>
-                    <div className="mt-1 text-[11px] text-emerald-300">
+                    <h3 className="mt-2 text-sm font-semibold text-foreground">{comp.title}</h3>
+                    <div className="mt-1 text-[11px] text-success">
                       Visual QA Score: {comp.qaScore ?? 100}/100
                     </div>
                     <div className="mt-4 flex gap-2">
                       <Link
                         href="/editor"
-                        className="rounded bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500"
+                        className="rounded bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
                       >
                         Open in Timeline Editor
                       </Link>
@@ -249,7 +249,7 @@ export default function RepurposeEnginePage() {
                             href={comp.downloadUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="rounded border border-zinc-700 px-3 py-1.5 text-xs text-zinc-200 hover:bg-zinc-800"
+                            className="rounded border border-input px-3 py-1.5 text-xs text-foreground hover:bg-secondary/80"
                           >
                             Download MP4
                           </a>
@@ -259,7 +259,7 @@ export default function RepurposeEnginePage() {
                             playsInline
                             preload="metadata"
                             src={comp.downloadUrl}
-                            className="mt-2 max-h-48 w-full rounded-lg border border-zinc-800 bg-black object-contain"
+                            className="mt-2 max-h-48 w-full rounded-lg border border-border bg-black object-contain"
                           />
                         </>
                       )}
@@ -270,19 +270,19 @@ export default function RepurposeEnginePage() {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
-              <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
-                <h3 className="text-sm font-semibold text-white">
+              <div className="rounded-xl border border-border bg-card/70 p-4">
+                <h3 className="text-sm font-semibold text-foreground">
                   Generated Quote Graphics ({result.quoteGraphics.length})
                 </h3>
                 <div className="mt-3 space-y-3">
                   {result.quoteGraphics.map((qg) => (
                     <div
                       key={qg.id}
-                      className="rounded-lg border border-zinc-700 p-4 text-xs text-white"
+                      className="rounded-lg border border-input p-4 text-xs text-foreground"
                       style={{ backgroundColor: `${qg.primaryColor}22` }}
                     >
                       <p className="font-semibold italic">{qg.quoteText}</p>
-                      <div className="mt-1 text-[11px] text-zinc-400">
+                      <div className="mt-1 text-[11px] text-muted-foreground">
                         — {qg.attribution} ({qg.aspectRatio})
                       </div>
                     </div>
@@ -290,20 +290,20 @@ export default function RepurposeEnginePage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
-                <h3 className="text-sm font-semibold text-white">
+              <div className="rounded-xl border border-border bg-card/70 p-4">
+                <h3 className="text-sm font-semibold text-foreground">
                   Generated Written Social Posts ({result.writtenPosts.length})
                 </h3>
                 <div className="mt-3 space-y-3">
                   {result.writtenPosts.map((wp) => (
                     <div
                       key={wp.id}
-                      className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-xs"
+                      className="rounded-lg border border-border bg-background p-3 text-xs"
                     >
-                      <div className="font-bold text-indigo-300">
+                      <div className="font-bold text-primary">
                         [{wp.platform}] {wp.hookHeadline}
                       </div>
-                      <p className="mt-1 whitespace-pre-line text-zinc-300">{wp.bodyText}</p>
+                      <p className="mt-1 whitespace-pre-line text-foreground/90">{wp.bodyText}</p>
                       <div className="mt-2 text-[11px] text-cyan-400">
                         {wp.hashtags.join(' ')}
                       </div>
