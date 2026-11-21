@@ -9,6 +9,8 @@ allowBuilds:
   msgpackr-extract: true
   prisma: true
   sharp: true
+  msedge-tts: false
+  protobufjs: false
 
 overrides:
   'next>postcss': '^8.5.23'

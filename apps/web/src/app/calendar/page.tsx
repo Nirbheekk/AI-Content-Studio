@@ -22,6 +22,7 @@ import {
   Select,
   Skeleton,
   Textarea,
+  WorkflowStepper,
 } from '../../components/design-system/primitives';
 import { useStudio } from '../../context/studio-context';
 import { apiRequest } from '../../lib/api-client';
@@ -405,18 +406,20 @@ export default function ContentCalendarPage() {
           }
         />
 
+        <WorkflowStepper activeStep="publish" />
+
         {/* Controls Bar: View Switcher, Date Nav, Filters & Timezone */}
-        <Card className="space-y-3 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <Card className="space-y-4 p-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             {/* View Mode Switcher */}
-            <div className="flex items-center gap-1 rounded-lg border border-border bg-secondary/40 p-1">
+            <div className="flex items-center gap-1 rounded-xl border border-border bg-secondary/50 p-1">
               {(['month', 'week', 'day'] as const).map((mode) => (
                 <button
                   key={mode}
                   type="button"
                   aria-pressed={view === mode}
                   onClick={() => setView(mode)}
-                  className={`rounded-md px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-colors duration-150 ${
                     view === mode
                       ? 'bg-primary text-primary-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
@@ -428,9 +431,9 @@ export default function ContentCalendarPage() {
             </div>
 
             {/* Date Navigation */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => navigateAnchor(-1)}>
-                <ChevronLeft className="h-3.5 w-3.5" />
+                <ChevronLeft className="h-4 w-4" />
                 Prev
               </Button>
               <Button variant="secondary" size="sm" onClick={() => navigateAnchor(0)}>
@@ -438,18 +441,18 @@ export default function ContentCalendarPage() {
               </Button>
               <Button variant="outline" size="sm" onClick={() => navigateAnchor(1)}>
                 Next
-                <ChevronRight className="h-3.5 w-3.5" />
+                <ChevronRight className="h-4 w-4" />
               </Button>
               <span className="ml-2 text-sm font-semibold text-foreground">{monthHeading}</span>
             </div>
+          </div>
 
-            {/* Platform, Account, Status & Timezone Filters */}
-            <div className="flex flex-wrap items-center gap-2">
+          {/* Platform, Account, Status & Timezone Filters */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Select
                 aria-label="Filter by Platform"
                 value={platformFilter}
                 onChange={(e) => setPlatformFilter(e.target.value)}
-                className="w-auto"
               >
                 <option value="">All Platforms</option>
                 {PLATFORMS.filter(Boolean).map((p) => (
@@ -463,7 +466,6 @@ export default function ContentCalendarPage() {
                 aria-label="Filter by Social Account"
                 value={accountFilter}
                 onChange={(e) => setAccountFilter(e.target.value)}
-                className="w-auto"
               >
                 <option value="">All Accounts</option>
                 {accounts.map((acc) => (
@@ -477,7 +479,6 @@ export default function ContentCalendarPage() {
                 aria-label="Filter by Status"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-auto"
               >
                 <option value="">All Statuses</option>
                 {STATUSES.filter(Boolean).map((s) => (
@@ -491,7 +492,6 @@ export default function ContentCalendarPage() {
                 aria-label="Calendar Timezone"
                 value={timezone}
                 onChange={(e) => setTimezone(e.target.value)}
-                className="w-auto"
               >
                 {TIMEZONES.map((tz) => (
                   <option key={tz} value={tz}>
@@ -499,11 +499,10 @@ export default function ContentCalendarPage() {
                   </option>
                 ))}
               </Select>
-            </div>
           </div>
 
           {/* Status Legend Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2.5 text-[11px] text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2.5 text-xs text-muted-foreground">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-medium text-foreground">Status Legend:</span>
               <Badge variant="ai">
@@ -581,7 +580,7 @@ export default function ContentCalendarPage() {
                       e.preventDefault();
                       void handleDropOnDate(cell.dateKey);
                     }}
-                    className={`min-h-[135px] rounded-xl border p-2.5 transition-colors ${
+                    className={`min-h-36 rounded-2xl border p-3 transition-colors duration-150 ${
                       isDragTarget
                         ? 'border-primary bg-ai-surface'
                         : isToday
@@ -617,7 +616,7 @@ export default function ContentCalendarPage() {
                             draggable={canDrag}
                             onDragStart={() => setDraggedPostId(entry.id)}
                             onClick={() => openPostInspector(entry)}
-                            className={`cursor-pointer rounded-lg border p-2 text-left text-[11px] transition-colors hover:border-primary ${
+                            className={`cursor-pointer rounded-lg border p-2 text-left text-xs transition-colors hover:border-primary ${
                               entry.status === 'PUBLISHED'
                                 ? 'border-success/35 bg-success-surface text-success'
                                 : entry.status === 'SCHEDULED'
@@ -631,15 +630,15 @@ export default function ContentCalendarPage() {
                           >
                             <div className="flex items-center justify-between gap-1">
                               <span className="truncate font-semibold">{entry.platform}</span>
-                              <span className="shrink-0 rounded border border-current/25 px-1 py-0.5 text-[9px] font-semibold">
+                              <span className="shrink-0 rounded border border-current/25 px-1 py-0.5 text-xs font-semibold">
                                 {entry.status}
                               </span>
                             </div>
-                            <div className="mt-0.5 truncate text-[10px] opacity-85 tabular-nums">
+                            <div className="mt-0.5 truncate text-xs opacity-85 tabular-nums">
                               {entry.socialAccount.accountHandle} •{' '}
                               {entry.localDateTimeLabel.slice(11, 16)}
                             </div>
-                            <div className="mt-1 line-clamp-2 text-[11px] font-medium">
+                            <div className="mt-1 line-clamp-2 text-xs font-medium">
                               {entry.title ? `${entry.title}: ` : ''}
                               {entry.captionText}
                             </div>
@@ -658,7 +657,7 @@ export default function ContentCalendarPage() {
       {/* Post Inspector & Reschedule / Edit Modal */}
       {selectedPost && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby="calendar-post-title"

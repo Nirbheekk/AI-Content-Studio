@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import {
   apiRequest,
   UserDto,
@@ -40,8 +41,21 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
+  const [feedback, setFeedbackState] = useState<{ type: 'success' | 'error'; message: string } | null>(
     null,
+  );
+
+  const setFeedback = useCallback(
+    (fb: { type: 'success' | 'error'; message: string } | null) => {
+      setFeedbackState(fb);
+      if (!fb) return;
+      if (fb.type === 'success') {
+        toast.success(fb.message);
+      } else {
+        toast.error(fb.message);
+      }
+    },
+    [],
   );
 
   const hydrateFromToken = useCallback(async (token: string, preferredWorkspaceId?: string | null) => {

@@ -9,6 +9,7 @@ import {
   CompositionSpecSchema,
   CreateCompositionCommentRequestSchema,
   ExecuteRepurposeCampaignRequestSchema,
+  ExecuteYoutubeViralClipRequestSchema,
   GranularSceneEditRequestSchema,
   NotFoundError,
   QuoteGraphicDeliverable,
@@ -31,6 +32,7 @@ import {
   validateAudioCaptionSynchronization,
 } from '@ai-content-os/remotion-engine';
 import { authorizeWorkspace } from '../middleware/auth.js';
+import { executeYoutubeViralClipping } from '../services/youtube-viral-clipper.js';
 import {
   analyzeAssetInWorkspace,
   renderAndInspectCompositionVersion,
@@ -1070,6 +1072,27 @@ export async function registerCreativeWorkflowRoutes(
         quoteGraphics,
         writtenPosts,
       },
+    });
+  });
+
+  // 5b. YouTube Viral Moment Detection & Split-Screen 9:16 Clipper
+  app.post('/api/v1/repurpose/youtube-clip', async (request, reply) => {
+    const ctx = await authorizeWorkspace(request, 'EDITOR');
+    const parsed = ExecuteYoutubeViralClipRequestSchema.safeParse(request.body);
+    if (!parsed.success) {
+      throw new ValidationError('Invalid YouTube viral clip payload', parsed.error.flatten());
+    }
+
+    const result = await executeYoutubeViralClipping({
+      workspaceId: ctx.workspaceId,
+      userId: ctx.userId,
+      input: parsed.data,
+      storage,
+    });
+
+    return reply.status(201).send({
+      success: true,
+      data: result,
     });
   });
 }

@@ -31,6 +31,7 @@ import {
   PageHeader,
   Select,
   Textarea,
+  WorkflowStepper,
 } from '../../components/design-system/primitives';
 import { VideoPlayer } from '../../components/creative/video-player';
 import { useStudio } from '../../context/studio-context';
@@ -630,25 +631,26 @@ export default function InteractiveEditorPage() {
           }
           actions={
             <div className="flex flex-wrap items-center gap-2">
-              <Select
-                aria-label="Select composition"
-                value={selectedCompId}
-                onChange={(e) => {
-                  setSelectedCompId(e.target.value);
-                  void loadCompositionDetail(e.target.value);
-                }}
-                className="w-auto min-w-[200px]"
-              >
-                {compositions.length === 0 ? (
-                  <option value="">No compositions available</option>
-                ) : (
-                  compositions.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.title}
-                    </option>
-                  ))
-                )}
-              </Select>
+              <div className="w-56">
+                <Select
+                  aria-label="Select composition"
+                  value={selectedCompId}
+                  onChange={(e) => {
+                    setSelectedCompId(e.target.value);
+                    void loadCompositionDetail(e.target.value);
+                  }}
+                >
+                  {compositions.length === 0 ? (
+                    <option value="">No compositions available</option>
+                  ) : (
+                    compositions.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.title}
+                      </option>
+                    ))
+                  )}
+                </Select>
+              </div>
 
               <Button
                 variant="outline"
@@ -682,6 +684,8 @@ export default function InteractiveEditorPage() {
             </div>
           }
         />
+
+        <WorkflowStepper activeStep="editor" />
 
         {/* Studio Format & Action Bar */}
         <Card className="flex flex-wrap items-center justify-between gap-3 p-3.5">
@@ -780,16 +784,16 @@ export default function InteractiveEditorPage() {
               </div>
 
               {/* Dark True-Color Studio Preview Monitor */}
-              <div className="rounded-xl border border-border bg-canvas p-4">
+              <div className="rounded-2xl border border-border bg-canvas p-6">
                 <div
-                  className="mx-auto flex h-64 max-w-md flex-col justify-between rounded-xl border border-white/15 p-4 shadow-2xl"
+                  className="mx-auto flex h-64 max-w-md flex-col justify-between rounded-2xl border border-border/40 p-4 shadow-sm"
                   style={{ backgroundColor: compiled.brand.secondaryColor }}
                 >
-                  <div className="flex items-center justify-between text-[10px] text-white">
-                    <span className="rounded bg-black/65 px-2 py-0.5 font-mono">
+                  <div className="flex items-center justify-between text-xs text-primary-foreground">
+                    <span className="rounded-lg bg-canvas/75 px-2.5 py-0.5 font-mono">
                       {frameScene.layout} • {frameScene.transitionIn}
                     </span>
-                    <span className="rounded bg-black/65 px-2 py-0.5 font-mono tabular-nums">
+                    <span className="rounded-lg bg-canvas/75 px-2.5 py-0.5 font-mono tabular-nums">
                       Scene #{frameScene.orderIndex + 1} (f{frameScene.startFrame}–
                       {frameScene.endFrame})
                     </span>
@@ -797,7 +801,7 @@ export default function InteractiveEditorPage() {
 
                   <div className="my-auto text-center">
                     <div
-                      className="inline-block rounded-lg px-4 py-2 text-sm font-bold text-white shadow-md"
+                      className="inline-block rounded-xl px-4 py-2 text-sm font-bold text-primary-foreground shadow-sm"
                       style={{ backgroundColor: compiled.brand.primaryColor }}
                     >
                       {frameScene.headlineText}
@@ -806,12 +810,12 @@ export default function InteractiveEditorPage() {
 
                   <div className="space-y-2">
                     <div
-                      className="rounded bg-black/80 px-3 py-1.5 text-center text-xs font-semibold"
+                      className="rounded-xl bg-canvas/80 px-3 py-1.5 text-center text-xs font-semibold"
                       style={{ color: compiled.captions.highlightColor }}
                     >
                       {frameScene.narrationText}
                     </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded bg-black/50">
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-canvas/50">
                       <div
                         className="h-full transition-all"
                         style={{
@@ -914,7 +918,7 @@ export default function InteractiveEditorPage() {
 
                 {/* Track V1: Scene & Layout Blocks */}
                 <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     <span>Track V1 • Video &amp; Layout Scenes</span>
                     <span className="font-mono tabular-nums">{compiled.durationInFrames} frames</span>
                   </div>
@@ -929,13 +933,13 @@ export default function InteractiveEditorPage() {
                             setSelectedSceneId(seq.sceneId);
                             setCurrentFrame(seq.startFrame);
                           }}
-                          className={`min-w-[155px] flex-1 rounded-lg border p-2.5 text-left transition-all ${
+                          className={`min-w-40 flex-1 rounded-xl border p-3 text-left transition-colors duration-150 ${
                             isSelected
                               ? 'border-primary bg-accent text-accent-foreground shadow-sm ring-1 ring-primary'
                               : 'border-border bg-card text-foreground hover:border-primary/40'
                           }`}
                         >
-                          <div className="flex items-center justify-between text-[10px] font-semibold text-primary tabular-nums">
+                          <div className="flex items-center justify-between text-xs font-semibold text-primary tabular-nums">
                             <span>Scene #{seq.orderIndex + 1}</span>
                             <span>
                               f{seq.startFrame}–{seq.endFrame} ({seq.durationInFrames}f)
@@ -944,7 +948,7 @@ export default function InteractiveEditorPage() {
                           <div className="mt-1 truncate text-xs font-semibold text-foreground">
                             {seq.headlineText}
                           </div>
-                          <div className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                          <div className="mt-0.5 truncate text-xs text-muted-foreground">
                             {seq.layout} • {seq.transitionIn}
                           </div>
                         </button>
@@ -955,14 +959,14 @@ export default function InteractiveEditorPage() {
 
                 {/* Track FX2: Motion Overlays */}
                 <div className="space-y-1">
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Track FX2 • Motion Graphic Overlays
                   </div>
                   <div className="flex gap-2 overflow-x-auto pb-1">
                     {compiled.sequences.map((seq) => (
                       <div
                         key={`fx-${seq.sceneId}`}
-                        className="min-w-[155px] flex-1 rounded-md border border-border bg-card/75 px-2.5 py-1.5 text-[10px]"
+                        className="min-w-40 flex-1 rounded-xl border border-border bg-card/75 px-3 py-1.5 text-xs"
                       >
                         {seq.overlays.length === 0 ? (
                           <span className="text-muted-foreground">No overlays</span>
@@ -982,14 +986,14 @@ export default function InteractiveEditorPage() {
 
                 {/* Track CC3: Word-Synced Captions */}
                 <div className="space-y-1">
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Track CC3 • Word-Synced Captions &amp; Narration
                   </div>
                   <div className="flex gap-2 overflow-x-auto">
                     {compiled.sequences.map((seq) => (
                       <div
                         key={`cc-${seq.sceneId}`}
-                        className="min-w-[155px] flex-1 truncate rounded-md border border-border bg-card/75 px-2.5 py-1.5 text-[10px] text-muted-foreground"
+                        className="min-w-40 flex-1 truncate rounded-xl border border-border bg-card/75 px-3 py-1.5 text-xs text-muted-foreground"
                       >
                         {seq.narrationText}
                       </div>
@@ -1030,7 +1034,7 @@ export default function InteractiveEditorPage() {
                   {/* Manual Scene Property Form */}
                   <form onSubmit={handleSaveSceneTrackEdit} className="mt-3 space-y-3">
                     <div>
-                      <label className="mb-1 block text-[11px] font-medium text-muted-foreground">
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">
                         Headline Text
                       </label>
                       <Input
@@ -1041,19 +1045,19 @@ export default function InteractiveEditorPage() {
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-[11px] font-medium text-muted-foreground">
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">
                         Narration / Captions
                       </label>
                       <Textarea
                         rows={2}
                         value={editNarration}
                         onChange={(e) => setEditNarration(e.target.value)}
-                        className="min-h-[60px] text-xs"
+                        className="min-h-16 text-xs"
                       />
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       <div>
-                        <label className="mb-1 block text-[11px] font-medium text-muted-foreground">
+                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
                           Layout
                         </label>
                         <Select
@@ -1069,7 +1073,7 @@ export default function InteractiveEditorPage() {
                         </Select>
                       </div>
                       <div>
-                        <label className="mb-1 block text-[11px] font-medium text-muted-foreground">
+                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
                           Transition
                         </label>
                         <Select
@@ -1085,7 +1089,7 @@ export default function InteractiveEditorPage() {
                         </Select>
                       </div>
                       <div>
-                        <label className="mb-1 block text-[11px] font-medium text-muted-foreground">
+                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
                           Duration (Frames)
                         </label>
                         <Input
@@ -1148,7 +1152,7 @@ export default function InteractiveEditorPage() {
                       Close
                     </Button>
                   </div>
-                  <ul className="mt-2 space-y-1 text-[11px] text-foreground">
+                  <ul className="mt-2 space-y-1 text-xs text-foreground">
                     {diffReport.diff.brandChanges.map((c, i) => (
                       <li key={`b-${i}`}>• Brand: {c}</li>
                     ))}
@@ -1199,7 +1203,7 @@ export default function InteractiveEditorPage() {
                     comments.map((cm) => (
                       <div
                         key={cm.id}
-                        className="rounded-lg border border-border bg-secondary/35 p-2.5 text-[11px]"
+                        className="rounded-lg border border-border bg-secondary/35 p-2.5 text-xs"
                       >
                         <div className="flex items-center justify-between text-muted-foreground">
                           <span>
@@ -1222,7 +1226,7 @@ export default function InteractiveEditorPage() {
                       <Subtitles className="h-3.5 w-3.5" />
                       <span>View Generated SubRip (.SRT) Subtitles</span>
                     </summary>
-                    <pre className="mt-2 max-h-28 overflow-y-auto rounded bg-card p-2 font-mono text-[10px] text-foreground">
+                    <pre className="mt-2 max-h-28 overflow-y-auto rounded bg-card p-2 font-mono text-xs text-foreground">
                       {subtitlesSrt}
                     </pre>
                   </details>

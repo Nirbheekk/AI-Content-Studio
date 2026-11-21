@@ -91,6 +91,94 @@ export const WrittenPostDeliverableSchema = z.object({
 export type WrittenPostDeliverable = z.infer<typeof WrittenPostDeliverableSchema>;
 
 // -----------------------------------------------------------------------------
+// 3b. YouTube Viral Split-Screen Clipper Schemas
+// -----------------------------------------------------------------------------
+
+export const YoutubeViralClipLayoutSchema = z.enum([
+  'SPLIT_WEBCAM_BOTTOM',
+  'CENTER_CROP_9_16',
+]);
+export type YoutubeViralClipLayout = z.infer<typeof YoutubeViralClipLayoutSchema>;
+
+export const WebcamCropPresetSchema = z.enum([
+  'LEFT_MIDDLE',
+  'BOTTOM_LEFT',
+  'BOTTOM_RIGHT',
+  'TOP_LEFT',
+  'TOP_RIGHT',
+]);
+export type WebcamCropPreset = z.infer<typeof WebcamCropPresetSchema>;
+
+export const ExecuteYoutubeViralClipRequestSchema = z.object({
+  projectId: z.string().uuid(),
+  youtubeUrl: z
+    .string()
+    .trim()
+    .url()
+    .refine(
+      (value) => {
+        try {
+          const parsed = new URL(value);
+          const host = parsed.hostname.toLowerCase();
+          return (
+            host === 'youtube.com' ||
+            host === 'www.youtube.com' ||
+            host === 'm.youtube.com' ||
+            host === 'youtu.be'
+          );
+        } catch {
+          return false;
+        }
+      },
+      { message: 'URL must be a valid youtube.com or youtu.be link' },
+    ),
+  clipCount: z.number().int().min(1).max(5).default(3),
+  clipDurationSec: z.number().int().min(10).max(60).default(22),
+  layout: YoutubeViralClipLayoutSchema.default('SPLIT_WEBCAM_BOTTOM'),
+  webcamPreset: WebcamCropPresetSchema.default('LEFT_MIDDLE'),
+  badgeLabel: z.string().trim().min(1).max(28).default('LIVE CLIP'),
+  accentColor: z
+    .string()
+    .trim()
+    .regex(/^#[0-9A-Fa-f]{6}$/, 'Accent color must be a 6-digit hex color')
+    .default('#FF2A85'),
+  folderPath: z.string().trim().min(1).max(120).default('/youtube-viral-clips'),
+});
+export type ExecuteYoutubeViralClipRequest = z.infer<
+  typeof ExecuteYoutubeViralClipRequestSchema
+>;
+
+export const YoutubeViralClipItemSchema = z.object({
+  rank: z.number().int().positive(),
+  assetId: z.string().uuid(),
+  fileName: z.string(),
+  downloadUrl: z.string(),
+  thumbnailUrl: z.string().nullable(),
+  startSec: z.number().int().nonnegative(),
+  timestamp: z.string(),
+  durationSec: z.number().int().positive(),
+  viralScore: z.number().int().min(1).max(100),
+  hookTitle: z.string(),
+  transcript: z.string(),
+  captionEvents: z.number().int().nonnegative(),
+  sizeBytes: z.number().int().nonnegative(),
+  layout: YoutubeViralClipLayoutSchema,
+});
+export type YoutubeViralClipItem = z.infer<typeof YoutubeViralClipItemSchema>;
+
+export const ExecuteYoutubeViralClipResponseSchema = z.object({
+  projectId: z.string().uuid(),
+  youtubeUrl: z.string().url(),
+  videoId: z.string(),
+  videoTitle: z.string(),
+  layout: YoutubeViralClipLayoutSchema,
+  clips: z.array(YoutubeViralClipItemSchema),
+});
+export type ExecuteYoutubeViralClipResponse = z.infer<
+  typeof ExecuteYoutubeViralClipResponseSchema
+>;
+
+// -----------------------------------------------------------------------------
 // 4. Composition Version Comparison & Diff Engine (Priority 7)
 // -----------------------------------------------------------------------------
 

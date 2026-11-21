@@ -1,47 +1,38 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
-import {
-  CheckCircle2,
-  Copy,
-  KeyRound,
-  Palette,
-  Shield,
-  SunMoon,
-  UserPlus,
-  Users,
-} from 'lucide-react';
-import { AppShell } from '../../components/app-shell';
+import { Copy, Save, UserPlus, Users } from 'lucide-react';
+import { AppShell } from '@/components/app-shell';
 import {
   Badge,
   Button,
   Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
   Input,
+  Label,
+  NativeSelect,
   PageHeader,
-  Select,
-} from '../../components/design-system/primitives';
-import { ThemeToggle } from '../../components/theme/theme-toggle';
-import { useStudio } from '../../context/studio-context';
-import { apiRequest } from '../../lib/api-client';
+} from '@/components/design-system/primitives';
+import { Avatar } from '@/components/ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ThemeToggle } from '@/components/theme/theme-toggle';
+import { useStudio } from '@/context/studio-context';
+import { apiRequest } from '@/lib/api-client';
 
 interface WorkspaceMemberDto {
   id: string;
-  role: 'OWNER' | 'ADMIN' | 'EDITOR' | 'VIEWER';
-  joinedAt: string;
-  user: {
-    id: string;
-    email: string;
-    fullName: string;
-  };
+  role: string;
+  user: { id: string; email: string; fullName: string };
 }
 
 interface InvitationDto {
   id: string;
   email: string;
-  role: 'OWNER' | 'ADMIN' | 'EDITOR' | 'VIEWER';
+  role: string;
   status: string;
-  expiresAt: string;
   inviteToken?: string;
 }
 
@@ -49,13 +40,12 @@ export default function SettingsPage() {
   const { accessToken, activeWorkspace, refreshProfile, setFeedback } = useStudio();
   const [wsName, setWsName] = useState('');
   const [brandName, setBrandName] = useState('');
-  const [primaryColor, setPrimaryColor] = useState('#6956E8');
-  const [accentColor, setAccentColor] = useState('#22D3EE');
+  const [primaryColor, setPrimaryColor] = useState('#18181b');
+  const [accentColor, setAccentColor] = useState('#5e6ad2');
   const [toneOfVoice, setToneOfVoice] = useState('');
 
   const [members, setMembers] = useState<WorkspaceMemberDto[]>([]);
   const [invitations, setInvitations] = useState<InvitationDto[]>([]);
-
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'ADMIN' | 'EDITOR' | 'VIEWER'>('EDITOR');
   const [generatedToken, setGeneratedToken] = useState<string | null>(null);
@@ -85,18 +75,17 @@ export default function SettingsPage() {
           workspaceId: activeWorkspace.id,
         }),
       ]);
-
       setWsName(wsDetail.name);
       setBrandName(wsDetail.brandKit?.brandName ?? wsDetail.name);
-      setPrimaryColor(wsDetail.brandKit?.primaryColor ?? '#6956E8');
-      setAccentColor(wsDetail.brandKit?.accentColor ?? '#22D3EE');
+      setPrimaryColor(wsDetail.brandKit?.primaryColor ?? '#18181b');
+      setAccentColor(wsDetail.brandKit?.accentColor ?? '#5e6ad2');
       setToneOfVoice(wsDetail.brandKit?.toneOfVoice ?? '');
       setMembers(memberData.members);
       setInvitations(memberData.invitations);
     } catch (err) {
       setFeedback({
         type: 'error',
-        message: err instanceof Error ? err.message : 'Failed to load workspace settings',
+        message: err instanceof Error ? err.message : 'Failed to load settings',
       });
     }
   }, [accessToken, activeWorkspace, setFeedback]);
@@ -124,16 +113,16 @@ export default function SettingsPage() {
       });
       await refreshProfile();
       await loadSettings();
-      setFeedback({ type: 'success', message: 'Workspace & Brand Kit updated' });
+      setFeedback({ type: 'success', message: 'Workspace settings saved' });
     } catch (err) {
       setFeedback({
         type: 'error',
-        message: err instanceof Error ? err.message : 'Failed to update workspace',
+        message: err instanceof Error ? err.message : 'Failed to save workspace',
       });
     }
   };
 
-  const handleCreateInvitation = async (e: React.FormEvent) => {
+  const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!accessToken || !activeWorkspace || !inviteEmail.trim()) return;
     try {
@@ -142,10 +131,7 @@ export default function SettingsPage() {
         path: `/api/v1/workspaces/${activeWorkspace.id}/invitations`,
         accessToken,
         workspaceId: activeWorkspace.id,
-        body: {
-          email: inviteEmail.trim(),
-          role: inviteRole,
-        },
+        body: { email: inviteEmail.trim(), role: inviteRole },
       });
       setInviteEmail('');
       setGeneratedToken(created.inviteToken ?? null);
@@ -154,16 +140,16 @@ export default function SettingsPage() {
     } catch (err) {
       setFeedback({
         type: 'error',
-        message: err instanceof Error ? err.message : 'Failed to create invitation',
+        message: err instanceof Error ? err.message : 'Invitation failed',
       });
     }
   };
 
-  const handleAcceptInvitation = async (e: React.FormEvent) => {
+  const handleAcceptInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!accessToken || !acceptTokenInput.trim()) return;
     try {
-      const res = await apiRequest<{ workspaceId: string; workspaceName: string; role: string }>({
+      const res = await apiRequest<{ workspaceName: string; role: string }>({
         method: 'POST',
         path: '/api/v1/workspaces/invitations/accept',
         accessToken,
@@ -173,267 +159,213 @@ export default function SettingsPage() {
       await refreshProfile();
       setFeedback({
         type: 'success',
-        message: `Joined workspace "${res.workspaceName}" as ${res.role}`,
+        message: `Joined "${res.workspaceName}" as ${res.role}`,
       });
     } catch (err) {
       setFeedback({
         type: 'error',
-        message: err instanceof Error ? err.message : 'Failed to accept invitation',
+        message: err instanceof Error ? err.message : 'Invalid invite token',
       });
     }
   };
 
-  const handleCopyToken = async (token: string) => {
-    try {
-      await navigator.clipboard.writeText(token);
-      setFeedback({ type: 'success', message: 'Copied invitation token to clipboard' });
-    } catch {
-      setFeedback({ type: 'error', message: 'Failed to copy token' });
-    }
+  const copyToken = async (token: string) => {
+    await navigator.clipboard.writeText(token);
+    setFeedback({ type: 'success', message: 'Invitation token copied' });
   };
 
   return (
     <AppShell>
-      <div className="space-y-6">
+      <div className="space-y-5">
         <PageHeader
-          title="Team &amp; Workspace Settings"
-          description="Manage workspace identity, interface theme preference, role-based access control (RBAC), and team invitations."
-          badge={<Badge variant="ai">Role: {activeWorkspace?.role ?? 'MEMBER'}</Badge>}
+          title="Team & Settings"
+          description="Manage workspace configuration, appearance, and RBAC team invitations."
+          badge={activeWorkspace ? <Badge variant="outline">{activeWorkspace.role}</Badge> : undefined}
         />
 
-        {/* Appearance & Theme Preference Card */}
-        <Card className="flex flex-wrap items-center justify-between gap-4 p-5">
-          <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-ai-surface text-primary">
-              <SunMoon className="h-4 w-4" />
-            </span>
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">
-                Appearance &amp; Theme Preference
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Switch between Light, Dark, and System themes. Persisted locally with zero flash on
-                reload.
-              </p>
-            </div>
-          </div>
-          <ThemeToggle />
-        </Card>
+        <Tabs defaultValue="general">
+          <TabsList>
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="team">Team & RBAC ({members.length})</TabsTrigger>
+            <TabsTrigger value="appearance">Appearance</TabsTrigger>
+          </TabsList>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Left: Workspace & Brand Kit Defaults */}
-          <Card className="p-5">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <Palette className="h-4 w-4 text-primary" />
-                <span>Workspace &amp; Brand Defaults</span>
-              </div>
-              <Link
-                href="/brand-kit"
-                className="text-xs font-medium text-primary hover:underline"
-              >
-                Open Full Brand Kit Studio →
-              </Link>
-            </div>
-
-            <form onSubmit={handleSaveWorkspace} className="mt-4 space-y-4">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-foreground">
-                  Workspace Name
-                </label>
-                <Input
-                  type="text"
-                  required
-                  value={wsName}
-                  onChange={(e) => setWsName(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium text-foreground">Brand Name</label>
-                <Input
-                  type="text"
-                  required
-                  value={brandName}
-                  onChange={(e) => setBrandName(e.target.value)}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-foreground">
-                    Primary Brand Color (Hex)
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="inline-block h-8 w-8 shrink-0 rounded-lg border border-border"
-                      style={{ backgroundColor: primaryColor }}
-                    />
+          <TabsContent value="general">
+            <Card className="max-w-xl">
+              <CardHeader>
+                <CardTitle>Workspace Profile</CardTitle>
+                <CardDescription>Default identity applied across projects and exports.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSaveWorkspace} className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="set-ws-name">Workspace Name</Label>
                     <Input
-                      type="text"
-                      value={primaryColor}
-                      onChange={(e) => setPrimaryColor(e.target.value)}
-                      className="font-mono text-xs"
+                      id="set-ws-name"
+                      value={wsName}
+                      onChange={(e) => setWsName(e.target.value)}
                     />
                   </div>
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-foreground">
-                    Accent Highlight Color (Hex)
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="inline-block h-8 w-8 shrink-0 rounded-lg border border-border"
-                      style={{ backgroundColor: accentColor }}
-                    />
+                  <div className="space-y-1.5">
+                    <Label htmlFor="set-brand">Default Brand Name</Label>
                     <Input
-                      type="text"
-                      value={accentColor}
-                      onChange={(e) => setAccentColor(e.target.value)}
-                      className="font-mono text-xs"
+                      id="set-brand"
+                      value={brandName}
+                      onChange={(e) => setBrandName(e.target.value)}
                     />
                   </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium text-foreground">
-                  Brand Tone of Voice
-                </label>
-                <Input
-                  type="text"
-                  value={toneOfVoice}
-                  onChange={(e) => setToneOfVoice(e.target.value)}
-                />
-              </div>
-
-              <Button type="submit" size="sm">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Save Workspace &amp; Brand Kit
-              </Button>
-            </form>
-          </Card>
-
-          {/* Right: RBAC Invitations */}
-          <div className="space-y-6">
-            <Card className="p-5">
-              <div className="flex items-center gap-2 border-b border-border pb-3 text-sm font-semibold text-foreground">
-                <UserPlus className="h-4 w-4 text-primary" />
-                <span>Invite Team Member (RBAC)</span>
-              </div>
-              <form onSubmit={handleCreateInvitation} className="mt-4 space-y-4">
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="sm:col-span-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="set-tone">Tone of Voice</Label>
                     <Input
-                      type="email"
-                      required
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
-                      placeholder="teammate@company.com"
+                      id="set-tone"
+                      value={toneOfVoice}
+                      onChange={(e) => setToneOfVoice(e.target.value)}
                     />
                   </div>
-                  <Select
-                    aria-label="Invite role"
-                    value={inviteRole}
-                    onChange={(e) =>
-                      setInviteRole(e.target.value as 'ADMIN' | 'EDITOR' | 'VIEWER')
-                    }
-                  >
-                    <option value="EDITOR">EDITOR</option>
-                    <option value="ADMIN">ADMIN</option>
-                    <option value="VIEWER">VIEWER</option>
-                  </Select>
-                </div>
+                  <Button type="submit">
+                    <Save className="h-3.5 w-3.5" />
+                    Save Workspace
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-                <Button type="submit" size="sm">
-                  <KeyRound className="h-3.5 w-3.5" />
-                  Generate Secure Invitation Token
-                </Button>
+          <TabsContent value="team" className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5" />
+                  Members ({members.length})
+                </CardTitle>
+                <CardDescription>Active workspace collaborators and RBAC roles.</CardDescription>
+              </CardHeader>
+              <CardContent className="divide-y divide-border p-0">
+                {members.map((m) => (
+                  <div key={m.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <Avatar name={m.user.fullName} />
+                      <div className="min-w-0">
+                        <div className="truncate text-xs font-medium">{m.user.fullName}</div>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {m.user.email}
+                        </div>
+                      </div>
+                    </div>
+                    <Badge variant="outline">{m.role}</Badge>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
 
-                {generatedToken && (
-                  <div className="rounded-xl border border-success/40 bg-success-surface p-3 text-xs text-success">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold">Invitation Token Generated:</span>
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-1.5">
+                    <UserPlus className="h-3.5 w-3.5" />
+                    Invite Member
+                  </CardTitle>
+                  <CardDescription>Generate a role-scoped invitation token.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <form onSubmit={handleInvite} className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="inv-email">Email</Label>
+                      <Input
+                        id="inv-email"
+                        type="email"
+                        required
+                        value={inviteEmail}
+                        onChange={(e) => setInviteEmail(e.target.value)}
+                        placeholder="editor@company.com"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="inv-role">Role</Label>
+                      <NativeSelect
+                        id="inv-role"
+                        value={inviteRole}
+                        onChange={(e) =>
+                          setInviteRole(e.target.value as 'ADMIN' | 'EDITOR' | 'VIEWER')
+                        }
+                      >
+                        <option value="ADMIN">Admin</option>
+                        <option value="EDITOR">Editor</option>
+                        <option value="VIEWER">Viewer</option>
+                      </NativeSelect>
+                    </div>
+                    <Button type="submit" size="sm">
+                      Create Invitation
+                    </Button>
+                  </form>
+
+                  {generatedToken && (
+                    <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/40 p-2 text-xs">
+                      <code className="truncate font-mono text-xs">{generatedToken}</code>
                       <Button
                         type="button"
                         variant="outline"
-                        size="sm"
-                        onClick={() => void handleCopyToken(generatedToken)}
+                        size="icon-sm"
+                        onClick={() => void copyToken(generatedToken)}
+                        aria-label="Copy invitation token"
                       >
-                        <Copy className="h-3 w-3" />
-                        Copy Token
+                        <Copy className="h-3.5 w-3.5" />
                       </Button>
                     </div>
-                    <div className="mt-1.5 break-all font-mono text-[11px] text-foreground">
-                      {generatedToken}
+                  )}
+
+                  {invitations.length > 0 && (
+                    <div className="space-y-1.5 border-t border-border pt-3">
+                      <div className="text-xs font-medium text-muted-foreground">
+                        Pending Invitations ({invitations.length})
+                      </div>
+                      {invitations.map((inv) => (
+                        <div
+                          key={inv.id}
+                          className="flex items-center justify-between gap-2 text-xs"
+                        >
+                          <span className="truncate">{inv.email}</span>
+                          <Badge variant="outline">{inv.role}</Badge>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                )}
-              </form>
-            </Card>
+                  )}
+                </CardContent>
+              </Card>
 
-            <Card className="p-5">
-              <div className="flex items-center gap-2 border-b border-border pb-3 text-sm font-semibold text-foreground">
-                <Shield className="h-4 w-4 text-primary" />
-                <span>Accept Workspace Invitation</span>
-              </div>
-              <form onSubmit={handleAcceptInvitation} className="mt-4 flex gap-2">
-                <Input
-                  type="text"
-                  required
-                  value={acceptTokenInput}
-                  onChange={(e) => setAcceptTokenInput(e.target.value)}
-                  placeholder="Paste invitation token..."
-                  className="flex-1"
-                />
-                <Button type="submit" variant="secondary" size="sm">
-                  Accept Invite
-                </Button>
-              </form>
-            </Card>
-          </div>
-        </div>
-
-        {/* Members & Pending Invitations */}
-        <Card className="p-5">
-          <div className="flex items-center justify-between border-b border-border pb-3">
-            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <Users className="h-4 w-4 text-primary" />
-              <span>
-                Workspace Members ({members.length}) &amp; Pending Invitations ({invitations.length})
-              </span>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Accept Invitation</CardTitle>
+                  <CardDescription>Join another workspace with an invite token.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleAcceptInvite} className="flex gap-2">
+                    <Input
+                      value={acceptTokenInput}
+                      onChange={(e) => setAcceptTokenInput(e.target.value)}
+                      placeholder="Paste invite token..."
+                    />
+                    <Button type="submit" variant="outline" size="sm">
+                      Join
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
             </div>
-            <Badge variant="outline">Tenant Isolated</Badge>
-          </div>
+          </TabsContent>
 
-          <div className="mt-4 space-y-2">
-            {members.map((m) => (
-              <div
-                key={m.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-secondary/35 px-4 py-2.5 text-xs"
-              >
-                <div>
-                  <span className="font-semibold text-foreground">{m.user.fullName}</span>{' '}
-                  <span className="text-muted-foreground">({m.user.email})</span>
-                </div>
-                <Badge variant="ai">{m.role}</Badge>
-              </div>
-            ))}
-
-            {invitations.map((inv) => (
-              <div
-                key={inv.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-dashed border-border bg-card px-4 py-2.5 text-xs"
-              >
-                <div>
-                  <span className="font-medium text-foreground">{inv.email}</span>{' '}
-                  <span className="text-muted-foreground">(Invited • {inv.status})</span>
-                </div>
-                <Badge variant="warning">{inv.role}</Badge>
-              </div>
-            ))}
-          </div>
-        </Card>
+          <TabsContent value="appearance">
+            <Card className="max-w-md">
+              <CardHeader>
+                <CardTitle>Theme Preference</CardTitle>
+                <CardDescription>Persisted locally across sessions.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ThemeToggle />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </AppShell>
   );

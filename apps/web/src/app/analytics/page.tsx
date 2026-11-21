@@ -131,7 +131,7 @@ function TrendChart({ data }: { data: Array<{ date: string; value: number | null
             style={{ height: `${Math.max(6, (p.value / max) * 100)}%` }}
             title={`${p.date}: ${p.value}`}
           />
-          <span className="mt-1.5 font-mono text-[9px] text-muted-foreground tabular-nums">
+          <span className="mt-1.5 font-mono text-xs text-muted-foreground tabular-nums">
             {p.date.slice(5)}
           </span>
         </div>
@@ -322,8 +322,8 @@ export default function AnalyticsPage() {
         />
 
         {/* Navigation Tabs & Date/Platform Filter Bar */}
-        <Card className="flex flex-wrap items-center justify-between gap-3 p-3.5">
-          <div className="flex items-center gap-1 rounded-lg border border-border bg-secondary/40 p-1">
+        <Card className="flex flex-wrap items-center justify-between gap-4 p-6">
+          <div className="flex items-center gap-1 rounded-xl border border-border bg-secondary/50 p-1">
             {(
               [
                 ['overview', 'Performance'],
@@ -336,7 +336,7 @@ export default function AnalyticsPage() {
                 type="button"
                 aria-pressed={tab === id}
                 onClick={() => setTab(id)}
-                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
                   tab === id
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
@@ -347,31 +347,31 @@ export default function AnalyticsPage() {
             ))}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
               <span>From</span>
               <Input
                 type="date"
                 value={from}
                 onChange={(e) => setFrom(e.target.value)}
-                className="h-8 w-auto text-xs"
+                className="h-9 w-36 text-xs"
               />
             </label>
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
               <span>To</span>
               <Input
                 type="date"
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
-                className="h-8 w-auto text-xs"
+                className="h-9 w-36 text-xs"
               />
             </label>
-            <Select
-              aria-label="Platform filter"
-              value={platform}
-              onChange={(e) => setPlatform(e.target.value)}
-              className="h-8 w-auto text-xs"
-            >
+            <div className="w-44">
+              <Select
+                aria-label="Platform filter"
+                value={platform}
+                onChange={(e) => setPlatform(e.target.value)}
+              >
               <option value="">All Platforms</option>
               {[
                 'INSTAGRAM_REELS',
@@ -387,6 +387,7 @@ export default function AnalyticsPage() {
                 </option>
               ))}
             </Select>
+            </div>
           </div>
         </Card>
 
@@ -467,7 +468,7 @@ export default function AnalyticsPage() {
                       value: t.totals['likes'] ?? null,
                     }))}
                   />
-                  <p className="mt-2 text-[11px] text-muted-foreground">
+                  <p className="mt-2 text-xs text-muted-foreground">
                     Daily likes across verified snapshots collected on each date.
                   </p>
                 </Card>
@@ -519,13 +520,13 @@ export default function AnalyticsPage() {
                     <h2 className="text-sm font-semibold text-foreground">
                       Post Performance Breakdown
                     </h2>
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       Click any post row to inspect snapshot details
                     </span>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs text-foreground">
-                      <thead className="border-b border-border text-[11px] uppercase text-muted-foreground">
+                      <thead className="border-b border-border text-xs uppercase text-muted-foreground">
                         <tr>
                           <th className="py-2 pr-3">Post</th>
                           <th className="py-2 pr-3">Platform</th>
@@ -542,7 +543,7 @@ export default function AnalyticsPage() {
                             onClick={() => setSelectedPost(p)}
                             className="cursor-pointer border-t border-border transition-colors hover:bg-secondary/50"
                           >
-                            <td className="max-w-[260px] truncate py-2.5 pr-3 font-medium">
+                            <td className="max-w-64 truncate py-2.5 pr-3 font-medium">
                               {p.title ?? p.caption}
                             </td>
                             <td className="py-2.5 pr-3">
@@ -684,7 +685,7 @@ export default function AnalyticsPage() {
                     />
                   </div>
                   {s.exceeded && (
-                    <div className="mt-1.5 text-[11px] font-semibold text-destructive">
+                    <div className="mt-1.5 text-xs font-semibold text-destructive">
                       QUOTA EXCEEDED
                     </div>
                   )}
@@ -797,7 +798,7 @@ export default function AnalyticsPage() {
 
       {selectedPost && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby="post-analytics-title"
@@ -812,13 +813,13 @@ export default function AnalyticsPage() {
               </Button>
             </div>
             <p className="mt-3 font-medium">{selectedPost.caption}</p>
-            <p className="mt-1.5 text-[11px] text-muted-foreground">
+            <p className="mt-1.5 text-xs text-muted-foreground">
               Source: {selectedPost.source} • Collected {selectedPost.collectedAt}
             </p>
             <dl className="mt-4 grid grid-cols-2 gap-2.5 rounded-xl border border-border bg-secondary/35 p-3">
               {Object.entries(selectedPost.metrics).map(([k, v]) => (
                 <div key={k}>
-                  <dt className="text-[11px] capitalize text-muted-foreground">{k}</dt>
+                  <dt className="text-xs capitalize text-muted-foreground">{k}</dt>
                   <dd className="font-mono font-semibold text-foreground tabular-nums">
                     {fmt(v, 2)}
                   </dd>

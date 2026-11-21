@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import tailwindcssAnimate from 'tailwindcss-animate';
 
 const config: Config = {
   darkMode: 'class',
@@ -93,12 +94,12 @@ const config: Config = {
       },
       transitionDuration: {
         fast: '120ms',
-        normal: '200ms',
-        panel: '280ms',
+        normal: '180ms',
+        panel: '240ms',
       },
     },
   },
-  plugins: [],
+  plugins: [tailwindcssAnimate],
 };
 
 export default config;

@@ -1,4 +1,6 @@
 export * from './templates.js';
 export * from './compiler.js';
 export * from './media-inspector.js';
+export * from './audio-pipeline.js';
 export * from './ffmpeg-renderer.js';
+export * from './brag-engine.js';

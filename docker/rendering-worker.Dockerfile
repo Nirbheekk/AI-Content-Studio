@@ -53,6 +53,8 @@ RUN apk add --no-cache \
     ca-certificates \
     ttf-freefont \
     font-noto \
+    font-opensans \
+    espeak-ng \
  && mkdir -p /tmp/remotion && chown -R node:node /tmp/remotion \
  && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 WORKDIR /app

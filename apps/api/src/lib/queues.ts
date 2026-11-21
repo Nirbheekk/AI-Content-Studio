@@ -99,6 +99,7 @@ function createRedisConnectionConfig() {
 let mediaQueue: Queue | null = null;
 let orchestratorQueue: Queue | null = null;
 let publishingQueue: Queue | null = null;
+let renderingQueue: Queue | null = null;
 
 export interface PublishingJobPayload {
   workspaceId: string;
@@ -193,6 +194,32 @@ export async function enqueueOrchestratorWorkflowJob(payload: {
     }
     const job = await orchestratorQueue.add('workflow.foundation', payload, {
       jobId: payload.idempotencyKey,
+      removeOnComplete: 100,
+      removeOnFail: 100,
+    });
+    return job.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function enqueueRenderJob(payload: {
+  workspaceId: string;
+  compositionId: string;
+  compositionVersionId: string;
+  renderJobId: string;
+  idempotencyKey: string;
+}): Promise<string | null> {
+  try {
+    if (!renderingQueue) {
+      renderingQueue = new Queue(QUEUE_NAMES.rendering, {
+        connection: createRedisConnectionConfig(),
+      });
+    }
+    const job = await renderingQueue.add('render.composition', payload, {
+      jobId: payload.idempotencyKey,
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 2000 },
       removeOnComplete: 100,
       removeOnFail: 100,
     });

@@ -27,6 +27,7 @@ import {
   PageHeader,
   Select,
   Textarea,
+  WorkflowStepper,
 } from '../../components/design-system/primitives';
 import { useStudio } from '../../context/studio-context';
 import { apiRequest } from '../../lib/api-client';
@@ -516,6 +517,8 @@ export default function PublishCenterPage() {
           }
         />
 
+        <WorkflowStepper activeStep="publish" />
+
         {/* KPI Summary Cards */}
         {dashboard && (
           <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-5">
@@ -621,12 +624,12 @@ export default function PublishCenterPage() {
                               ({acc.accountHandle})
                             </span>
                           </div>
-                          <div className="mt-1 text-[11px] text-muted-foreground tabular-nums">
+                          <div className="mt-1 text-xs text-muted-foreground tabular-nums">
                             Token: <code className="font-mono">{acc.tokenPreview}</code> • Scopes:{' '}
                             {acc.scopes.length}
                           </div>
                           {acc.connectionError && (
-                            <div className="mt-1 text-[11px] font-medium text-destructive">
+                            <div className="mt-1 text-xs font-medium text-destructive">
                               Error: {acc.connectionError}
                             </div>
                           )}
@@ -757,7 +760,7 @@ export default function PublishCenterPage() {
                     <div className="font-semibold text-primary">
                       {activeCap.displayName} Capabilities:
                     </div>
-                    <div className="mt-1 text-[11px] text-muted-foreground">
+                    <div className="mt-1 text-xs text-muted-foreground">
                       Allowed Types:{' '}
                       <strong className="text-foreground">
                         {activeCap.supportedContentTypes.join(', ')}
@@ -842,7 +845,7 @@ export default function PublishCenterPage() {
                       Caption / Post Body
                     </label>
                     <span
-                      className={`text-[11px] tabular-nums ${
+                      className={`text-xs tabular-nums ${
                         activeCap && captionText.length > activeCap.maxCaptionLength
                           ? 'font-bold text-destructive'
                           : 'text-muted-foreground'
@@ -865,7 +868,7 @@ export default function PublishCenterPage() {
                     <label className="block text-xs font-medium text-foreground">
                       Hashtags (comma-separated)
                     </label>
-                    <span className="text-[11px] text-muted-foreground tabular-nums">
+                    <span className="text-xs text-muted-foreground tabular-nums">
                       {parsedHashtags.length} / {activeCap?.maxHashtags ?? 30} tags
                     </span>
                   </div>
@@ -1070,7 +1073,7 @@ export default function PublishCenterPage() {
                         )}
                       </div>
                       <p className="text-xs text-foreground">{post.captionText}</p>
-                      <div className="text-[11px] text-muted-foreground tabular-nums">
+                      <div className="text-xs text-muted-foreground tabular-nums">
                         External ID: <code className="font-mono">{post.externalPostId}</code> •
                         Published: {post.localEffectiveLabel} ({post.timezone}) • Idempotency:{' '}
                         <code className="font-mono">{post.idempotencyKey.slice(0, 16)}...</code>
@@ -1116,7 +1119,7 @@ export default function PublishCenterPage() {
                         Error: {post.errorMessage}
                       </div>
                       {post.nextRetryAt && (
-                        <div className="text-[11px] text-warning">
+                        <div className="text-xs text-warning">
                           Next Backoff Retry: {post.nextRetryAt}
                         </div>
                       )}
@@ -1169,7 +1172,7 @@ export default function PublishCenterPage() {
       {/* OAuth Connection Modal */}
       {showOAuthModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby="oauth-connect-title"
@@ -1204,7 +1207,7 @@ export default function PublishCenterPage() {
               </div>
 
               {oauthAuthorizationUrl && (
-                <div className="rounded-xl border border-border bg-secondary/35 p-3 text-[11px] text-muted-foreground">
+                <div className="rounded-xl border border-border bg-secondary/35 p-3 text-xs text-muted-foreground">
                   <div className="font-semibold text-foreground">
                     Required OAuth Scopes: {oauthScopes.join(', ')}
                   </div>

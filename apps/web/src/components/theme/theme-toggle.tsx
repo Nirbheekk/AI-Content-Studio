@@ -48,7 +48,7 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
             aria-pressed={active}
             title={`${m.label} theme`}
             className={cn(
-              'inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-all duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               active
                 ? 'bg-card text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground',

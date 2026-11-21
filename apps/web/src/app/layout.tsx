@@ -3,6 +3,8 @@ import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { StudioProvider } from '../context/studio-context';
 import { ThemeProvider } from '../components/theme/theme-provider';
+import { TooltipProvider } from '../components/ui/tooltip';
+import { Toaster } from '../components/ui/sonner';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -37,13 +39,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${jetbrainsMono.variable}`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${inter.variable} ${jetbrainsMono.variable}`}
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">
         <ThemeProvider>
-          <StudioProvider>{children}</StudioProvider>
+          <TooltipProvider delayDuration={200}>
+            <StudioProvider>
+              {children}
+              <Toaster />
+            </StudioProvider>
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>

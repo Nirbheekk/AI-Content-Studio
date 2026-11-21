@@ -1,34 +1,40 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { CheckCircle2, Eye, Palette, Sparkles, Type } from 'lucide-react';
-import { AppShell } from '../../components/app-shell';
+import { Palette, Save } from 'lucide-react';
+import { AppShell } from '@/components/app-shell';
 import {
   Badge,
   Button,
   Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
   Input,
+  Label,
+  NativeSelect,
   PageHeader,
-  Select,
   Textarea,
-} from '../../components/design-system/primitives';
-import { useStudio } from '../../context/studio-context';
-import { apiRequest } from '../../lib/api-client';
+} from '@/components/design-system/primitives';
+import { useStudio } from '@/context/studio-context';
+import { apiRequest } from '@/lib/api-client';
 
 export default function BrandKitPage() {
   const { accessToken, activeWorkspace, setFeedback } = useStudio();
-  const [brandName, setBrandName] = useState('');
-  const [primaryColor, setPrimaryColor] = useState('#6956E8');
-  const [secondaryColor, setSecondaryColor] = useState('#11131B');
-  const [accentColor, setAccentColor] = useState('#22D3EE');
+
+  const [brandName, setBrandName] = useState('AI Content Studio');
+  const [primaryColor, setPrimaryColor] = useState('#18181b');
+  const [secondaryColor, setSecondaryColor] = useState('#09090b');
+  const [accentColor, setAccentColor] = useState('#5e6ad2');
   const [headingFont, setHeadingFont] = useState('Inter');
   const [bodyFont, setBodyFont] = useState('Inter');
-  const [toneOfVoice, setToneOfVoice] = useState('');
-  const [editingStyle, setEditingStyle] = useState('');
+  const [toneOfVoice, setToneOfVoice] = useState('Clear, confident, editorial');
+  const [editingStyle, setEditingStyle] = useState('fast-paced');
   const [captionStyle, setCaptionStyle] = useState<
     'word-highlight' | 'karaoke-pop' | 'minimal-lower' | 'kinetic-center'
   >('word-highlight');
-  const [captionFontSizePx, setCaptionFontSizePx] = useState(56);
+  const [captionFontSizePx, setCaptionFontSizePx] = useState(44);
   const [targetAudience, setTargetAudience] = useState('');
   const [contentObjectives, setContentObjectives] = useState('');
   const [guidelinesText, setGuidelinesText] = useState('');
@@ -117,10 +123,7 @@ export default function BrandKitPage() {
           guidelinesText: guidelinesText || undefined,
         },
       });
-      setFeedback({
-        type: 'success',
-        message: 'Workspace Brand Kit saved and ready for composition inheritance',
-      });
+      setFeedback({ type: 'success', message: 'Brand Kit saved for all new compositions' });
     } catch (err) {
       setFeedback({
         type: 'error',
@@ -133,294 +136,211 @@ export default function BrandKitPage() {
 
   return (
     <AppShell>
-      <div className="space-y-6">
+      <div className="space-y-5">
         <PageHeader
-          title="Workspace Brand Kit"
-          description="Configure brand colors, typography, caption style presets, tone of voice, and editing choreography automatically inherited by all AI-generated compositions."
-          badge={<Badge variant="ai">{brandName || activeWorkspace?.name || 'Brand Kit'}</Badge>}
+          title="Brand Kit"
+          description="Colors, typography, caption presets, and voice inherited by AI Studio and Video Editor."
+          badge={<Badge variant="outline">{activeWorkspace?.name ?? 'Workspace'}</Badge>}
         />
 
-        <form onSubmit={handleSave} className="grid gap-6 lg:grid-cols-12">
-          {/* Left: Visual Identity & Brand Voice Configuration */}
-          <Card className="space-y-5 p-5 lg:col-span-7">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                <Palette className="h-3.5 w-3.5 text-primary" />
-                <span>1. Visual Palette &amp; Typography</span>
-              </div>
-              <Badge variant="outline">Auto-Inherited by Remotion AST</Badge>
-            </div>
-
-            <div>
-              <label className="mb-1 block text-xs font-medium text-foreground">Brand Name</label>
-              <Input
-                type="text"
-                required
-                value={brandName}
-                onChange={(e) => setBrandName(e.target.value)}
-              />
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-foreground">
-                  Primary Color
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    aria-label="Primary color swatch"
-                    value={/^#[0-9A-Fa-f]{6}$/.test(primaryColor) ? primaryColor : '#6956E8'}
-                    onChange={(e) => setPrimaryColor(e.target.value)}
-                    className="h-9 w-10 shrink-0 cursor-pointer rounded-lg border border-border bg-card p-1"
-                  />
+        <div className="grid gap-6 lg:grid-cols-12">
+          <form onSubmit={handleSave} className="space-y-6 lg:col-span-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>Identity & Palette</CardTitle>
+                <CardDescription>Applied across video backgrounds, lower-thirds, and highlights.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="bk-name">Brand Name</Label>
                   <Input
-                    type="text"
-                    value={primaryColor}
-                    onChange={(e) => setPrimaryColor(e.target.value)}
-                    className="font-mono text-xs"
+                    id="bk-name"
+                    value={brandName}
+                    onChange={(e) => setBrandName(e.target.value)}
                   />
                 </div>
-              </div>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {[
+                    { id: 'bk-primary', label: 'Primary', value: primaryColor, set: setPrimaryColor },
+                    { id: 'bk-secondary', label: 'Secondary', value: secondaryColor, set: setSecondaryColor },
+                    { id: 'bk-accent', label: 'Accent', value: accentColor, set: setAccentColor },
+                  ].map((c) => (
+                    <div key={c.id} className="space-y-1.5">
+                      <Label htmlFor={c.id}>{c.label}</Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={c.value}
+                          onChange={(e) => c.set(e.target.value)}
+                          className="h-8 w-8 shrink-0 cursor-pointer rounded border border-border bg-transparent p-0.5"
+                        />
+                        <Input
+                          id={c.id}
+                          value={c.value}
+                          onChange={(e) => c.set(e.target.value)}
+                          className="font-mono text-xs"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
-              <div>
-                <label className="mb-1 block text-xs font-medium text-foreground">
-                  Secondary Stage
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    aria-label="Secondary stage color swatch"
-                    value={/^#[0-9A-Fa-f]{6}$/.test(secondaryColor) ? secondaryColor : '#11131B'}
-                    onChange={(e) => setSecondaryColor(e.target.value)}
-                    className="h-9 w-10 shrink-0 cursor-pointer rounded-lg border border-border bg-card p-1"
-                  />
+            <Card>
+              <CardHeader>
+                <CardTitle>Typography & Captions</CardTitle>
+                <CardDescription>Controls Remotion title cards and animated subtitle styling.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="bk-hfont">Heading Font</Label>
                   <Input
-                    type="text"
-                    value={secondaryColor}
-                    onChange={(e) => setSecondaryColor(e.target.value)}
-                    className="font-mono text-xs"
+                    id="bk-hfont"
+                    value={headingFont}
+                    onChange={(e) => setHeadingFont(e.target.value)}
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium text-foreground">
-                  Accent Highlight
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    aria-label="Accent highlight color swatch"
-                    value={/^#[0-9A-Fa-f]{6}$/.test(accentColor) ? accentColor : '#22D3EE'}
-                    onChange={(e) => setAccentColor(e.target.value)}
-                    className="h-9 w-10 shrink-0 cursor-pointer rounded-lg border border-border bg-card p-1"
-                  />
+                <div className="space-y-1.5">
+                  <Label htmlFor="bk-bfont">Body Font</Label>
                   <Input
-                    type="text"
-                    value={accentColor}
-                    onChange={(e) => setAccentColor(e.target.value)}
-                    className="font-mono text-xs"
+                    id="bk-bfont"
+                    value={bodyFont}
+                    onChange={(e) => setBodyFont(e.target.value)}
                   />
                 </div>
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 flex items-center gap-1 text-xs font-medium text-foreground">
-                  <Type className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>Heading Font</span>
-                </label>
-                <Input
-                  type="text"
-                  value={headingFont}
-                  onChange={(e) => setHeadingFont(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="mb-1 flex items-center gap-1 text-xs font-medium text-foreground">
-                  <Type className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>Body Font</span>
-                </label>
-                <Input
-                  type="text"
-                  value={bodyFont}
-                  onChange={(e) => setBodyFont(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-foreground">
-                  Caption Preset
-                </label>
-                <Select
-                  aria-label="Caption Preset"
-                  value={captionStyle}
-                  onChange={(e) =>
-                    setCaptionStyle(
-                      e.target.value as
-                        | 'word-highlight'
-                        | 'karaoke-pop'
-                        | 'minimal-lower'
-                        | 'kinetic-center',
-                    )
-                  }
-                >
-                  <option value="word-highlight">word-highlight</option>
-                  <option value="karaoke-pop">karaoke-pop</option>
-                  <option value="minimal-lower">minimal-lower</option>
-                  <option value="kinetic-center">kinetic-center</option>
-                </Select>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-foreground">
-                  Caption Font Size (px)
-                </label>
-                <Input
-                  type="number"
-                  min={24}
-                  max={84}
-                  value={captionFontSizePx}
-                  onChange={(e) => setCaptionFontSizePx(Number(e.target.value))}
-                  className="tabular-nums"
-                />
-              </div>
-            </div>
-
-            <div className="border-t border-border pt-4">
-              <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
-                <span>2. Brand Voice &amp; Editorial Direction</span>
-              </div>
-
-              <div className="space-y-3">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-foreground">
-                    Tone of Voice
-                  </label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="bk-cap-style">Caption Preset</Label>
+                  <NativeSelect
+                    id="bk-cap-style"
+                    value={captionStyle}
+                    onChange={(e) =>
+                      setCaptionStyle(
+                        e.target.value as
+                          | 'word-highlight'
+                          | 'karaoke-pop'
+                          | 'minimal-lower'
+                          | 'kinetic-center',
+                      )
+                    }
+                  >
+                    <option value="word-highlight">Word Highlight</option>
+                    <option value="karaoke-pop">Karaoke Pop</option>
+                    <option value="minimal-lower">Minimal Lower-Third</option>
+                    <option value="kinetic-center">Kinetic Center</option>
+                  </NativeSelect>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="bk-cap-size">Caption Size (px)</Label>
                   <Input
-                    type="text"
-                    required
-                    value={toneOfVoice}
-                    onChange={(e) => setToneOfVoice(e.target.value)}
+                    id="bk-cap-size"
+                    type="number"
+                    min={20}
+                    max={80}
+                    value={captionFontSizePx}
+                    onChange={(e) => setCaptionFontSizePx(Number(e.target.value))}
                   />
                 </div>
+              </CardContent>
+            </Card>
 
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-foreground">
-                    Editing Style &amp; Choreography
-                  </label>
-                  <Input
-                    type="text"
-                    required
-                    value={editingStyle}
-                    onChange={(e) => setEditingStyle(e.target.value)}
-                  />
+            <Card>
+              <CardHeader>
+                <CardTitle>Voice & Creative Guidelines</CardTitle>
+                <CardDescription>Injected into the Script Writer and Director agents.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="bk-tone">Tone of Voice</Label>
+                    <Input
+                      id="bk-tone"
+                      value={toneOfVoice}
+                      onChange={(e) => setToneOfVoice(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="bk-style">Editing Pacing</Label>
+                    <Input
+                      id="bk-style"
+                      value={editingStyle}
+                      onChange={(e) => setEditingStyle(e.target.value)}
+                    />
+                  </div>
                 </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-foreground">
-                    Target Audience
-                  </label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="bk-audience">Target Audience</Label>
                   <Input
-                    type="text"
+                    id="bk-audience"
                     value={targetAudience}
                     onChange={(e) => setTargetAudience(e.target.value)}
-                    placeholder="e.g. SaaS founders, product marketers, and creative directors"
+                    placeholder="Founders, creators, product marketers"
                   />
                 </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-foreground">
-                    Brand Guidelines Notes
-                  </label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="bk-obj">Content Objectives</Label>
+                  <Input
+                    id="bk-obj"
+                    value={contentObjectives}
+                    onChange={(e) => setContentObjectives(e.target.value)}
+                    placeholder="Product awareness, waitlist signups"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="bk-guide">Editorial Guidelines</Label>
                   <Textarea
+                    id="bk-guide"
                     rows={3}
                     value={guidelinesText}
                     onChange={(e) => setGuidelinesText(e.target.value)}
-                    placeholder="Editorial rules, forbidden buzzwords, or CTA preferences..."
+                    placeholder="Avoid jargon. Open every reel with a visual hook within 2 seconds."
                   />
                 </div>
-              </div>
-            </div>
-
-            <Button type="submit" disabled={saving} className="w-full">
-              <CheckCircle2 className="h-4 w-4" />
-              {saving ? 'Saving Brand Kit...' : 'Save Workspace Brand Kit'}
-            </Button>
-          </Card>
-
-          {/* Right: Live 9:16 Studio Frame Preview */}
-          <Card className="flex flex-col justify-between p-5 lg:col-span-5">
-            <div>
-              <div className="flex items-center justify-between border-b border-border pb-3">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  <Eye className="h-3.5 w-3.5 text-primary" />
-                  <span>Live 9:16 Composition Preview</span>
+                <div className="flex justify-end pt-1">
+                  <Button type="submit" disabled={saving}>
+                    <Save className="h-3.5 w-3.5" />
+                    {saving ? 'Saving...' : 'Save Brand Kit'}
+                  </Button>
                 </div>
-                <Badge variant="ai">{captionStyle}</Badge>
-              </div>
-              <p className="mt-2.5 text-xs text-muted-foreground">
-                Real-time preview of how AI Studio and the Video Editor apply your palette,
-                typography, and caption highlight preset:
-              </p>
+              </CardContent>
+            </Card>
+          </form>
 
-              <div className="my-5 rounded-2xl border border-border bg-canvas p-5">
-                <div
-                  className="mx-auto flex aspect-[9/16] max-h-80 w-48 flex-col justify-between rounded-xl border border-white/15 p-3.5 shadow-2xl"
-                  style={{ backgroundColor: secondaryColor || '#11131B' }}
-                >
-                  <div className="flex items-center justify-between text-[9px] text-white">
-                    <span className="rounded bg-black/65 px-1.5 py-0.5 font-mono">
-                      {brandName || 'Brand Studio'}
-                    </span>
-                    <span className="rounded bg-black/65 px-1.5 py-0.5 font-mono">
-                      {headingFont}
-                    </span>
-                  </div>
-
-                  <div className="my-auto text-center">
-                    <div
-                      className="rounded-lg px-2.5 py-1.5 text-xs font-bold leading-snug text-white shadow-md"
-                      style={{ backgroundColor: primaryColor || '#6956E8' }}
-                    >
-                      Describe It. Create It. Publish It.
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="rounded bg-black/80 px-2 py-1 text-center text-[11px] font-bold">
-                      <span style={{ color: accentColor || '#22D3EE' }}>
-                        {captionStyle} ({captionFontSizePx}px)
-                      </span>
-                    </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded bg-black/50">
-                      <div
-                        className="h-full w-2/3"
-                        style={{ backgroundColor: accentColor || '#22D3EE' }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
+          {/* Live 9:16 Brand Preview */}
+          <Card className="h-fit p-6 lg:col-span-4">
+            <div className="mb-4 flex items-center justify-between">
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                <Palette className="h-4 w-4" />
+                Live 9:16 Preview
+              </span>
+              <Badge variant="outline">{captionStyle}</Badge>
             </div>
-
-            <div className="space-y-2 rounded-xl border border-border bg-secondary/35 p-3.5 text-xs">
-              <div className="font-semibold text-foreground">Active Voice &amp; Style Summary</div>
-              <div className="text-muted-foreground">
-                <strong className="text-foreground">Tone:</strong>{' '}
-                {toneOfVoice || 'Authoritative, engaging, concise'}
+            <div
+              className="flex min-h-96 w-full flex-col justify-between rounded-2xl border border-border p-6 text-primary-foreground"
+              style={{
+                background: `linear-gradient(155deg, ${primaryColor}, ${secondaryColor})`,
+              }}
+            >
+              <div className="flex items-center justify-between text-xs opacity-90">
+                <span className="font-semibold">{brandName}</span>
+                <span>{editingStyle}</span>
               </div>
-              <div className="text-muted-foreground">
-                <strong className="text-foreground">Editing:</strong>{' '}
-                {editingStyle || 'Fast-paced dynamic cuts'}
+              <div className="space-y-2 text-center">
+                <div className="text-lg font-bold leading-snug" style={{ fontFamily: headingFont }}>
+                  Ship Studio-Grade Content Faster
+                </div>
+                <p className="text-xs opacity-90" style={{ fontFamily: bodyFont }}>
+                  {toneOfVoice}
+                </p>
+              </div>
+              <div className="rounded-xl bg-canvas/70 px-3 py-2 text-center text-xs font-semibold">
+                Live{' '}
+                <span style={{ color: accentColor }}>Caption Highlight</span>{' '}
+                ({captionFontSizePx}px)
               </div>
             </div>
           </Card>
-        </form>
+        </div>
       </div>
     </AppShell>
   );

@@ -5,137 +5,138 @@
 :root {
   color-scheme: light;
 
-  /* Lovable-inspired warm alabaster canvas + pure white floating surfaces */
-  --background: #FAF9F6;
-  --foreground: #171717;
+  /* Lovable.dev "Warm Restraint" Light Mode */
+  --background: #fcfbf8;
+  --foreground: #1c1c1c;
 
-  --card: #FFFFFF;
-  --card-foreground: #171717;
+  --card: #ffffff;
+  --card-foreground: #1c1c1c;
 
-  --popover: #FFFFFF;
-  --popover-foreground: #171717;
+  --popover: #ffffff;
+  --popover-foreground: #1c1c1c;
 
-  --primary: #6956E8;
-  --primary-foreground: #FFFFFF;
+  --primary: #1c1c1c;
+  --primary-foreground: #ffffff;
 
-  --secondary: #F3F1EC;
-  --secondary-foreground: #262522;
+  --secondary: #f7f4ed;
+  --secondary-foreground: #1c1c1c;
 
-  --muted: #F3F1EC;
-  --muted-foreground: #66645E;
+  --muted: #f4f1ea;
+  --muted-foreground: #6b6860;
 
-  --accent: #EFEAFE;
-  --accent-foreground: #4C3BC2;
+  --accent: #f3efe6;
+  --accent-foreground: #1c1c1c;
 
-  --destructive: #C83E4D;
-  --destructive-foreground: #FFFFFF;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
 
-  --border: #E8E5DF;
-  --input: #DDD9D0;
-  --ring: #6956E8;
+  --border: #eceae4;
+  --input: #e5e2da;
+  --ring: #1c1c1c;
 
-  --ai: #6956E8;
-  --ai-foreground: #FFFFFF;
-  --ai-surface: #F5F2FF;
+  /* Lovable AI & Semantic Accents */
+  --ai: #7c3aed;
+  --ai-foreground: #ffffff;
+  --ai-surface: #f5f3ff;
 
-  --success: #15805B;
-  --success-foreground: #FFFFFF;
-  --success-surface: #E9F7F1;
+  --success: #15803d;
+  --success-foreground: #ffffff;
+  --success-surface: #f0fdf4;
 
-  --warning: #9A5B08;
-  --warning-foreground: #FFFFFF;
-  --warning-surface: #FEF5E6;
+  --warning: #b45309;
+  --warning-foreground: #ffffff;
+  --warning-surface: #fffbeb;
 
-  --info: #087A92;
-  --info-foreground: #FFFFFF;
-  --info-surface: #E8F8FC;
+  --info: #0369a1;
+  --info-foreground: #ffffff;
+  --info-surface: #f0f9ff;
 
-  --video: #6956E8;
-  --audio: #087A92;
-  --image: #15805B;
-  --timeline: #F1EFEA;
-  --canvas: #141417;
+  --video: #7c3aed;
+  --audio: #0284c7;
+  --image: #15803d;
+  --timeline: #f4f1ea;
+  --canvas: #141416;
 
-  --sidebar: #F6F5F1;
-  --sidebar-foreground: #262522;
-  --sidebar-primary: #6956E8;
-  --sidebar-accent: #ECE8FD;
-  --sidebar-border: #E8E5DF;
+  --sidebar: #f7f4ed;
+  --sidebar-foreground: #1c1c1c;
+  --sidebar-primary: #1c1c1c;
+  --sidebar-accent: #ede9df;
+  --sidebar-border: #eceae4;
 
-  --chart-1: #6956E8;
-  --chart-2: #087A92;
-  --chart-3: #15805B;
-  --chart-4: #9A5B08;
-  --chart-5: #C83E4D;
+  --chart-1: #1c1c1c;
+  --chart-2: #ff4f93;
+  --chart-3: #7c3aed;
+  --chart-4: #ff6b4a;
+  --chart-5: #38bdf8;
 
-  --radius: 0.875rem;
+  --radius: 0.75rem;
 }
 
 .dark {
   color-scheme: dark;
 
-  /* Lovable-inspired deep obsidian charcoal surfaces */
-  --background: #121214;
-  --foreground: #FAFAFA;
+  /* Lovable.dev Warm Charcoal Dark Mode */
+  --background: #141416;
+  --foreground: #fafaf9;
 
-  --card: #18181B;
-  --card-foreground: #FAFAFA;
+  --card: #1c1c1f;
+  --card-foreground: #fafaf9;
 
-  --popover: #1E1E22;
-  --popover-foreground: #FAFAFA;
+  --popover: #202024;
+  --popover-foreground: #fafaf9;
 
-  --primary: #8B7CFF;
-  --primary-foreground: #11101D;
+  --primary: #fafaf9;
+  --primary-foreground: #141416;
 
-  --secondary: #222226;
-  --secondary-foreground: #EAEAEF;
+  --secondary: #232327;
+  --secondary-foreground: #fafaf9;
 
-  --muted: #222226;
-  --muted-foreground: #A1A1AA;
+  --muted: #232327;
+  --muted-foreground: #a8a29e;
 
-  --accent: #2A2545;
-  --accent-foreground: #D7D1FF;
+  --accent: #29292e;
+  --accent-foreground: #fafaf9;
 
-  --destructive: #F07883;
-  --destructive-foreground: #1E0E12;
+  --destructive: #ef4444;
+  --destructive-foreground: #fafaf9;
 
-  --border: #27272A;
-  --input: #34343A;
-  --ring: #9B8DFF;
+  --border: #2a2a2e;
+  --input: #323238;
+  --ring: #e7e5e4;
 
-  --ai: #9B8DFF;
-  --ai-foreground: #141224;
-  --ai-surface: #221E38;
+  --ai: #a78bfa;
+  --ai-foreground: #141416;
+  --ai-surface: #251d3a;
 
-  --success: #46C994;
-  --success-foreground: #0B2118;
-  --success-surface: #142921;
+  --success: #4ade80;
+  --success-foreground: #052e16;
+  --success-surface: #0c2618;
 
-  --warning: #F0B75D;
-  --warning-foreground: #261A07;
-  --warning-surface: #2B2214;
+  --warning: #fbbf24;
+  --warning-foreground: #451a03;
+  --warning-surface: #2a1f0a;
 
-  --info: #4AC3DA;
-  --info-foreground: #092026;
-  --info-surface: #13262E;
+  --info: #38bdf8;
+  --info-foreground: #082f49;
+  --info-surface: #0b2434;
 
-  --video: #9B8DFF;
-  --audio: #4AC3DA;
-  --image: #46C994;
-  --timeline: #151518;
-  --canvas: #0B0B0E;
+  --video: #a78bfa;
+  --audio: #38bdf8;
+  --image: #4ade80;
+  --timeline: #18181b;
+  --canvas: #09090b;
 
-  --sidebar: #141417;
-  --sidebar-foreground: #FAFAFA;
-  --sidebar-primary: #9B8DFF;
-  --sidebar-accent: #242138;
-  --sidebar-border: #27272A;
+  --sidebar: #111113;
+  --sidebar-foreground: #fafaf9;
+  --sidebar-primary: #fafaf9;
+  --sidebar-accent: #232327;
+  --sidebar-border: #26262a;
 
-  --chart-1: #9B8DFF;
-  --chart-2: #4AC3DA;
-  --chart-3: #46C994;
-  --chart-4: #F0B75D;
-  --chart-5: #F07883;
+  --chart-1: #fafaf9;
+  --chart-2: #fb7185;
+  --chart-3: #a78bfa;
+  --chart-4: #fb923c;
+  --chart-5: #38bdf8;
 }
 
 @layer base {
@@ -144,37 +145,62 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground antialiased selection:bg-foreground selection:text-background;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
-  .tabular-nums {
-    font-variant-numeric: tabular-nums;
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 }
 
-/* Lovable-inspired restrained atmospheric bloom behind hero prompt composers */
-.aicos-hero-bloom {
+/* Signature Lovable.dev Coral-Pink-Violet-Sky Atmospheric Gradient Bloom */
+.lovable-aura {
   background-image:
-    radial-gradient(65% 80% at 22% 10%, rgba(105, 86, 232, 0.16), transparent 65%),
-    radial-gradient(60% 75% at 78% 18%, rgba(236, 72, 153, 0.14), transparent 65%),
-    radial-gradient(55% 70% at 50% 95%, rgba(251, 146, 60, 0.12), transparent 65%);
+    radial-gradient(60% 55% at 22% 10%, rgba(255, 107, 74, 0.16) 0%, transparent 65%),
+    radial-gradient(55% 55% at 52% 0%, rgba(255, 79, 147, 0.14) 0%, transparent 65%),
+    radial-gradient(60% 55% at 82% 15%, rgba(99, 102, 241, 0.16) 0%, transparent 65%),
+    radial-gradient(50% 50% at 65% 85%, rgba(56, 189, 248, 0.12) 0%, transparent 65%);
 }
 
-.dark .aicos-hero-bloom {
+.dark .lovable-aura {
   background-image:
-    radial-gradient(65% 80% at 22% 10%, rgba(139, 124, 255, 0.22), transparent 65%),
-    radial-gradient(60% 75% at 78% 18%, rgba(236, 72, 153, 0.14), transparent 65%),
-    radial-gradient(55% 70% at 50% 95%, rgba(251, 146, 60, 0.10), transparent 65%);
+    radial-gradient(55% 50% at 20% 5%, rgba(255, 107, 74, 0.14) 0%, transparent 65%),
+    radial-gradient(55% 50% at 50% 0%, rgba(255, 79, 147, 0.13) 0%, transparent 65%),
+    radial-gradient(55% 50% at 85% 15%, rgba(139, 92, 246, 0.16) 0%, transparent 65%),
+    radial-gradient(50% 50% at 65% 90%, rgba(56, 189, 248, 0.1) 0%, transparent 65%);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
+.lovable-composer-shadow {
+  box-shadow:
+    0 1px 2px rgba(28, 28, 28, 0.04),
+    0 12px 32px -12px rgba(28, 28, 28, 0.12);
+}
+
+.dark .lovable-composer-shadow {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.35),
+    0 16px 40px -12px rgba(0, 0, 0, 0.55);
+}
+
+.lovable-gradient-badge {
+  background: linear-gradient(135deg, #ff6b4a 0%, #ff4f93 48%, #7c3aed 100%);
+}
+
+.studio-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.studio-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.studio-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 9999px;
 }

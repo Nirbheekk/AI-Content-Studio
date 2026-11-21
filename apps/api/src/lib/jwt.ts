@@ -74,6 +74,16 @@ export function verifyAccessToken(token: string): AccessTokenPayload {
     throw new AuthenticationError('Invalid access token segments');
   }
 
+  let header: { alg?: string; typ?: string };
+  try {
+    header = JSON.parse(base64UrlDecode(headerPart)) as { alg?: string; typ?: string };
+  } catch {
+    throw new AuthenticationError('Malformed access token header');
+  }
+  if (header.alg !== 'HS256' || (header.typ && header.typ !== 'JWT')) {
+    throw new AuthenticationError('Unsupported access token algorithm');
+  }
+
   const signingInput = `${headerPart}.${payloadPart}`;
   const expectedSig = createHmac('sha256', getJwtSecret())
     .update(signingInput, 'utf8')
@@ -90,7 +100,12 @@ export function verifyAccessToken(token: string): AccessTokenPayload {
     throw new AuthenticationError('Invalid access token signature');
   }
 
-  const payload = JSON.parse(base64UrlDecode(payloadPart)) as AccessTokenPayload;
+  let payload: AccessTokenPayload;
+  try {
+    payload = JSON.parse(base64UrlDecode(payloadPart)) as AccessTokenPayload;
+  } catch {
+    throw new AuthenticationError('Malformed access token payload');
+  }
   const nowSec = Math.floor(Date.now() / 1000);
   if (!payload.sub || typeof payload.exp !== 'number' || payload.exp <= nowSec) {
     throw new AuthenticationError('Access token expired');
@@ -117,7 +132,11 @@ export function parseCookies(cookieHeader: string | undefined): Record<string, s
     if (idx > 0) {
       const key = part.slice(0, idx).trim();
       const val = part.slice(idx + 1).trim();
-      result[key] = decodeURIComponent(val);
+      try {
+        result[key] = decodeURIComponent(val);
+      } catch {
+        result[key] = val;
+      }
     }
   }
   return result;
@@ -182,7 +201,8 @@ export class SlidingWindowRateLimiter {
     const recent = (this.hits.get(key) ?? []).filter((ts) => ts > cutoff);
     if (recent.length >= this.maxRequests) {
       this.hits.set(key, recent);
-      throw new QuotaExceededError('authentication rate limit');
+      const label = keySuffix === 'api' ? 'API rate limit' : 'authentication rate limit';
+      throw new QuotaExceededError(label);
     }
 
     recent.push(now);

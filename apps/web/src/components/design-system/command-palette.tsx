@@ -1,124 +1,246 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Command, Monitor, Moon, Search, Sun } from 'lucide-react';
-import { useTheme } from '../theme/theme-provider';
+import { Command } from 'cmdk';
+import {
+  BarChart3,
+  Calendar,
+  Film,
+  FolderKanban,
+  Image as ImageIcon,
+  LayoutDashboard,
+  Moon,
+  Palette,
+  Plus,
+  Repeat,
+  Search,
+  Send,
+  Settings,
+  Sparkles,
+  Sun,
+} from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { useTheme } from '@/components/theme/theme-provider';
 
-export interface CommandItem {
+interface CommandAction {
   id: string;
   label: string;
-  group: string;
-  action: () => void;
+  group: 'Create' | 'Library' | 'Distribute' | 'Workspace' | 'Appearance';
+  keywords: string;
+  icon: React.ComponentType<{ className?: string }>;
+  onSelect: () => void;
 }
 
 export function CommandPalette({
   open,
-  onClose,
-  routes,
+  onOpenChange,
+  onNewCreation,
 }: {
   open: boolean;
-  onClose: () => void;
-  routes: Array<{ href: string; label: string; group: string }>;
+  onOpenChange: (open: boolean) => void;
+  onNewCreation?: () => void;
 }) {
   const router = useRouter();
   const { setTheme } = useTheme();
-  const [query, setQuery] = useState('');
 
   useEffect(() => {
-    if (!open) setQuery('');
-  }, [open]);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        onOpenChange(!open);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, onOpenChange]);
 
-  const items: CommandItem[] = useMemo(() => {
-    const navItems: CommandItem[] = routes.map((r) => ({
-      id: `nav-${r.href}`,
-      label: r.label,
-      group: r.group,
-      action: () => {
-        router.push(r.href);
-        onClose();
+  const navigate = (href: string) => {
+    onOpenChange(false);
+    router.push(href);
+  };
+
+  const actions: CommandAction[] = [
+    ...(onNewCreation
+      ? [
+          {
+            id: 'new-creation',
+            label: 'New Creation Brief',
+            group: 'Create' as const,
+            keywords: 'new brief start workflow create video',
+            icon: Plus,
+            onSelect: () => {
+              onOpenChange(false);
+              onNewCreation();
+            },
+          },
+        ]
+      : []),
+    {
+      id: 'dashboard',
+      label: 'Command Center',
+      group: 'Create',
+      keywords: 'home overview dashboard',
+      icon: LayoutDashboard,
+      onSelect: () => navigate('/dashboard'),
+    },
+    {
+      id: 'studio',
+      label: 'AI Studio',
+      group: 'Create',
+      keywords: 'prompt generate agent chat preview',
+      icon: Sparkles,
+      onSelect: () => navigate('/studio'),
+    },
+    {
+      id: 'editor',
+      label: 'Video Editor',
+      group: 'Create',
+      keywords: 'timeline scenes remotion edit',
+      icon: Film,
+      onSelect: () => navigate('/editor'),
+    },
+    {
+      id: 'repurpose',
+      label: 'Repurpose Formats',
+      group: 'Create',
+      keywords: 'shorts reels tiktok linkedin variants',
+      icon: Repeat,
+      onSelect: () => navigate('/repurpose'),
+    },
+    {
+      id: 'projects',
+      label: 'Projects',
+      group: 'Library',
+      keywords: 'campaigns folders workspaces',
+      icon: FolderKanban,
+      onSelect: () => navigate('/projects'),
+    },
+    {
+      id: 'library',
+      label: 'Media Library',
+      group: 'Library',
+      keywords: 'assets upload video audio image',
+      icon: ImageIcon,
+      onSelect: () => navigate('/library'),
+    },
+    {
+      id: 'publish',
+      label: 'Publish Queue',
+      group: 'Distribute',
+      keywords: 'postiz social approve schedule',
+      icon: Send,
+      onSelect: () => navigate('/publish'),
+    },
+    {
+      id: 'calendar',
+      label: 'Content Calendar',
+      group: 'Distribute',
+      keywords: 'schedule dates timeline posts',
+      icon: Calendar,
+      onSelect: () => navigate('/calendar'),
+    },
+    {
+      id: 'analytics',
+      label: 'Analytics',
+      group: 'Distribute',
+      keywords: 'metrics usage tokens renders',
+      icon: BarChart3,
+      onSelect: () => navigate('/analytics'),
+    },
+    {
+      id: 'brand-kit',
+      label: 'Brand Kit',
+      group: 'Workspace',
+      keywords: 'colors fonts tone style',
+      icon: Palette,
+      onSelect: () => navigate('/brand-kit'),
+    },
+    {
+      id: 'settings',
+      label: 'Team & Settings',
+      group: 'Workspace',
+      keywords: 'rbac members tokens workspace',
+      icon: Settings,
+      onSelect: () => navigate('/settings'),
+    },
+    {
+      id: 'theme-light',
+      label: 'Switch to Light Mode',
+      group: 'Appearance',
+      keywords: 'light theme appearance',
+      icon: Sun,
+      onSelect: () => {
+        setTheme('light');
+        onOpenChange(false);
       },
-    }));
-    const themeItems: CommandItem[] = [
-      { id: 'theme-light', label: 'Switch to Light Theme', group: 'APPEARANCE', action: () => { setTheme('light'); onClose(); } },
-      { id: 'theme-dark', label: 'Switch to Dark Theme', group: 'APPEARANCE', action: () => { setTheme('dark'); onClose(); } },
-      { id: 'theme-system', label: 'Use System Theme', group: 'APPEARANCE', action: () => { setTheme('system'); onClose(); } },
-    ];
-    return [...navItems, ...themeItems];
-  }, [routes, router, onClose, setTheme]);
+    },
+    {
+      id: 'theme-dark',
+      label: 'Switch to Dark Mode',
+      group: 'Appearance',
+      keywords: 'dark theme appearance',
+      icon: Moon,
+      onSelect: () => {
+        setTheme('dark');
+        onOpenChange(false);
+      },
+    },
+  ];
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter(
-      (i) => i.label.toLowerCase().includes(q) || i.group.toLowerCase().includes(q),
-    );
-  }, [items, query]);
-
-  if (!open) return null;
+  const groups: Array<CommandAction['group']> = [
+    'Create',
+    'Library',
+    'Distribute',
+    'Workspace',
+    'Appearance',
+  ];
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 px-4 pt-20 backdrop-blur-[2px]"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Command palette"
-    >
-      <div
-        className="w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center gap-2 border-b border-border px-3.5 py-2.5">
-          <Search className="h-4 w-4 text-muted-foreground" />
-          <input
-            autoFocus
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') onClose();
-              if (e.key === 'Enter' && filtered[0]) filtered[0].action();
-            }}
-            placeholder="Jump to page or switch theme..."
-            className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-          />
-          <kbd className="rounded border border-border bg-secondary px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
-            ESC
-          </kbd>
-        </div>
-
-        <div className="max-h-80 overflow-y-auto p-2">
-          {filtered.length === 0 ? (
-            <div className="py-8 text-center text-xs text-muted-foreground">No matching commands.</div>
-          ) : (
-            filtered.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={item.action}
-                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none"
-              >
-                <span className="flex items-center gap-2">
-                  {item.id === 'theme-light' ? (
-                    <Sun className="h-3.5 w-3.5 text-muted-foreground" />
-                  ) : item.id === 'theme-dark' ? (
-                    <Moon className="h-3.5 w-3.5 text-muted-foreground" />
-                  ) : item.id === 'theme-system' ? (
-                    <Monitor className="h-3.5 w-3.5 text-muted-foreground" />
-                  ) : (
-                    <Command className="h-3.5 w-3.5 text-muted-foreground" />
-                  )}
-                  {item.label}
-                </span>
-                <span className="font-mono text-[10px] uppercase text-muted-foreground">
-                  {item.group}
-                </span>
-              </button>
-            ))
-          )}
-        </div>
-      </div>
-    </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="overflow-hidden p-0 sm:max-w-md">
+        <DialogTitle className="sr-only">Command Palette</DialogTitle>
+        <Command className="flex h-full w-full flex-col bg-popover text-popover-foreground">
+          <div className="flex items-center border-b border-border px-3">
+            <Search className="mr-2 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <Command.Input
+              placeholder="Jump to view or run action..."
+              className="flex h-10 w-full bg-transparent text-xs outline-none placeholder:text-muted-foreground"
+            />
+          </div>
+          <Command.List className="max-h-72 overflow-y-auto p-1.5 studio-scrollbar">
+            <Command.Empty className="py-6 text-center text-xs text-muted-foreground">
+              No matching command.
+            </Command.Empty>
+            {groups.map((group) => {
+              const items = actions.filter((a) => a.group === group);
+              if (items.length === 0) return null;
+              return (
+                <Command.Group
+                  key={group}
+                  heading={group}
+                  className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-muted-foreground"
+                >
+                  {items.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <Command.Item
+                        key={item.id}
+                        value={`${item.label} ${item.keywords}`}
+                        onSelect={item.onSelect}
+                        className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-xs text-foreground aria-selected:bg-accent aria-selected:text-accent-foreground"
+                      >
+                        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span>{item.label}</span>
+                      </Command.Item>
+                    );
+                  })}
+                </Command.Group>
+              );
+            })}
+          </Command.List>
+        </Command>
+      </DialogContent>
+    </Dialog>
   );
 }

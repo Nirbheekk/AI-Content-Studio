@@ -27,9 +27,9 @@ import {
 } from '@ai-content-os/ai-providers';
 import {
   compileCompositionSpec,
+  executeBragRenderPipeline,
   inspectCompositionAndFrames,
   PLATFORM_TEMPLATES,
-  renderCompositionMp4,
   renderInspectionFramePng,
 } from '@ai-content-os/remotion-engine';
 import { workflowEventBus } from '../lib/queues.js';
@@ -362,8 +362,8 @@ export async function renderAndInspectCompositionVersion(params: {
     qaFrameKeys.push(frameKey);
   }
 
-  // Render final MP4 binary (FFmpeg H.264/AAC when available, else synthetic fallback) and upload to MinIO
-  const renderResult = await renderCompositionMp4(compiled);
+  // Render final MP4 binary via Brag + Google AI Studio pipeline (voiceover + karaoke + xfade + ducked music)
+  const renderResult = await executeBragRenderPipeline(compiled);
   const mp4Bytes = renderResult.mp4Bytes;
   const outputStorageKey = `workspaces/${params.workspaceId}/renders/${renderJobId}/output-v${version.versionNumber}.mp4`;
   await storage.putObject({

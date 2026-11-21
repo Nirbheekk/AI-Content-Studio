@@ -3,107 +3,79 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
-  CheckCircle2,
-  Copy,
-  FileText,
+  ArrowRight,
+  ExternalLink,
   Film,
-  Quote,
+  Flame,
+  FolderOpen,
   Repeat,
   Send,
   Sparkles,
+  Youtube,
 } from 'lucide-react';
-import { AppShell } from '../../components/app-shell';
+import { AppShell } from '@/components/app-shell';
 import {
   Badge,
   Button,
   Card,
-  EmptyState,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Empty,
   Input,
+  Label,
+  NativeSelect,
   PageHeader,
-  Select,
   Textarea,
-} from '../../components/design-system/primitives';
-import { VideoPlayer } from '../../components/creative/video-player';
-import { useStudio } from '../../context/studio-context';
-import { apiRequest, AssetDto, ProjectDto } from '../../lib/api-client';
+  WorkflowStepper,
+} from '@/components/design-system/primitives';
+import {
+  YoutubeViralClipperDialog,
+  YoutubeViralClipResultDto,
+} from '@/components/repurpose/youtube-viral-clipper-dialog';
+import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useStudio } from '@/context/studio-context';
+import { apiRequest, AssetDto, ProjectDto } from '@/lib/api-client';
 
 interface RepurposeResultView {
-  campaignTitle: string;
-  compositions: Array<{
-    id: string;
-    title: string;
-    targetPlatform: string;
-    aspectRatio: string;
-    width: number;
-    height: number;
-    downloadUrl?: string | null;
-    qaScore?: number;
-  }>;
-  quoteGraphics: Array<{
-    id: string;
-    quoteText: string;
-    attribution: string;
-    aspectRatio: string;
-    primaryColor: string;
-  }>;
-  writtenPosts: Array<{
-    id: string;
+  campaignId?: string;
+  campaignTitle?: string;
+  generatedVideos?: Array<{
+    compositionId: string;
     platform: string;
-    hookHeadline: string;
-    bodyText: string;
-    hashtags: string[];
+    aspectRatio: string;
+    title: string;
+    templateId: string;
   }>;
+  quoteGraphics?: Array<{ title?: string; quoteText: string; platform?: string }>;
+  writtenPosts?: Array<{ platform: string; title?: string; body: string }>;
 }
 
-const PLANNED_TARGETS = [
-  {
-    platform: 'INSTAGRAM_REELS',
-    label: 'Instagram Reels',
-    aspectRatio: '9:16 Portrait',
-    template: 'instagram-reel',
-    count: '2 Videos',
-  },
-  {
-    platform: 'TIKTOK',
-    label: 'TikTok Short',
-    aspectRatio: '9:16 Portrait',
-    template: 'tiktok-short',
-    count: '1 Video',
-  },
-  {
-    platform: 'YOUTUBE_SHORTS',
-    label: 'YouTube Shorts',
-    aspectRatio: '9:16 Portrait',
-    template: 'youtube-short',
-    count: '1 Video',
-  },
-  {
-    platform: 'LINKEDIN',
-    label: 'LinkedIn Feed Video',
-    aspectRatio: '4:5 Portrait',
-    template: 'promotional-video',
-    count: '1 Video',
-  },
-] as const;
+const TARGET_BLUEPRINTS = [
+  { platform: 'INSTAGRAM_REELS', ratio: '9:16', label: 'Instagram Reels', count: 2 },
+  { platform: 'TIKTOK', ratio: '9:16', label: 'TikTok Short', count: 1 },
+  { platform: 'YOUTUBE_SHORTS', ratio: '9:16', label: 'YouTube Shorts', count: 1 },
+  { platform: 'LINKEDIN', ratio: '4:5', label: 'LinkedIn Promo', count: 1 },
+];
 
-function formatCleanTitle(raw: string): string {
-  return raw.replace(/[-_]\d{10,14}$/, '').trim() || raw;
-}
-
-export default function RepurposeEnginePage() {
+export default function RepurposePage() {
   const { accessToken, activeWorkspace, setFeedback } = useStudio();
   const [projects, setProjects] = useState<ProjectDto[]>([]);
   const [assets, setAssets] = useState<AssetDto[]>([]);
   const [projectId, setProjectId] = useState('');
   const [sourceAssetId, setSourceAssetId] = useState('');
-  const [campaignTitle, setCampaignTitle] = useState('Founder Podcast Omnibus Wave');
+  const [campaignTitle, setCampaignTitle] = useState('Multi-Platform Campaign Wave');
   const [creativeBrief, setCreativeBrief] = useState(
-    'Extract the highest-retention insights and repurpose into Instagram Reels, TikToks, YouTube Shorts, and LinkedIn posts.',
+    'Extract high-retention moments and adapt into Reels, TikTok, YouTube Shorts, and LinkedIn posts.',
   );
   const [includeQuotes, setIncludeQuotes] = useState(true);
   const [includeWritten, setIncludeWritten] = useState(true);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<RepurposeResultView | null>(null);
+  const [youtubeDialogOpen, setYoutubeDialogOpen] = useState(false);
+  const [viralResult, setViralResult] = useState<YoutubeViralClipResultDto | null>(null);
 
   useEffect(() => {
     if (!accessToken || !activeWorkspace) return;
@@ -128,7 +100,7 @@ export default function RepurposeEnginePage() {
       .catch(() => null);
   }, [accessToken, activeWorkspace]);
 
-  const handleRunRepurpose = async (e: React.FormEvent) => {
+  const handleRun = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!accessToken || !activeWorkspace || !projectId) return;
     setRunning(true);
@@ -144,30 +116,10 @@ export default function RepurposeEnginePage() {
           campaignTitle,
           creativeBrief,
           targets: [
-            {
-              platform: 'INSTAGRAM_REELS',
-              aspectRatio: 'PORTRAIT_9_16',
-              templateId: 'instagram-reel',
-              count: 2,
-            },
-            {
-              platform: 'TIKTOK',
-              aspectRatio: 'PORTRAIT_9_16',
-              templateId: 'tiktok-short',
-              count: 1,
-            },
-            {
-              platform: 'YOUTUBE_SHORTS',
-              aspectRatio: 'PORTRAIT_9_16',
-              templateId: 'youtube-short',
-              count: 1,
-            },
-            {
-              platform: 'LINKEDIN',
-              aspectRatio: 'PORTRAIT_4_5',
-              templateId: 'promotional-video',
-              count: 1,
-            },
+            { platform: 'INSTAGRAM_REELS', aspectRatio: 'PORTRAIT_9_16', templateId: 'instagram-reel', count: 2 },
+            { platform: 'TIKTOK', aspectRatio: 'PORTRAIT_9_16', templateId: 'tiktok-short', count: 1 },
+            { platform: 'YOUTUBE_SHORTS', aspectRatio: 'PORTRAIT_9_16', templateId: 'youtube-short', count: 1 },
+            { platform: 'LINKEDIN', aspectRatio: 'PORTRAIT_4_5', templateId: 'promotional-video', count: 1 },
           ],
           includeQuoteGraphics: includeQuotes,
           includeWrittenPosts: includeWritten,
@@ -175,352 +127,301 @@ export default function RepurposeEnginePage() {
         },
       });
       setResult(res);
-      setFeedback({
-        type: 'success',
-        message: `Generated ${res.compositions.length} platform videos, ${res.quoteGraphics.length} quote graphics, and ${res.writtenPosts.length} written posts`,
-      });
+      setFeedback({ type: 'success', message: 'Generated multi-platform campaign outputs' });
     } catch (err) {
       setFeedback({
         type: 'error',
-        message: err instanceof Error ? err.message : 'Repurposing failed',
+        message: err instanceof Error ? err.message : 'Repurpose run failed',
       });
     } finally {
       setRunning(false);
     }
   };
 
-  const handleCopyWrittenPost = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setFeedback({ type: 'success', message: 'Copied social post copy to clipboard' });
-    } catch {
-      setFeedback({ type: 'error', message: 'Unable to copy to clipboard' });
-    }
-  };
-
   return (
     <AppShell>
-      <div className="space-y-6">
+      <div className="space-y-5">
         <PageHeader
-          title="Content Repurpose Engine"
-          description="Convert one long-form recording or creative brief into multi-aspect video compositions, quote graphics, and platform-tailored written copy."
-          badge={
-            <Badge variant={result ? 'success' : 'ai'}>
-              {result ? 'Batch Generated' : 'Multi-Format Campaign'}
-            </Badge>
+          title="Repurpose Engine"
+          description="Transform one source asset, brief, or YouTube stream into multi-platform Reels, Shorts, quote cards, and copy."
+          actions={
+            <div className="flex items-center gap-2">
+              <Button size="sm" onClick={() => setYoutubeDialogOpen(true)}>
+                <Youtube className="h-4 w-4" />
+                Clip YouTube URL
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/publish">
+                  <Send className="h-3.5 w-3.5" />
+                  Open Publish Queue
+                </Link>
+              </Button>
+            </div>
           }
         />
 
-        <div className="grid gap-6 lg:grid-cols-12">
-          {/* Left: Source & Campaign Configuration Form */}
-          <Card className="p-5 lg:col-span-7">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                <Repeat className="h-3.5 w-3.5 text-primary" />
-                <span>1. Source Selection &amp; Campaign Brief</span>
-              </div>
-              <Badge variant="outline">Auto-Renders MP4 + Visual QA</Badge>
-            </div>
+        <WorkflowStepper activeStep="repurpose" projectId={projectId || undefined} />
 
-            <form onSubmit={handleRunRepurpose} className="mt-4 space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-foreground">
-                    Target Campaign Project
-                  </label>
-                  <Select
-                    aria-label="Target Project"
+        <div className="grid gap-6 lg:grid-cols-12">
+          <Card className="lg:col-span-5">
+            <CardHeader>
+              <CardTitle>Campaign Blueprint</CardTitle>
+              <CardDescription>Configure source media and output formats.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleRun} className="space-y-3.5">
+                <div className="space-y-1.5">
+                  <Label htmlFor="rep-proj">Project</Label>
+                  <NativeSelect
+                    id="rep-proj"
                     value={projectId}
                     onChange={(e) => setProjectId(e.target.value)}
                   >
                     {projects.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {formatCleanTitle(p.name)}
+                        {p.name}
                       </option>
                     ))}
-                  </Select>
+                  </NativeSelect>
                 </div>
 
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-foreground">
-                    Source Long-Form Asset
-                  </label>
-                  <Select
-                    aria-label="Source Long-Form Asset"
+                <div className="space-y-1.5">
+                  <Label htmlFor="rep-asset">Source Asset (Optional)</Label>
+                  <NativeSelect
+                    id="rep-asset"
                     value={sourceAssetId}
                     onChange={(e) => setSourceAssetId(e.target.value)}
                   >
-                    <option value="">Project Default Context</option>
+                    <option value="">Brief only</option>
                     {assets.map((a) => (
                       <option key={a.id} value={a.id}>
                         {a.originalName} ({a.assetType})
                       </option>
                     ))}
-                  </Select>
+                  </NativeSelect>
                 </div>
-              </div>
 
-              <div>
-                <label className="mb-1 block text-xs font-medium text-foreground">
-                  Campaign Wave Title
-                </label>
-                <Input
-                  type="text"
-                  required
-                  value={campaignTitle}
-                  onChange={(e) => setCampaignTitle(e.target.value)}
-                  placeholder="e.g. Founder Podcast Omnibus Wave"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium text-foreground">
-                  Creative Repurposing Brief
-                </label>
-                <Textarea
-                  rows={3}
-                  required
-                  value={creativeBrief}
-                  onChange={(e) => setCreativeBrief(e.target.value)}
-                  placeholder="Describe the key takeaway, target audience, and hook style..."
-                />
-              </div>
-
-              <div className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-secondary/35 px-3.5 py-2.5 text-xs">
-                <label className="flex items-center gap-2 font-medium text-foreground">
-                  <input
-                    type="checkbox"
-                    checked={includeQuotes}
-                    onChange={(e) => setIncludeQuotes(e.target.checked)}
+                <div className="space-y-1.5">
+                  <Label htmlFor="rep-title">Campaign Title</Label>
+                  <Input
+                    id="rep-title"
+                    value={campaignTitle}
+                    onChange={(e) => setCampaignTitle(e.target.value)}
                   />
-                  <span>Include Quote Graphics</span>
-                </label>
-                <label className="flex items-center gap-2 font-medium text-foreground">
-                  <input
-                    type="checkbox"
-                    checked={includeWritten}
-                    onChange={(e) => setIncludeWritten(e.target.checked)}
-                  />
-                  <span>Include Written Social Posts</span>
-                </label>
-              </div>
+                </div>
 
-              <Button type="submit" variant="ai" disabled={running || !projectId} className="w-full">
-                <Sparkles className="h-4 w-4" />
-                {running
-                  ? 'Generating & Rendering Multi-Platform Batch...'
-                  : 'Generate Multi-Platform Campaign Batch'}
-              </Button>
-            </form>
+                <div className="space-y-1.5">
+                  <Label htmlFor="rep-brief">Creative Brief</Label>
+                  <Textarea
+                    id="rep-brief"
+                    rows={3}
+                    value={creativeBrief}
+                    onChange={(e) => setCreativeBrief(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2 rounded-md border border-border bg-muted/30 p-3">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Target Matrix
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {TARGET_BLUEPRINTS.map((t) => (
+                      <div
+                        key={t.platform}
+                        className="flex items-center justify-between rounded border border-border bg-background px-2 py-1 text-xs"
+                      >
+                        <span>{t.label}</span>
+                        <Badge variant="outline">×{t.count}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-1">
+                  <label className="flex items-center justify-between text-xs">
+                    <span>Include quote graphics</span>
+                    <Switch checked={includeQuotes} onCheckedChange={setIncludeQuotes} />
+                  </label>
+                  <label className="flex items-center justify-between text-xs">
+                    <span>Include written social copy</span>
+                    <Switch checked={includeWritten} onCheckedChange={setIncludeWritten} />
+                  </label>
+                </div>
+
+                <Button type="submit" className="w-full" disabled={running || !projectId}>
+                  <Repeat className="h-3.5 w-3.5" />
+                  {running ? 'Generating Wave...' : 'Generate Multi-Platform Wave'}
+                </Button>
+              </form>
+            </CardContent>
           </Card>
 
-          {/* Right: Planned Target Matrix (Clearly distinguished as configuration vs output) */}
-          <Card className="p-5 lg:col-span-5">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                2. Configured Target Matrix
-              </span>
-              <Badge variant="info">Planned Blueprint</Badge>
-            </div>
-            <p className="mt-2.5 text-xs text-muted-foreground">
-              Each batch run compiles and renders the following platform-specific deliverables
-              inheriting your Workspace Brand Kit:
-            </p>
+          <Card className="flex flex-col lg:col-span-7">
+            <CardHeader>
+              <CardTitle>Generated Outputs</CardTitle>
+              <CardDescription>
+                Review variants and open any composition directly in Video Editor or Publish Queue.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1">
+              {!result && !viralResult ? (
+                <Empty
+                  icon={<Sparkles className="h-5 w-5" />}
+                  title="No wave or viral clips generated yet"
+                  description="Run the campaign blueprint on the left or click Clip YouTube URL to auto-detect and render scored 9:16 viral clips."
+                  action={
+                    <Button size="sm" variant="outline" onClick={() => setYoutubeDialogOpen(true)}>
+                      <Youtube className="h-4 w-4" />
+                      Clip YouTube URL
+                    </Button>
+                  }
+                />
+              ) : (
+                <Tabs defaultValue={viralResult ? 'viral' : 'videos'}>
+                  <TabsList>
+                    {viralResult && (
+                      <TabsTrigger value="viral">
+                        Viral Clips ({viralResult.clips.length})
+                      </TabsTrigger>
+                    )}
+                    <TabsTrigger value="videos">
+                      Videos ({result?.generatedVideos?.length ?? 0})
+                    </TabsTrigger>
+                    <TabsTrigger value="quotes">
+                      Quotes ({result?.quoteGraphics?.length ?? 0})
+                    </TabsTrigger>
+                    <TabsTrigger value="written">
+                      Copy ({result?.writtenPosts?.length ?? 0})
+                    </TabsTrigger>
+                  </TabsList>
 
-            <div className="mt-3 space-y-2">
-              {PLANNED_TARGETS.map((t) => (
-                <div
-                  key={t.platform}
-                  className="flex items-center justify-between rounded-xl border border-border bg-secondary/35 px-3.5 py-2.5 text-xs"
-                >
-                  <div>
-                    <div className="font-semibold text-foreground">{t.label}</div>
-                    <div className="text-[11px] text-muted-foreground">
-                      {t.aspectRatio} • Template: <span className="font-mono">{t.template}</span>
-                    </div>
-                  </div>
-                  <Badge variant="ai">{t.count}</Badge>
-                </div>
-              ))}
+                  {viralResult && (
+                    <TabsContent value="viral" className="space-y-3 pt-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs">
+                        <span className="truncate font-medium text-foreground">
+                          {viralResult.videoTitle}
+                        </span>
+                        <Badge variant="outline">
+                          {viralResult.layout === 'SPLIT_WEBCAM_BOTTOM'
+                            ? 'Split-Screen 9:16'
+                            : 'Center Crop 9:16'}
+                        </Badge>
+                      </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-1">
-                <div className="rounded-xl border border-border bg-secondary/35 p-3 text-xs">
-                  <div className="flex items-center gap-1.5 font-semibold text-foreground">
-                    <Quote className="h-3.5 w-3.5 text-primary" />
-                    <span>Quote Cards</span>
-                  </div>
-                  <div className="mt-0.5 text-[11px] text-muted-foreground">
-                    {includeQuotes ? 'Enabled (1:1 & 4:5)' : 'Skipped'}
-                  </div>
-                </div>
-                <div className="rounded-xl border border-border bg-secondary/35 p-3 text-xs">
-                  <div className="flex items-center gap-1.5 font-semibold text-foreground">
-                    <FileText className="h-3.5 w-3.5 text-info" />
-                    <span>Written Copy</span>
-                  </div>
-                  <div className="mt-0.5 text-[11px] text-muted-foreground">
-                    {includeWritten ? 'Enabled (LinkedIn & X)' : 'Skipped'}
-                  </div>
-                </div>
-              </div>
-            </div>
+                      {viralResult.clips.map((clip) => (
+                        <div
+                          key={clip.assetId}
+                          className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3 sm:flex-row sm:items-center"
+                        >
+                          {clip.thumbnailUrl && (
+                            <img
+                              src={clip.thumbnailUrl}
+                              alt={clip.hookTitle}
+                              className="h-24 w-14 shrink-0 rounded-md border border-border object-cover"
+                            />
+                          )}
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <Badge variant="default" className="gap-1">
+                                <Flame className="h-3 w-3" />
+                                Viral {clip.viralScore}/100
+                              </Badge>
+                              <Badge variant="secondary">{clip.timestamp}</Badge>
+                              <Badge variant="outline">{clip.captionEvents} captions</Badge>
+                            </div>
+                            <div className="truncate text-sm font-semibold text-foreground">
+                              #{clip.rank} · {clip.hookTitle}
+                            </div>
+                            <p className="line-clamp-2 text-xs text-muted-foreground">
+                              {clip.transcript}
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            <Button variant="outline" size="sm" asChild>
+                              <a href={clip.downloadUrl} target="_blank" rel="noreferrer">
+                                <ExternalLink className="h-3.5 w-3.5" />
+                                Watch
+                              </a>
+                            </Button>
+                            <Button size="sm" asChild>
+                              <Link href="/library">
+                                <FolderOpen className="h-3.5 w-3.5" />
+                                Library
+                              </Link>
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </TabsContent>
+                  )}
+
+                  <TabsContent value="videos" className="space-y-2">
+                    {(result?.generatedVideos ?? []).map((v) => (
+                      <div
+                        key={v.compositionId}
+                        className="flex items-center justify-between gap-3 rounded-md border border-border p-3"
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate text-xs font-semibold">{v.title}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {v.platform} · {v.aspectRatio}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Button variant="outline" size="sm" asChild>
+                            <Link href={`/editor?compositionId=${encodeURIComponent(v.compositionId)}`}>
+                              <Film className="h-3 w-3" />
+                              Edit
+                            </Link>
+                          </Button>
+                          <Button size="sm" asChild>
+                            <Link href="/publish">
+                              Publish
+                              <ArrowRight className="h-3 w-3" />
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </TabsContent>
+
+                  <TabsContent value="quotes" className="space-y-2">
+                    {(result?.quoteGraphics ?? []).map((q, idx) => (
+                      <div key={idx} className="rounded-md border border-border p-3 text-xs">
+                        <p className="font-medium">&ldquo;{q.quoteText}&rdquo;</p>
+                        {q.platform && (
+                          <Badge variant="outline" className="mt-2">
+                            {q.platform}
+                          </Badge>
+                        )}
+                      </div>
+                    ))}
+                  </TabsContent>
+
+                  <TabsContent value="written" className="space-y-2">
+                    {(result?.writtenPosts ?? []).map((p, idx) => (
+                      <div key={idx} className="rounded-md border border-border p-3 text-xs">
+                        <div className="mb-1 flex items-center justify-between">
+                          <span className="font-semibold">{p.title || p.platform}</span>
+                          <Badge variant="outline">{p.platform}</Badge>
+                        </div>
+                        <p className="whitespace-pre-wrap text-muted-foreground">{p.body}</p>
+                      </div>
+                    ))}
+                  </TabsContent>
+                </Tabs>
+              )}
+            </CardContent>
           </Card>
         </div>
 
-        {/* Generated Outputs Section */}
-        {!result ? (
-          <EmptyState
-            icon={<Repeat className="h-5 w-5 text-primary" />}
-            title="No repurposed campaign batch generated yet"
-            description="Configure your source project and creative brief above, then click Generate Multi-Platform Campaign Batch to compile and render your deliverables."
-          />
-        ) : (
-          <div className="space-y-6">
-            <div>
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Film className="h-4 w-4 text-primary" />
-                  <h2 className="text-base font-semibold text-foreground">
-                    Generated Platform Video Compositions ({result.compositions.length})
-                  </h2>
-                </div>
-                <Badge variant="success">
-                  <CheckCircle2 className="h-3 w-3" />
-                  Actual Generated Results
-                </Badge>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-3">
-                {result.compositions.map((comp) => (
-                  <Card key={comp.id} className="flex flex-col justify-between p-4">
-                    <div>
-                      <div className="flex items-center justify-between gap-2">
-                        <Badge variant="ai">{comp.targetPlatform}</Badge>
-                        <span className="font-mono text-[10px] text-muted-foreground tabular-nums">
-                          {comp.width}×{comp.height} ({comp.aspectRatio})
-                        </span>
-                      </div>
-                      <h3 className="mt-2.5 text-sm font-semibold text-foreground">{comp.title}</h3>
-                      <div className="mt-1.5">
-                        <Badge variant="success">Visual QA Score: {comp.qaScore ?? 100}/100</Badge>
-                      </div>
-
-                      {comp.downloadUrl && (
-                        <div className="mt-3">
-                          <VideoPlayer src={comp.downloadUrl} />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-3">
-                      <Link
-                        href="/editor"
-                        className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground shadow-sm transition-opacity hover:opacity-95"
-                      >
-                        <Film className="h-3.5 w-3.5" />
-                        Open in Timeline Editor
-                      </Link>
-                      {comp.downloadUrl && (
-                        <a
-                          href={comp.downloadUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex h-8 items-center rounded-md border border-border bg-card px-3 text-xs font-medium text-foreground hover:bg-secondary"
-                        >
-                          Download MP4
-                        </a>
-                      )}
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2">
-              <Card className="p-5">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-foreground">
-                    Generated Quote Graphics ({result.quoteGraphics.length})
-                  </h3>
-                  <Badge variant="outline">Brand Palette Applied</Badge>
-                </div>
-                <div className="mt-3 space-y-3">
-                  {result.quoteGraphics.map((qg) => (
-                    <div
-                      key={qg.id}
-                      className="rounded-xl border border-primary/30 bg-ai-surface p-4 text-xs text-foreground"
-                    >
-                      <p className="text-sm font-semibold italic leading-relaxed">
-                        &ldquo;{qg.quoteText}&rdquo;
-                      </p>
-                      <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
-                        <span>— {qg.attribution}</span>
-                        <Badge variant="default">{qg.aspectRatio}</Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-
-              <Card className="p-5">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-foreground">
-                    Generated Written Social Posts ({result.writtenPosts.length})
-                  </h3>
-                  <Link href="/publish" className="text-xs font-medium text-primary hover:underline">
-                    Open Publishing Center →
-                  </Link>
-                </div>
-                <div className="mt-3 space-y-3">
-                  {result.writtenPosts.map((wp) => (
-                    <div
-                      key={wp.id}
-                      className="rounded-xl border border-border bg-secondary/35 p-3.5 text-xs"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="ai">{wp.platform}</Badge>
-                          <span className="font-semibold text-foreground">{wp.hookHeadline}</span>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            void handleCopyWrittenPost(
-                              `${wp.hookHeadline}\n\n${wp.bodyText}\n\n${wp.hashtags.join(' ')}`,
-                            )
-                          }
-                        >
-                          <Copy className="h-3 w-3" />
-                          Copy
-                        </Button>
-                      </div>
-                      <p className="mt-2 whitespace-pre-line leading-relaxed text-foreground">
-                        {wp.bodyText}
-                      </p>
-                      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex flex-wrap gap-1">
-                          {wp.hashtags.map((tag, i) => (
-                            <Badge key={i} variant="info">
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                        <Link
-                          href="/publish"
-                          className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
-                        >
-                          <Send className="h-3 w-3" />
-                          Schedule
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            </div>
-          </div>
-        )}
+        <YoutubeViralClipperDialog
+          open={youtubeDialogOpen}
+          onOpenChange={setYoutubeDialogOpen}
+          projects={projects}
+          defaultProjectId={projectId}
+          onClipsGenerated={(res) => setViralResult(res)}
+        />
       </div>
     </AppShell>
   );

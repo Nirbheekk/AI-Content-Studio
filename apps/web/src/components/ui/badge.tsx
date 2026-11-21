@@ -1,48 +1,40 @@
-'use client';
-
 import * as React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
-export type BadgeVariant =
-  | 'default'
-  | 'secondary'
-  | 'ai'
-  | 'success'
-  | 'warning'
-  | 'info'
-  | 'destructive'
-  | 'outline';
+export const badgeVariants = cva(
+  'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium leading-none transition-colors duration-150',
+  {
+    variants: {
+      variant: {
+        default: 'border-border bg-secondary text-secondary-foreground',
+        neutral: 'border-border bg-secondary text-muted-foreground',
+        secondary: 'border-transparent bg-secondary text-secondary-foreground',
+        outline: 'border-border bg-card text-foreground',
+        ai: 'border-ai/25 bg-ai-surface text-ai',
+        success: 'border-success/25 bg-success-surface text-success',
+        warning: 'border-warning/25 bg-warning-surface text-warning',
+        danger: 'border-destructive/25 bg-destructive/10 text-destructive',
+        destructive: 'border-destructive/25 bg-destructive/10 text-destructive',
+        info: 'border-info/25 bg-info-surface text-info',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+    },
+  },
+);
 
-const BADGE_VARIANTS: Record<BadgeVariant, string> = {
-  default: 'bg-secondary text-secondary-foreground border-border',
-  secondary: 'bg-secondary text-secondary-foreground border-border',
-  ai: 'bg-ai-surface text-accent-foreground border-primary/25',
-  success: 'bg-success-surface text-success border-success/30',
-  warning: 'bg-warning-surface text-warning border-warning/30',
-  info: 'bg-info-surface text-info border-info/30',
-  destructive: 'bg-destructive/15 text-destructive border-destructive/30',
-  outline: 'bg-transparent text-muted-foreground border-border',
-};
+export interface BadgeProps
+  extends React.HTMLAttributes<HTMLSpanElement>,
+    VariantProps<typeof badgeVariants> {}
 
-export function Badge({
-  children,
-  variant = 'default',
-  className,
-  ...props
-}: React.ComponentProps<'span'> & {
-  variant?: BadgeVariant;
-}) {
+export function Badge({ className, variant, ...props }: BadgeProps) {
   return (
     <span
       data-slot="badge"
-      className={cn(
-        'inline-flex max-w-full shrink-0 items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium whitespace-normal break-words transition-colors',
-        BADGE_VARIANTS[variant],
-        className,
-      )}
+      className={cn(badgeVariants({ variant }), className)}
       {...props}
-    >
-      {children}
-    </span>
+    />
   );
 }

@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '@ai-content-os/database';
 import { buildApiServer } from '../server.js';
-import { SlidingWindowRateLimiter } from '../lib/jwt.js';
+import { parseCookies, SlidingWindowRateLimiter, verifyAccessToken } from '../lib/jwt.js';
 
 describe('@ai-content-os/api Phase 9 Security, Quotas & Storage Lifecycle', () => {
   let app: FastifyInstance;
@@ -102,5 +102,15 @@ describe('@ai-content-os/api Phase 9 Security, Quotas & Storage Lifecycle', () =
       },
     });
     expect(exhausted.statusCode).toBe(403);
+  });
+
+  it('safely handles malformed cookie encoding and rejects non-HS256 JWT headers', () => {
+    const cookies = parseCookies('bad=%E0%A4%A; good=hello%20world');
+    expect(cookies['bad']).toBe('%E0%A4%A');
+    expect(cookies['good']).toBe('hello world');
+
+    const algNoneHeader = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url');
+    const payload = Buffer.from(JSON.stringify({ sub: 'u1', exp: Math.floor(Date.now() / 1000) + 60 })).toString('base64url');
+    expect(() => verifyAccessToken(`${algNoneHeader}.${payload}.sig`)).toThrow();
   });
 });

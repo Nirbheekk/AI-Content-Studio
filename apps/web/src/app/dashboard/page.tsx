@@ -6,35 +6,46 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowRight,
   Calendar,
-  CheckCircle2,
-  Clock,
   Film,
   FolderKanban,
-  FolderPlus,
   Image as ImageIcon,
-  Palette,
   Plus,
   RefreshCw,
-  Repeat,
   Send,
-  ShieldCheck,
   Sparkles,
   Upload,
 } from 'lucide-react';
-import { AppShell, AuthScreen } from '../../components/app-shell';
+import { AppShell, AuthScreen } from '@/components/app-shell';
 import {
   Badge,
   Button,
   Card,
-  EmptyState,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Empty,
   Input,
+  Label,
   MetricCard,
+  NativeSelect,
+  PageHeader,
   Skeleton,
   StatusIndicator,
   Textarea,
-} from '../../components/design-system/primitives';
-import { useStudio } from '../../context/studio-context';
-import { apiRequest, DashboardDataDto, ProjectDto } from '../../lib/api-client';
+  WorkflowStepper,
+} from '@/components/design-system/primitives';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useStudio } from '@/context/studio-context';
+import { apiRequest, DashboardDataDto, ProjectDto } from '@/lib/api-client';
 
 interface PublishingOverviewSummary {
   upcomingScheduled: Array<{
@@ -43,7 +54,6 @@ interface PublishingOverviewSummary {
     title?: string | null;
     captionText: string;
     localScheduledLabel: string;
-    timezone: string;
     socialAccount: { accountHandle: string };
   }>;
   recentlyPublished: Array<{
@@ -56,44 +66,25 @@ interface PublishingOverviewSummary {
   }>;
 }
 
+const STARTER_PROMPTS = [
+  '15s SaaS launch reel with a bold hook and 3 feature scenes',
+  'Founder podcast insights turned into a kinetic TikTok clip',
+  'Educational YouTube Short explaining 3 AI content workflows',
+];
+
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i] ?? 'B'}`;
+  const units = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i] ?? 'B'}`;
 }
 
-function formatCleanTitle(raw: string): string {
-  return raw.replace(/[-_]\d{10,14}$/, '').trim() || raw;
-}
-
-function formatRelativeTime(iso?: string | null): string {
+function formatDate(iso?: string | null): string {
   if (!iso) return 'Recently';
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return 'Recently';
-  return date.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return 'Recently';
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
-
-function formatAuditAction(action: string, entityType: string): string {
-  const friendly = action
-    .toLowerCase()
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-  return `${friendly} (${entityType})`;
-}
-
-const HERO_PLACEHOLDERS = [
-  'Ask AI Studio to create a 15s SaaS product launch reel with a bold hook...',
-  'Turn our founder podcast insights into a kinetic TikTok clip with captions...',
-  'Create an educational YouTube Short explaining 3 AI creative workflows...',
-  'Produce a 4:5 LinkedIn promo video highlighting our Q4 release...',
-];
 
 function DashboardContent() {
   const router = useRouter();
@@ -101,39 +92,19 @@ function DashboardContent() {
   const [data, setData] = useState<DashboardDataDto | null>(null);
   const [pubSummary, setPubSummary] = useState<PublishingOverviewSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showNewProject, setShowNewProject] = useState(false);
-  const [newProjectName, setNewProjectName] = useState('');
-  const [newProjectDesc, setNewProjectDesc] = useState('');
-  const [creating, setCreating] = useState(false);
-
-  // Lovable-inspired Prompt-First Hero Composer state
   const [heroPrompt, setHeroPrompt] = useState('');
   const [heroProjectId, setHeroProjectId] = useState('');
   const [heroPlatform, setHeroPlatform] = useState('INSTAGRAM_REELS');
-  const [placeholderIdx, setPlaceholderIdx] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setPlaceholderIdx((prev) => (prev + 1) % HERO_PLACEHOLDERS.length);
-    }, 4500);
-    return () => clearInterval(timer);
-  }, []);
-
-  const handleHeroLaunch = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    const params = new URLSearchParams();
-    const chosenProj = heroProjectId || data?.recentProjects[0]?.id || '';
-    if (chosenProj) params.set('projectId', chosenProj);
-    if (heroPrompt.trim()) params.set('prompt', heroPrompt.trim());
-    if (heroPlatform) params.set('platform', heroPlatform);
-    router.push(`/studio${params.toString() ? `?${params.toString()}` : ''}`);
-  };
+  const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [projectName, setProjectName] = useState('');
+  const [projectDesc, setProjectDesc] = useState('');
+  const [creating, setCreating] = useState(false);
 
   const loadDashboard = useCallback(async () => {
     if (!accessToken || !activeWorkspace) return;
     setLoading(true);
     try {
-      const [dashRes, pubRes] = await Promise.allSettled([
+      const [dash, pub] = await Promise.all([
         apiRequest<DashboardDataDto>({
           path: '/api/v1/dashboard',
           accessToken,
@@ -143,19 +114,12 @@ function DashboardContent() {
           path: '/api/v1/publishing/dashboard',
           accessToken,
           workspaceId: activeWorkspace.id,
-        }),
+        }).catch(() => null),
       ]);
-
-      if (dashRes.status === 'fulfilled') {
-        setData(dashRes.value);
-      } else {
-        throw dashRes.reason;
-      }
-
-      if (pubRes.status === 'fulfilled') {
-        setPubSummary(pubRes.value);
-      } else {
-        setPubSummary(null);
+      setData(dash);
+      setPubSummary(pub);
+      if (!heroProjectId && dash.recentProjects[0]) {
+        setHeroProjectId(dash.recentProjects[0].id);
       }
     } catch (err) {
       setFeedback({
@@ -165,15 +129,24 @@ function DashboardContent() {
     } finally {
       setLoading(false);
     }
-  }, [accessToken, activeWorkspace, setFeedback]);
+  }, [accessToken, activeWorkspace, heroProjectId, setFeedback]);
 
   useEffect(() => {
     void loadDashboard();
   }, [loadDashboard]);
 
+  const handleLaunchStudio = (e: React.FormEvent) => {
+    e.preventDefault();
+    const params = new URLSearchParams();
+    if (heroProjectId) params.set('projectId', heroProjectId);
+    if (heroPrompt.trim()) params.set('prompt', heroPrompt.trim());
+    params.set('platform', heroPlatform);
+    router.push(`/studio?${params.toString()}`);
+  };
+
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!accessToken || !activeWorkspace || !newProjectName.trim()) return;
+    if (!accessToken || !activeWorkspace || !projectName.trim()) return;
     setCreating(true);
     try {
       const created = await apiRequest<ProjectDto>({
@@ -181,15 +154,12 @@ function DashboardContent() {
         path: '/api/v1/projects',
         accessToken,
         workspaceId: activeWorkspace.id,
-        body: {
-          name: newProjectName.trim(),
-          description: newProjectDesc.trim() || undefined,
-        },
+        body: { name: projectName.trim(), description: projectDesc.trim() || undefined },
       });
       setFeedback({ type: 'success', message: `Project "${created.name}" created` });
-      setNewProjectName('');
-      setNewProjectDesc('');
-      setShowNewProject(false);
+      setProjectName('');
+      setProjectDesc('');
+      setNewProjectOpen(false);
       await loadDashboard();
     } catch (err) {
       setFeedback({
@@ -201,699 +171,388 @@ function DashboardContent() {
     }
   };
 
-  if (loading && !data) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-20 w-full" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
-        </div>
-        <Skeleton className="h-32 w-full" />
-      </div>
-    );
-  }
-
-  const firstName = user?.fullName?.split(' ')[0] ?? 'Creator';
-  const pendingApprovals =
-    data?.processingJobs.filter((wf) => wf.stage === 'AWAITING_APPROVAL') ?? [];
-  const totalVideosCount =
-    data?.workspace.counts?.compositions ??
-    data?.recentProjects.reduce((acc, p) => acc + (p._count?.compositions ?? 0), 0) ??
-    data?.processingJobs.filter(
-      (wf) => wf.stage === 'AWAITING_APPROVAL' || wf.stage === 'APPROVED',
-    ).length ??
-    0;
+  const stats = data?.stats;
+  const projects = data?.recentProjects ?? [];
 
   return (
-    <div className="space-y-7">
-      {/* A. Lovable-Inspired Prompt-First Hero Composer */}
-      <section
-        aria-label="Creative studio prompt launcher"
-        className="aicos-hero-bloom relative overflow-hidden rounded-3xl border border-border/80 px-5 py-8 sm:px-10 sm:py-11"
-      >
-        <div className="mx-auto max-w-3xl text-center">
-          <div className="inline-flex flex-wrap items-center justify-center gap-2">
-            <Badge variant="ai" className="rounded-full px-3 py-1">
-              <Sparkles className="h-3 w-3" />
-              Welcome back, {firstName}
-            </Badge>
-            <Badge variant="outline" className="rounded-full bg-card/80 px-3 py-1 backdrop-blur-sm">
-              {data?.workspace.name ?? activeWorkspace?.name ?? 'Creative Workspace'} •{' '}
-              {data?.workspace.planTier ?? 'PRO'}
-            </Badge>
-          </div>
+    <div className="space-y-5">
+      <PageHeader
+        title={`Command Center`}
+        description={`Welcome back, ${user?.fullName ?? 'Creator'}. Launch a brief or resume an active production.`}
+        badge={activeWorkspace ? <Badge variant="outline">{activeWorkspace.name}</Badge> : undefined}
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={() => void loadDashboard()}>
+              <RefreshCw className="h-3.5 w-3.5" />
+              Refresh
+            </Button>
+            <Button size="sm" onClick={() => setNewProjectOpen(true)}>
+              <Plus className="h-3.5 w-3.5" />
+              New Project
+            </Button>
+          </>
+        }
+      />
 
-          <h1 className="mt-4 text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-4xl">
+      <WorkflowStepper activeStep="brief" projectId={heroProjectId || undefined} />
+
+      {/* Lovable.dev Signature Hero Prompt Composer */}
+      <section className="lovable-aura relative overflow-hidden rounded-3xl border border-border px-6 py-10 sm:px-10 sm:py-12">
+        <div className="mx-auto max-w-2xl text-center">
+          <Badge variant="outline" className="mb-3 bg-card/80 backdrop-blur">
+            <Sparkles className="h-4 w-4 text-ai" />
+            9-Agent Creative Engine
+          </Badge>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             What will you create today?
-          </h1>
+          </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Describe it. Create it. Refine it. Publish it — from creative brief to rendered MP4.
+            Describe your video brief or attach raw clips. AI Studio plans, scripts, composes, renders, and runs visual QA.
           </p>
+        </div>
 
-          <form
-            onSubmit={handleHeroLaunch}
-            className="mt-6 overflow-hidden rounded-[24px] border border-border/80 bg-card text-left shadow-2xl ring-1 ring-black/5 transition-shadow focus-within:ring-2 focus-within:ring-primary/35 dark:ring-white/10"
-          >
-            <textarea
-              rows={3}
-              value={heroPrompt}
-              onChange={(e) => setHeroPrompt(e.target.value)}
-              onKeyDown={(e) => {
-                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-                  e.preventDefault();
-                  handleHeroLaunch();
-                }
-              }}
-              placeholder={HERO_PLACEHOLDERS[placeholderIdx]}
-              aria-label="Describe what you want AI Studio to create"
-              className="w-full resize-none border-0 bg-transparent px-5 pt-4 pb-2 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground focus:outline-none"
-            />
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 bg-secondary/25 px-3.5 py-2.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <Link
-                  href="/library"
-                  title="Upload source media"
-                  aria-label="Upload source media"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:bg-secondary"
-                >
-                  <Plus className="h-4 w-4" />
-                </Link>
-
-                <select
-                  aria-label="Select project for prompt"
-                  value={heroProjectId || data?.recentProjects[0]?.id || ''}
+        <form
+          onSubmit={handleLaunchStudio}
+          className="mx-auto mt-6 max-w-2xl rounded-3xl border border-border bg-card p-4 shadow-sm sm:p-6"
+        >
+          <Textarea
+            rows={3}
+            value={heroPrompt}
+            onChange={(e) => setHeroPrompt(e.target.value)}
+            placeholder="Ask AI Content Studio to create a 15s product launch reel with bold captions and a clear CTA..."
+            className="min-h-20 resize-none border-0 bg-transparent px-2 py-1 text-sm shadow-none focus-visible:ring-0"
+          />
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="w-44">
+                <NativeSelect
+                  aria-label="Project"
+                  value={heroProjectId}
                   onChange={(e) => setHeroProjectId(e.target.value)}
-                  className="h-8 max-w-[170px] truncate rounded-full border border-border bg-card px-3 text-xs font-medium text-foreground focus:border-ring focus:outline-none"
+                  className="rounded-full bg-secondary/70"
                 >
-                  {data?.recentProjects.length ? (
-                    data.recentProjects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {formatCleanTitle(p.name)}
-                      </option>
-                    ))
-                  ) : (
-                    <option value="">Default Workspace</option>
-                  )}
-                </select>
-
-                <select
-                  aria-label="Select target platform"
+                  <option value="">Default project</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </div>
+              <div className="w-48">
+                <NativeSelect
+                  aria-label="Target platform"
                   value={heroPlatform}
                   onChange={(e) => setHeroPlatform(e.target.value)}
-                  className="h-8 rounded-full border border-border bg-card px-3 text-xs font-medium text-foreground focus:border-ring focus:outline-none"
+                  className="rounded-full bg-secondary/70"
                 >
-                  <option value="INSTAGRAM_REELS">Reels 9:16</option>
-                  <option value="TIKTOK">TikTok 9:16</option>
-                  <option value="YOUTUBE_SHORTS">Shorts 9:16</option>
-                  <option value="YOUTUBE_LONG">YouTube 16:9</option>
-                  <option value="LINKEDIN">LinkedIn 4:5</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowNewProject(true)}
-                >
-                  <FolderPlus className="h-3.5 w-3.5" />
-                  New Project
-                </Button>
-                <Button type="submit" variant="primary" size="sm">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Create in Studio
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
+                  <option value="INSTAGRAM_REELS">Instagram Reels (9:16)</option>
+                  <option value="TIKTOK">TikTok (9:16)</option>
+                  <option value="YOUTUBE_SHORTS">YouTube Shorts (9:16)</option>
+                  <option value="LINKEDIN_VIDEO">LinkedIn Video (4:5)</option>
+                </NativeSelect>
               </div>
             </div>
-          </form>
-
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
-            <Button variant="ghost" size="sm" onClick={() => void loadDashboard()}>
-              <RefreshCw className="h-3.5 w-3.5" />
-              Refresh Workspace Data
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* B. Key Metrics (6 Real Data-Backed KPIs) */}
-      <section aria-label="Workspace metrics" className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-6">
-        <MetricCard
-          label="Total Projects"
-          value={data?.stats.totalProjects ?? 0}
-          sublabel={`${data?.stats.activeProjects ?? 0} active • ${data?.stats.archivedProjects ?? 0} archived`}
-          icon={<FolderKanban className="h-4 w-4" />}
-        />
-        <MetricCard
-          label="Videos Created"
-          value={totalVideosCount}
-          tone="ai"
-          sublabel={`${data?.processingJobs.length ?? 0} production runs`}
-          icon={<Film className="h-4 w-4" />}
-        />
-        <MetricCard
-          label="Assets Uploaded"
-          value={data?.stats.totalAssets ?? 0}
-          sublabel={`Storage: ${formatBytes(data?.stats.totalStorageBytes ?? 0)}`}
-          icon={<ImageIcon className="h-4 w-4" />}
-        />
-        <MetricCard
-          label="Pending Approvals"
-          value={pendingApprovals.length}
-          tone={pendingApprovals.length > 0 ? 'warning' : 'default'}
-          sublabel={
-            pendingApprovals.length > 0 ? 'Requires human review' : 'All workflows reviewed'
-          }
-          icon={<ShieldCheck className="h-4 w-4" />}
-        />
-        <MetricCard
-          label="Scheduled Posts"
-          value={pubSummary ? pubSummary.upcomingScheduled.length : '—'}
-          sublabel={pubSummary ? 'Queued in calendar' : 'Unavailable'}
-          icon={<Calendar className="h-4 w-4" />}
-        />
-        <MetricCard
-          label="Published Content"
-          value={pubSummary ? pubSummary.recentlyPublished.length : '—'}
-          tone="success"
-          sublabel={pubSummary ? 'Confirmed deliveries' : 'Unavailable'}
-          icon={<CheckCircle2 className="h-4 w-4" />}
-        />
-      </section>
-
-      {/* D. Quick Creation Bar (5 Direct Creative Workflows) */}
-      <section aria-label="Quick creation">
-        <div className="mb-2.5 flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-semibold text-foreground">Quick Creation</h2>
-            <p className="text-xs text-muted-foreground">
-              Jump directly into a production, repurposing, or publishing workflow.
-            </p>
-          </div>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <Link
-            href="/studio"
-            className="group flex flex-col justify-between rounded-xl border border-primary/30 bg-ai-surface p-4 transition-all hover:border-primary"
-          >
-            <div className="flex items-center justify-between">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <Sparkles className="h-4 w-4" />
-              </span>
-              <ArrowRight className="h-4 w-4 text-primary transition-transform group-hover:translate-x-0.5" />
-            </div>
-            <div className="mt-3">
-              <div className="text-xs font-semibold text-foreground">Create a Video</div>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
-                Describe concept, plan storyboard &amp; render MP4
-              </p>
-            </div>
-          </Link>
-
-          <Link
-            href="/publish"
-            className="group flex flex-col justify-between rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:bg-secondary/40"
-          >
-            <div className="flex items-center justify-between">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-foreground">
-                <Send className="h-4 w-4 text-primary" />
-              </span>
-              <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-            </div>
-            <div className="mt-3">
-              <div className="text-xs font-semibold text-foreground">Generate Social Content</div>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
-                Prepare platform captions, hashtags &amp; schedule
-              </p>
-            </div>
-          </Link>
-
-          <Link
-            href="/repurpose"
-            className="group flex flex-col justify-between rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:bg-secondary/40"
-          >
-            <div className="flex items-center justify-between">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-foreground">
-                <Repeat className="h-4 w-4 text-info" />
-              </span>
-              <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-            </div>
-            <div className="mt-3">
-              <div className="text-xs font-semibold text-foreground">Repurpose Content</div>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
-                Convert one recording into Reels, Shorts &amp; posts
-              </p>
-            </div>
-          </Link>
-
-          <Link
-            href="/library"
-            className="group flex flex-col justify-between rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:bg-secondary/40"
-          >
-            <div className="flex items-center justify-between">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-foreground">
-                <Upload className="h-4 w-4 text-success" />
-              </span>
-              <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-            </div>
-            <div className="mt-3">
-              <div className="text-xs font-semibold text-foreground">Upload Media</div>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
-                Ingest raw footage, audio &amp; transcribe hooks
-              </p>
-            </div>
-          </Link>
-
-          <Link
-            href="/editor"
-            className="group flex flex-col justify-between rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:bg-secondary/40"
-          >
-            <div className="flex items-center justify-between">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-foreground">
-                <Film className="h-4 w-4 text-warning" />
-              </span>
-              <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-            </div>
-            <div className="mt-3">
-              <div className="text-xs font-semibold text-foreground">Open Video Editor</div>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
-                Refine scenes, overlays, aspect ratios &amp; subtitles
-              </p>
-            </div>
-          </Link>
-        </div>
-      </section>
-
-      {/* C. Continue Working (Recent Projects & Active Sessions) */}
-      <div className="grid gap-6 lg:grid-cols-12">
-        <Card className="p-5 lg:col-span-7">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">Continue Working</h2>
-              <p className="text-xs text-muted-foreground">
-                Recently updated projects and creative campaigns in this workspace.
-              </p>
-            </div>
-            <Link
-              href="/projects"
-              className="shrink-0 whitespace-nowrap text-xs font-medium text-primary hover:underline"
-            >
-              View All Projects
-            </Link>
-          </div>
-
-          {!data?.recentProjects.length ? (
-            <div className="mt-4">
-              <EmptyState
-                title="No projects in this workspace yet"
-                description="Create a project to organize raw assets, AI Studio scripts, and video compositions."
-                action={
-                  <Button size="sm" onClick={() => setShowNewProject(true)}>
-                    Create First Project
-                  </Button>
-                }
-              />
-            </div>
-          ) : (
-            <div className="mt-4 space-y-2.5">
-              {data.recentProjects.map((proj) => (
-                <div
-                  key={proj.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-secondary/35 p-3.5 transition-colors hover:border-primary/40"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border text-xs font-bold text-white shadow-sm"
-                      style={{
-                        backgroundColor: data.workspace.brandKit?.primaryColor ?? '#6956E8',
-                      }}
-                    >
-                      {formatCleanTitle(proj.name).slice(0, 2).toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span
-                          title={proj.name}
-                          className="truncate text-sm font-semibold text-foreground"
-                        >
-                          {formatCleanTitle(proj.name)}
-                        </span>
-                        <Badge variant={proj.status === 'ACTIVE' ? 'success' : 'warning'}>
-                          {proj.status}
-                        </Badge>
-                      </div>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground tabular-nums">
-                        <span>{proj._count?.assets ?? 0} assets</span>
-                        <span>•</span>
-                        <span>{proj._count?.conversations ?? 0} sessions</span>
-                        <span>•</span>
-                        <span>{proj._count?.workflows ?? 0} workflows</span>
-                        <span>•</span>
-                        <span>Updated {formatRelativeTime(proj.updatedAt)}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href={`/library?projectId=${proj.id}`}
-                      className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-secondary"
-                    >
-                      Assets
-                    </Link>
-                    <Link
-                      href={`/studio?projectId=${proj.id}`}
-                      className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-95"
-                    >
-                      Continue
-                      <ArrowRight className="h-3 w-3" />
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Active AI Sessions & Workflow Pipeline */}
-        <Card className="p-5 lg:col-span-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">AI Production Sessions</h2>
-              <p className="text-xs text-muted-foreground">
-                Recent AI Studio conversations and active agent workflows.
-              </p>
-            </div>
-            <Link
-              href="/studio"
-              className="shrink-0 whitespace-nowrap text-xs font-medium text-primary hover:underline"
-            >
-              Open AI Studio
-            </Link>
-          </div>
-
-          {!data?.recentConversations.length && !data?.processingJobs.length ? (
-            <div className="mt-4">
-              <EmptyState
-                icon={<Sparkles className="h-5 w-5 text-primary" />}
-                title="No AI Studio sessions yet"
-                description="Open AI Studio to describe a video concept and generate a multi-scene storyboard."
-                action={
-                  <Link
-                    href="/studio"
-                    className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground"
-                  >
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Launch AI Studio
-                  </Link>
-                }
-              />
-            </div>
-          ) : (
-            <div className="mt-4 space-y-2.5">
-              {data?.processingJobs.slice(0, 3).map((wf) => (
-                <div
-                  key={wf.id}
-                  className="rounded-xl border border-border bg-secondary/35 p-3 text-xs"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <StatusIndicator
-                      status={
-                        wf.stage === 'APPROVED'
-                          ? 'success'
-                          : wf.stage === 'AWAITING_APPROVAL'
-                            ? 'warning'
-                            : wf.stage === 'FAILED'
-                              ? 'error'
-                              : 'processing'
-                      }
-                      label={wf.stage}
-                    />
-                    <span className="truncate text-[11px] text-muted-foreground">
-                      {wf.project?.name ? formatCleanTitle(wf.project.name) : 'Project'}
-                    </span>
-                  </div>
-                  <p className="mt-1.5 line-clamp-1 font-medium text-foreground">{wf.userPrompt}</p>
-                </div>
-              ))}
-
-              {data?.recentConversations.slice(0, 3).map((conv) => (
-                <div
-                  key={conv.id}
-                  className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card p-3"
-                >
-                  <div className="min-w-0">
-                    <div className="truncate text-xs font-semibold text-foreground">
-                      {conv.title}
-                    </div>
-                    <div className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">
-                      {conv.project?.name ? formatCleanTitle(conv.project.name) : 'Project'} •{' '}
-                      {conv._count?.messages ?? 0} messages
-                    </div>
-                  </div>
-                  <Link
-                    href={`/studio?conversationId=${conv.id}`}
-                    className="shrink-0 rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground hover:opacity-90"
-                  >
-                    Resume
-                  </Link>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-      </div>
-
-      {/* E & F. Upcoming Publishing, Pending Approvals, Brand Kit & Recent Activity */}
-      <div className="grid gap-6 lg:grid-cols-12">
-        <Card className="p-5 lg:col-span-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">
-                Upcoming Publishing &amp; Approvals
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Scheduled social posts and workflows awaiting human approval gate.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Link href="/calendar" className="text-xs font-medium text-primary hover:underline">
-                Calendar
-              </Link>
-              <Link href="/publish" className="text-xs font-medium text-primary hover:underline">
-                Publishing
-              </Link>
-            </div>
-          </div>
-
-          <div className="mt-4 space-y-2.5">
-            {pendingApprovals.map((wf) => (
-              <div
-                key={wf.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-warning/30 bg-warning-surface p-3 text-xs"
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="warning">AWAITING APPROVAL</Badge>
-                    <span className="truncate font-semibold text-foreground">
-                      {wf.project?.name ? formatCleanTitle(wf.project.name) : 'AI Video'}
-                    </span>
-                  </div>
-                  <p className="mt-1 truncate text-muted-foreground">{wf.userPrompt}</p>
-                </div>
-                <Link
-                  href={`/studio?projectId=${wf.projectId}`}
-                  className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
-                >
-                  Review &amp; Approve
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="outline" size="sm" className="rounded-full" asChild>
+                <Link href="/library">
+                  <Upload className="h-4 w-4" />
+                  Attach Media
                 </Link>
-              </div>
-            ))}
-
-            {pubSummary?.upcomingScheduled.slice(0, 3).map((post) => (
-              <div
-                key={post.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-secondary/35 p-3 text-xs"
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="ai">{post.platform}</Badge>
-                    <span className="font-medium text-foreground">
-                      {post.socialAccount.accountHandle}
-                    </span>
-                    <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground tabular-nums">
-                      <Clock className="h-3 w-3" />
-                      {post.localScheduledLabel}
-                    </span>
-                  </div>
-                  <p className="mt-1 truncate text-muted-foreground">
-                    {post.title ? `${post.title} — ` : ''}
-                    {post.captionText}
-                  </p>
-                </div>
-                <Link
-                  href="/calendar"
-                  className="shrink-0 text-xs font-medium text-primary hover:underline"
-                >
-                  Manage
-                </Link>
-              </div>
-            ))}
-
-            {pendingApprovals.length === 0 &&
-              (!pubSummary || pubSummary.upcomingScheduled.length === 0) && (
-                <EmptyState
-                  icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
-                  title="No pending approvals or scheduled posts"
-                  description="Approved compositions can be scheduled across connected social accounts in the Publishing Center."
-                  action={
-                    <Link
-                      href="/publish"
-                      className="inline-flex h-8 items-center rounded-md border border-border bg-card px-3 text-xs font-medium text-foreground hover:bg-secondary"
-                    >
-                      Open Publishing Center
-                    </Link>
-                  }
-                />
-              )}
+              </Button>
+              <Button type="submit" size="sm" className="rounded-full px-4">
+                Create in Studio
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </Card>
+        </form>
 
-        <div className="space-y-6 lg:col-span-6">
-          {/* Brand Kit Identity Card (Full Non-Truncated Summary) */}
-          <Card className="p-5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Palette className="h-4 w-4 text-primary" />
-                <h2 className="text-sm font-semibold text-foreground">Workspace Brand Kit</h2>
-              </div>
-              <Link href="/brand-kit" className="text-xs font-medium text-primary hover:underline">
-                Customize Brand Kit
-              </Link>
-            </div>
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-secondary/35 p-3.5">
-              <div className="min-w-0">
-                <div className="text-xs font-semibold text-foreground">
-                  {data?.workspace.brandKit?.brandName ?? data?.workspace.name}
-                </div>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Tone: {data?.workspace.brandKit?.toneOfVoice ?? 'Authoritative, clear, modern'} •{' '}
-                  Style: {data?.workspace.brandKit?.editingStyle ?? 'Dynamic kinetic cuts'}
-                </p>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {[
-                  data?.workspace.brandKit?.primaryColor ?? '#6956E8',
-                  data?.workspace.brandKit?.secondaryColor ?? '#11131B',
-                  data?.workspace.brandKit?.accentColor ?? '#15805B',
-                ].map((hex, idx) => (
-                  <span
-                    key={idx}
-                    title={hex}
-                    className="inline-block h-6 w-6 rounded-md border border-border shadow-sm"
-                    style={{ backgroundColor: hex }}
-                  />
-                ))}
-              </div>
-            </div>
-          </Card>
-
-          {/* Recent Workspace Activity */}
-          <Card className="p-5">
-            <h2 className="text-sm font-semibold text-foreground">Recent Workspace Activity</h2>
-            {!data?.recentActivity.length ? (
-              <p className="mt-3 text-xs text-muted-foreground">No workspace activity recorded yet.</p>
-            ) : (
-              <div className="mt-3 space-y-2">
-                {data.recentActivity.slice(0, 6).map((act) => (
-                  <div
-                    key={act.id}
-                    className="flex items-center justify-between gap-2 border-b border-border/60 pb-2 text-xs last:border-0 last:pb-0"
-                  >
-                    <div className="min-w-0">
-                      <span className="font-medium text-foreground">
-                        {formatAuditAction(act.action, act.entityType)}
-                      </span>
-                      <span className="ml-2 text-[11px] text-muted-foreground">
-                        by {act.user?.fullName ?? 'System'}
-                      </span>
-                    </div>
-                    <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">
-                      {formatRelativeTime(act.createdAt)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
+        <div className="mx-auto mt-4 flex max-w-2xl flex-wrap justify-center gap-2">
+          {STARTER_PROMPTS.map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => setHeroPrompt(item)}
+              className="rounded-full border border-border bg-card/90 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm transition-colors duration-150 hover:border-foreground/30 hover:bg-card hover:text-foreground"
+            >
+              {item}
+            </button>
+          ))}
         </div>
-      </div>
+      </section>
 
-      {showNewProject && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="create-project-title"
-        >
-          <Card className="w-full max-w-md p-6 shadow-xl">
-            <h2 id="create-project-title" className="text-lg font-semibold text-foreground">
-              Create New Project
-            </h2>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Projects group your raw media assets, AI Studio scripts, and rendered video versions.
-            </p>
-            <form onSubmit={handleCreateProject} className="mt-4 space-y-4">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-foreground">
-                  Project Name
-                </label>
-                <Input
-                  type="text"
-                  required
-                  value={newProjectName}
-                  onChange={(e) => setNewProjectName(e.target.value)}
-                  placeholder="Q4 Product Launch Reels"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-foreground">
-                  Creative Brief / Description
-                </label>
-                <Textarea
-                  rows={3}
-                  value={newProjectDesc}
-                  onChange={(e) => setNewProjectDesc(e.target.value)}
-                  placeholder="Target audience, key hooks, or campaign goals..."
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowNewProject(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={creating}>
-                  {creating ? 'Creating...' : 'Create Project'}
-                </Button>
-              </div>
-            </form>
-          </Card>
+      {/* KPI Strip */}
+      {loading ? (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-24 w-full" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricCard
+            label="Active Projects"
+            value={stats?.activeProjects ?? 0}
+            sublabel={`${stats?.totalProjects ?? 0} total campaigns`}
+            icon={<FolderKanban className="h-3.5 w-3.5" />}
+          />
+          <MetricCard
+            label="Media Library"
+            value={stats?.totalAssets ?? 0}
+            sublabel={formatBytes(stats?.totalStorageBytes ?? 0)}
+            icon={<ImageIcon className="h-3.5 w-3.5" />}
+          />
+          <MetricCard
+            label="Active Workflows"
+            value={stats?.activeWorkflowCount ?? 0}
+            sublabel="Multi-agent runs"
+            tone="ai"
+            icon={<Sparkles className="h-3.5 w-3.5" />}
+          />
+          <MetricCard
+            label="Scheduled Posts"
+            value={pubSummary?.upcomingScheduled.length ?? 0}
+            sublabel={`${pubSummary?.recentlyPublished.length ?? 0} recently published`}
+            tone="success"
+            icon={<Calendar className="h-3.5 w-3.5" />}
+          />
         </div>
       )}
+
+      {/* Workspace Tabs */}
+      <Tabs defaultValue="projects">
+        <TabsList>
+          <TabsTrigger value="projects">Projects ({projects.length})</TabsTrigger>
+          <TabsTrigger value="publishing">
+            Publishing ({pubSummary?.upcomingScheduled.length ?? 0})
+          </TabsTrigger>
+          <TabsTrigger value="activity">
+            Activity ({data?.recentActivity.length ?? 0})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="projects">
+          {projects.length === 0 ? (
+            <Empty
+              icon={<FolderKanban className="h-5 w-5" />}
+              title="No projects yet"
+              description="Create your first project to organize uploaded media, studio runs, and compositions."
+              action={
+                <Button size="sm" onClick={() => setNewProjectOpen(true)}>
+                  <Plus className="h-3.5 w-3.5" />
+                  Create Project
+                </Button>
+              }
+            />
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {projects.map((project) => (
+                <Card key={project.id} interactive className="flex flex-col justify-between p-4">
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="truncate text-sm font-semibold text-foreground">
+                        {project.name}
+                      </h3>
+                      <StatusIndicator status={project.status} />
+                    </div>
+                    <p className="line-clamp-2 text-xs text-muted-foreground">
+                      {project.description || 'No description provided.'}
+                    </p>
+                    <div className="flex flex-wrap gap-2 pt-1 text-xs text-muted-foreground">
+                      <span>{project._count?.assets ?? 0} assets</span>
+                      <span>·</span>
+                      <span>{project._count?.compositions ?? 0} compositions</span>
+                      <span>·</span>
+                      <span>{project._count?.workflows ?? 0} runs</span>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-center gap-1.5 border-t border-border pt-3">
+                    <Button variant="default" size="sm" className="flex-1" asChild>
+                      <Link href={`/studio?projectId=${encodeURIComponent(project.id)}`}>
+                        <Sparkles className="h-3 w-3" />
+                        Studio
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/editor?projectId=${encodeURIComponent(project.id)}`}>
+                        <Film className="h-3 w-3" />
+                        Editor
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/library?projectId=${encodeURIComponent(project.id)}`}>
+                        <Upload className="h-3 w-3" />
+                      </Link>
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="publishing">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Upcoming Scheduled</CardTitle>
+                <CardDescription>Approved posts queued for distribution.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {(pubSummary?.upcomingScheduled ?? []).length === 0 ? (
+                  <Empty
+                    icon={<Send className="h-4 w-4" />}
+                    title="Queue is empty"
+                    description="Approve a composition and schedule it in the Publish Queue."
+                    action={
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href="/publish">Open Publish Queue</Link>
+                      </Button>
+                    }
+                  />
+                ) : (
+                  pubSummary?.upcomingScheduled.map((post) => (
+                    <div
+                      key={post.id}
+                      className="flex items-center justify-between gap-3 rounded-md border border-border p-2.5"
+                    >
+                      <div className="min-w-0">
+                        <div className="truncate text-xs font-medium">
+                          {post.title || post.captionText}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {post.platform} · @{post.socialAccount.accountHandle}
+                        </div>
+                      </div>
+                      <Badge variant="outline">{post.localScheduledLabel}</Badge>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Recently Published</CardTitle>
+                <CardDescription>Latest delivered posts across connected channels.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {(pubSummary?.recentlyPublished ?? []).length === 0 ? (
+                  <Empty
+                    icon={<Calendar className="h-4 w-4" />}
+                    title="No published posts yet"
+                    description="Published posts and channel receipts appear here."
+                  />
+                ) : (
+                  pubSummary?.recentlyPublished.map((post) => (
+                    <div
+                      key={post.id}
+                      className="flex items-center justify-between gap-3 rounded-md border border-border p-2.5"
+                    >
+                      <div className="min-w-0">
+                        <div className="truncate text-xs font-medium">
+                          {post.title || post.captionText}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {post.platform} · {post.localEffectiveLabel}
+                        </div>
+                      </div>
+                      <Badge variant={post.isSimulated ? 'warning' : 'success'}>
+                        {post.isSimulated ? 'Simulated' : 'Published'}
+                      </Badge>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="activity">
+          <Card>
+            <CardContent className="divide-y divide-border p-0">
+              {(data?.recentActivity ?? []).length === 0 ? (
+                <div className="p-6 text-center text-xs text-muted-foreground">
+                  No recent workspace activity recorded.
+                </div>
+              ) : (
+                data?.recentActivity.map((log) => (
+                  <div
+                    key={log.id}
+                    className="flex items-center justify-between gap-3 px-4 py-2.5 text-xs"
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Badge variant="outline">{log.entityType}</Badge>
+                      <span className="truncate font-medium">
+                        {log.action.replace(/_/g, ' ').toLowerCase()}
+                      </span>
+                    </div>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {formatDate(log.createdAt)}
+                    </span>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <Dialog open={newProjectOpen} onOpenChange={setNewProjectOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create Project</DialogTitle>
+            <DialogDescription>
+              Group raw media, AI Studio runs, and compositions under one campaign.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateProject} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="dash-proj-name">Project Name</Label>
+              <Input
+                id="dash-proj-name"
+                required
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                placeholder="Q4 Product Launch"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="dash-proj-desc">Description</Label>
+              <Textarea
+                id="dash-proj-desc"
+                rows={3}
+                value={projectDesc}
+                onChange={(e) => setProjectDesc(e.target.value)}
+                placeholder="Short campaign goal, target audience, or deliverables..."
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setNewProjectOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={creating}>
+                {creating ? 'Creating...' : 'Create Project'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
 export default function DashboardPage() {
-  const { user } = useStudio();
-  if (!user) {
-    return <AuthScreen />;
+  const { user, isLoading } = useStudio();
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background text-xs text-muted-foreground">
+        Loading workspace...
+      </div>
+    );
   }
+  if (!user) return <AuthScreen />;
   return (
     <AppShell>
       <DashboardContent />

@@ -79,6 +79,15 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin_dev_password}
       JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_minimum_32_characters_long_for_local_testing_only}
       ENCRYPTION_MASTER_KEY: ${ENCRYPTION_MASTER_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+      AI_PRIMARY_LLM_PROVIDER: ${AI_PRIMARY_LLM_PROVIDER:-gemini}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_TEXT_MODEL: ${GEMINI_TEXT_MODEL:-gemini-4-hydrogen}
+      GEMINI_IMAGE_MODEL: ${GEMINI_IMAGE_MODEL:-gemini-nano-banana-2.1}
+      GEMINI_TTS_MODEL: ${GEMINI_TTS_MODEL:-gemini-3.8-flash-tts}
+      GEMINI_TTS_VOICE: ${GEMINI_TTS_VOICE:-achernar}
+      GEMINI_VIDEO_MODEL: ${GEMINI_VIDEO_MODEL:-gemini-omni-1.2-flash}
+      ENABLE_GEMINI_SCENE_IMAGES: ${ENABLE_GEMINI_SCENE_IMAGES:-true}
+      KOKORO_TTS_URL: ${KOKORO_TTS_URL:-}
     ports:
       - "${API_PORT:-4000}:4000"
     depends_on:
