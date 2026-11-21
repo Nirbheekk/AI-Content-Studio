@@ -13,6 +13,8 @@ const NAV_ITEMS = [
   { href: '/editor', label: 'Video Editor' },
   { href: '/repurpose', label: 'Repurpose Engine' },
   { href: '/brand-kit', label: 'Brand Kit' },
+  { href: '/publish', label: 'Publishing Center' },
+  { href: '/calendar', label: 'Content Calendar' },
   { href: '/settings', label: 'Settings & RBAC' },
 ];
 

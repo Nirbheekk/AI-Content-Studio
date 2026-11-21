@@ -41,6 +41,62 @@ function createRedisConnectionConfig() {
 
 let mediaQueue: Queue | null = null;
 let orchestratorQueue: Queue | null = null;
+let publishingQueue: Queue | null = null;
+
+export interface PublishingJobPayload {
+  workspaceId: string;
+  publishPostId: string;
+  socialAccountId: string;
+  platform: string;
+  idempotencyKey: string;
+  scheduledFor?: string | undefined;
+  attemptNumber?: number | undefined;
+}
+
+export async function enqueuePublishingJob(
+  payload: PublishingJobPayload,
+  delayMs = 0,
+): Promise<string | null> {
+  try {
+    if (!publishingQueue) {
+      publishingQueue = new Queue(QUEUE_NAMES.publishing, {
+        connection: createRedisConnectionConfig(),
+      });
+    }
+    const safeDelay = Math.max(0, Math.round(delayMs));
+    const jobId =
+      payload.attemptNumber && payload.attemptNumber > 1
+        ? `${payload.idempotencyKey}:retry:${payload.attemptNumber}`
+        : payload.idempotencyKey;
+    const job = await publishingQueue.add('publish.execute', payload, {
+      jobId,
+      delay: safeDelay,
+      removeOnComplete: 200,
+      removeOnFail: 200,
+    });
+    return job.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function cancelScheduledPublishingJob(idempotencyKey: string): Promise<boolean> {
+  try {
+    if (!publishingQueue) {
+      publishingQueue = new Queue(QUEUE_NAMES.publishing, {
+        connection: createRedisConnectionConfig(),
+      });
+    }
+    const existing = await publishingQueue.getJob(idempotencyKey);
+    if (existing) {
+      await existing.remove();
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
 
 export async function enqueueMediaProcessingJob(payload: {
   workspaceId: string;

@@ -33,19 +33,19 @@ Development is structured into incremental, empirically verified phases. No phas
 
 ---
 
-## Phase 4: Social Publishing & Content Calendar (NEXT)
-- [ ] **4.1 Postiz Adapter & Encrypted Account Connections**:
-  - OAuth connection workflow, AES-256-GCM token persistence, platform caption/hashtag generator, and strict Human Approval Checkpoint enforcement.
-- [ ] **4.2 Publishing Worker & Idempotent Retry Engine**:
-  - Scheduled and immediate publishing via `publishing-worker`, idempotency locks preventing duplicate posts, and exponential backoff retries.
-- [ ] **4.3 Visual Content Calendar (`/calendar` & `/publish`)**:
-  - Daily, weekly, and monthly views with platform filters, status badges (`DRAFT`, `AWAITING_APPROVAL`, `APPROVED`, `SCHEDULED`, `PUBLISHED`, `FAILED`), and drag-and-drop / interactive rescheduling.
-- [ ] **4.4 Phase 4 Verification Gate**:
-  - Automated tests verifying approval gate blocking unapproved posts, Postiz adapter contract, idempotency on retry, and calendar rescheduling persistence.
+## Phase 4: Social Publishing & Content Calendar (COMPLETED)
+- [x] **4.1 Postiz Adapter & Encrypted Account Connections**:
+  - OAuth connection workflow (`POST /api/v1/publishing/accounts/oauth-url`, `POST /api/v1/publishing/accounts/connect`), AES-256-GCM token persistence, connection & scope health checks, token rotation/refresh, 7-platform capability matrix & validation (`validatePostForPlatform`), and strict Human Approval Gate enforcement.
+- [x] **4.2 Publishing Worker & Idempotent Retry Engine**:
+  - Scheduled and immediate publishing via BullMQ `publish-queue` (`publishing-worker`), SHA-256 idempotency keys preventing duplicate posts, provider confirmation vs async processing verification, rate-limit/transient error classification, exponential backoff retries, and dead-letter recovery.
+- [x] **4.3 Visual Content Calendar (`/calendar` & `/publish`)**:
+  - Daily, weekly, and monthly views with IANA timezone selector, platform/account/status filters, status badges (`DRAFT`, `AWAITING_APPROVAL`, `APPROVED`, `SCHEDULED`, `PUBLISHING`, `PUBLISHED`, `FAILED`, `CANCELLED`), and drag-and-drop / interactive rescheduling.
+- [x] **4.4 Phase 4 Verification Gate**:
+  - Verified end-to-end across 14 test suites (46/46 passing tests).
 
 ---
 
-## Phase 5: Intelligence, Observability & Production Hardening
+## Phase 5: Intelligence, Observability & Production Hardening (NEXT)
 - [ ] **5.1 Analytics Agent & Performance Recommendations**
 - [ ] **5.2 Cost Management, Quotas & Admin Monitoring**
 - [ ] **5.3 Final Production Verification**

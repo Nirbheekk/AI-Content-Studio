@@ -1,16 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyCompositionPatches,
+  calculatePublishRetryBackoffMs,
   canTransitionWorkflowStage,
   compareCompositionSpecs,
   CompositionSpec,
   CompositionSpecSchema,
+  computePublishIdempotencyKey,
   detectMimeTypeFromMagicBytes,
   ForbiddenError,
+  formatDateInTimezone,
   hasRequiredRole,
+  isValidIanaTimezone,
   NotFoundError,
   sanitizeAssetFilename,
   sanitizeFolderPath,
+  validatePostForPlatform,
   ValidationError,
 } from '../index.js';
 
@@ -215,5 +220,101 @@ describe('@ai-content-os/shared', () => {
     expect(cleaned.scenes).toHaveLength(2);
     expect(cleaned.durationInFrames).toBe(300);
     expect(cleaned.scenes[0]?.overlays).toHaveLength(0);
+  });
+
+  it('validates platform-specific social publishing capabilities accurately', () => {
+    // Valid Instagram Reel
+    const validReel = validatePostForPlatform({
+      platform: 'INSTAGRAM_REELS',
+      contentType: 'VIDEO',
+      captionText: 'Fresh AI content studio drop!',
+      hashtags: ['ai', 'remotion', 'content'],
+      hasMediaAttachment: true,
+      mediaAspectRatio: 'PORTRAIT_9_16',
+      mediaDurationSec: 30,
+    });
+    expect(validReel.valid).toBe(true);
+    expect(validReel.errors).toHaveLength(0);
+
+    // Invalid: text-only written post on TikTok (video-only platform)
+    const invalidTiktokText = validatePostForPlatform({
+      platform: 'TIKTOK',
+      contentType: 'WRITTEN',
+      captionText: 'Just a text post on TikTok',
+      hashtags: [],
+      hasMediaAttachment: false,
+    });
+    expect(invalidTiktokText.valid).toBe(false);
+    expect(invalidTiktokText.errors.some((e) => e.includes('requires an attached video'))).toBe(
+      true,
+    );
+
+    // Invalid: missing required title on YouTube Shorts
+    const invalidYtNoTitle = validatePostForPlatform({
+      platform: 'YOUTUBE_SHORTS',
+      contentType: 'VIDEO',
+      captionText: 'Short clip description',
+      hashtags: ['shorts'],
+      hasMediaAttachment: true,
+      mediaAspectRatio: 'PORTRAIT_9_16',
+      mediaDurationSec: 45,
+    });
+    expect(invalidYtNoTitle.valid).toBe(false);
+    expect(invalidYtNoTitle.errors.some((e) => e.includes('requires a video title'))).toBe(
+      true,
+    );
+
+    // Invalid: X/Twitter caption over 280 chars
+    const invalidXLength = validatePostForPlatform({
+      platform: 'X_TWITTER',
+      contentType: 'WRITTEN',
+      captionText: 'A'.repeat(295),
+      hashtags: [],
+      hasMediaAttachment: false,
+    });
+    expect(invalidXLength.valid).toBe(false);
+    expect(invalidXLength.errors.some((e) => e.includes('exceeds X (Twitter) maximum'))).toBe(true);
+  });
+
+  it('computes deterministic idempotency keys, exponential retry backoffs, and timezone formatting', () => {
+    const key1 = computePublishIdempotencyKey({
+      workspaceId: 'ws-1',
+      socialAccountId: 'acc-1',
+      contentType: 'VIDEO',
+      captionText: 'Launch post',
+      compositionId: 'comp-1',
+      scheduledFor: '2026-12-01T15:00:00.000Z',
+    });
+    const key2 = computePublishIdempotencyKey({
+      workspaceId: 'ws-1',
+      socialAccountId: 'acc-1',
+      contentType: 'VIDEO',
+      captionText: 'Launch post',
+      compositionId: 'comp-1',
+      scheduledFor: '2026-12-01T15:00:00.000Z',
+    });
+    const keyDifferent = computePublishIdempotencyKey({
+      workspaceId: 'ws-1',
+      socialAccountId: 'acc-2',
+      contentType: 'VIDEO',
+      captionText: 'Launch post',
+      compositionId: 'comp-1',
+      scheduledFor: '2026-12-01T15:00:00.000Z',
+    });
+
+    expect(key1).toBe(key2);
+    expect(key1).not.toBe(keyDifferent);
+
+    expect(calculatePublishRetryBackoffMs(1, 5000)).toBe(5000);
+    expect(calculatePublishRetryBackoffMs(2, 5000)).toBe(10000);
+    expect(calculatePublishRetryBackoffMs(3, 5000)).toBe(20000);
+
+    expect(isValidIanaTimezone('UTC')).toBe(true);
+    expect(isValidIanaTimezone('America/New_York')).toBe(true);
+    expect(isValidIanaTimezone('Invalid/NotATimezone')).toBe(false);
+
+    const formattedNy = formatDateInTimezone(new Date('2026-06-15T14:30:00.000Z'), 'America/New_York');
+    expect(formattedNy).toContain('2026-06-15');
+    expect(formattedNy).toContain('10:30');
   });
 });

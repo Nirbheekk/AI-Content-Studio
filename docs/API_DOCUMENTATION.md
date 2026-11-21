@@ -120,12 +120,22 @@ export interface ApiResponse<T> {
 | Method | Endpoint | Auth / Role | Description |
 |--------|----------|-------------|-------------|
 | `POST` | `/api/v1/repurpose` | `EDITOR`+ | Generate multi-platform campaign batch (Reels, TikTok, Shorts, LinkedIn, Quotes) from source asset |
-| `GET` | `/api/v1/publishing/accounts` | `VIEWER`+ | List connected Postiz social accounts (redacting encrypted tokens) |
-| `POST` | `/api/v1/publishing/accounts/connect` | `ADMIN`+ | Start/complete OAuth connection with Postiz provider and encrypt tokens |
-| `POST` | `/api/v1/publishing/posts` | `EDITOR`+ | Create or schedule a social post (requires approved render or explicit approval) |
-| `PATCH` | `/api/v1/publishing/posts/:id/reschedule` | `EDITOR`+ | Drag-and-drop calendar rescheduling |
-| `POST` | `/api/v1/publishing/posts/:id/retry` | `EDITOR`+ | Retry a failed publish job with idempotency protection |
-| `GET` | `/api/v1/calendar` | `VIEWER`+ | Query scheduled, draft, published, and failed posts by date range & platform |
+| `GET` | `/api/v1/publishing/capabilities` | `VIEWER`+ | Return `PLATFORM_PUBLISHING_CAPABILITIES`, Postiz provider status, and supported IANA timezones |
+| `POST` | `/api/v1/publishing/accounts/oauth-url` | `ADMIN`+ | Generate OAuth authorization URL, state token, and required scopes for a target platform |
+| `POST` | `/api/v1/publishing/accounts/connect` | `ADMIN`+ | Complete OAuth code exchange, encrypt access & refresh tokens with AES-256-GCM, and store `SocialAccount` |
+| `GET` | `/api/v1/publishing/accounts` | `VIEWER`+ | List connected workspace social accounts (redacting encrypted tokens, returning `tokenPreview: ****...`) |
+| `POST` | `/api/v1/publishing/accounts/:accountId/refresh` | `ADMIN`+ | Rotate OAuth access and refresh tokens via Postiz adapter and re-encrypt with AES-256-GCM |
+| `POST` | `/api/v1/publishing/accounts/:accountId/health-check` | `VIEWER`+ | Verify account token expiration, revocation status, and required platform OAuth scopes |
+| `DELETE` | `/api/v1/publishing/accounts/:accountId` | `ADMIN`+ | Disconnect or revoke a connected social account and cancel pending scheduled posts |
+| `GET` | `/api/v1/publishing/dashboard` | `VIEWER`+ | Return aggregated Publishing Center state (accounts, approved compositions, scheduled queue, in-flight queue, confirmed published posts, failed/dead-letter jobs) |
+| `POST` | `/api/v1/publishing/posts` | `EDITOR`+ | Validate platform capabilities, enforce Human Approval Gate and SHA-256 idempotency, and schedule or immediately publish post |
+| `GET` | `/api/v1/publishing/posts` | `VIEWER`+ | List workspace publish posts with optional `platform`, `socialAccountId`, and `status` filters |
+| `PATCH` | `/api/v1/publishing/posts/:postId` | `EDITOR`+ | Edit unpublished post title, caption, and hashtags with platform capability re-validation |
+| `PATCH` | `/api/v1/publishing/posts/:postId/reschedule` | `EDITOR`+ | Drag-and-drop / interactive calendar rescheduling with IANA timezone validation |
+| `POST` | `/api/v1/publishing/posts/:postId/publish` | `EDITOR`+ | Immediately execute publication of an approved/scheduled post (idempotent) |
+| `POST` | `/api/v1/publishing/posts/:postId/retry` | `EDITOR`+ | Retry and recover a `FAILED` or `DEAD_LETTER` publishing job |
+| `POST` | `/api/v1/publishing/posts/:postId/cancel` | `EDITOR`+ | Cancel an unpublished `DRAFT`, `SCHEDULED`, or `FAILED` post |
+| `GET` | `/api/v1/calendar` | `VIEWER`+ | Query timezone-aware calendar entries grouped by local date for `day`, `week`, and `month` views with platform, account, and status filters |
 
 ---
 

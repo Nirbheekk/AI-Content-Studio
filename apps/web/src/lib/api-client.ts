@@ -179,7 +179,15 @@ export interface ApiRequestOptions {
   contentType?: string;
 }
 
-export async function apiRequest<T>(options: ApiRequestOptions): Promise<T> {
+export async function apiRequest<T>(
+  pathOrOptions: string | ApiRequestOptions,
+  maybeOptions?: Omit<ApiRequestOptions, 'path'>,
+): Promise<T> {
+  const options: ApiRequestOptions =
+    typeof pathOrOptions === 'string'
+      ? { path: pathOrOptions, ...(maybeOptions ?? {}) }
+      : pathOrOptions;
+
   const headers: Record<string, string> = {};
   if (options.accessToken) {
     headers['Authorization'] = `Bearer ${options.accessToken}`;

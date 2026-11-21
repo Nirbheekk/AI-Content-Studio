@@ -1,7 +1,12 @@
 import { createServer, Server } from 'node:http';
 import { Job, Worker } from 'bullmq';
-import { QUEUE_NAMES, WorkerRole, WorkerRoleSchema } from '@ai-content-os/shared';
-import { prisma } from '@ai-content-os/database';
+import {
+  calculatePublishRetryBackoffMs,
+  QUEUE_NAMES,
+  WorkerRole,
+  WorkerRoleSchema,
+} from '@ai-content-os/shared';
+import { decryptSecret, prisma } from '@ai-content-os/database';
 
 export interface WorkerRuntimeConfig {
   role: WorkerRole;
@@ -61,6 +66,97 @@ export async function processFoundationJob(
         },
       })
       .catch(() => null);
+  }
+
+  if (
+    role === 'publishing' &&
+    job.name === 'publish.execute' &&
+    typeof payload['publishPostId'] === 'string'
+  ) {
+    const publishPostId = payload['publishPostId'];
+    const post = await prisma.publishPost
+      .findUnique({
+        where: { id: publishPostId },
+        include: { socialAccount: true, attempts: true },
+      })
+      .catch(() => null);
+
+    if (post && post.status !== 'PUBLISHED' && post.status !== 'CANCELLED') {
+      const attemptNum = post.attempts.length + 1;
+      const accessToken = decryptSecret(post.socialAccount.encryptedAccessToken);
+      const isRevoked =
+        accessToken.includes('REVOKED') ||
+        post.captionText.includes('[SIMULATE_AUTH_REVOKED]') ||
+        post.socialAccount.status === 'REVOKED';
+      const isRateLimited = post.captionText.includes('[SIMULATE_RATE_LIMIT]');
+      const isTransient = post.captionText.includes('[SIMULATE_TRANSIENT_ERROR]');
+
+      if (isRevoked || isRateLimited || isTransient) {
+        const errorCategory = isRevoked
+          ? 'AUTH_REVOKED'
+          : isRateLimited
+            ? 'RATE_LIMIT'
+            : 'TRANSIENT_NETWORK';
+        const httpStatus = isRevoked ? 401 : isRateLimited ? 429 : 503;
+        const newRetryCount = post.retryCount + 1;
+        const canRetry = !isRevoked && newRetryCount < post.maxRetries;
+        const backoffMs = canRetry ? calculatePublishRetryBackoffMs(newRetryCount, 5_000) : 0;
+
+        await prisma.publishAttempt.create({
+          data: {
+            publishPostId: post.id,
+            attemptNumber: attemptNum,
+            idempotencyKey: `${post.idempotencyKey}:attempt:${attemptNum}`,
+            status: 'FAILED',
+            errorCategory,
+            errorMessage: `Worker publishing error (${errorCategory})`,
+            isSimulated: true,
+            responseJson: { errorCategory, httpStatus },
+          },
+        });
+
+        await prisma.publishPost.update({
+          where: { id: post.id },
+          data: {
+            status: 'FAILED',
+            providerStatus: canRetry ? 'FAILED' : 'DEAD_LETTER',
+            retryCount: newRetryCount,
+            nextRetryAt: canRetry ? new Date(Date.now() + backoffMs) : null,
+            errorMessage: `Worker publishing error (${errorCategory})`,
+          },
+        });
+      } else {
+        const externalPostId = `sim_postiz_${post.platform.toLowerCase()}_${post.idempotencyKey.slice(0, 14)}`;
+        await prisma.publishAttempt.create({
+          data: {
+            publishPostId: post.id,
+            attemptNumber: attemptNum,
+            idempotencyKey: `${post.idempotencyKey}:attempt:${attemptNum}`,
+            status: 'PUBLISHED',
+            isSimulated: true,
+            responseJson: {
+              provider: 'postiz-sandbox-worker',
+              httpStatus: 200,
+              externalPostId,
+              confirmedAt: new Date().toISOString(),
+            },
+          },
+        });
+
+        await prisma.publishPost.update({
+          where: { id: post.id },
+          data: {
+            status: 'PUBLISHED',
+            providerStatus: 'PUBLISHED',
+            publishedAt: new Date(),
+            externalPostId,
+            externalPostUrl: `https://sandbox.postiz.local/${post.platform.toLowerCase()}/${externalPostId}`,
+            errorMessage: null,
+            nextRetryAt: null,
+          },
+        });
+      }
+    }
   }
 
   return {

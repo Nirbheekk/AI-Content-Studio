@@ -589,7 +589,10 @@ model SocialAccount {
   encryptedAccessToken  String         // AES-256-GCM ciphertext
   encryptedRefreshToken String?        // AES-256-GCM ciphertext
   tokenExpiresAt        DateTime?
-  status                String         @default("CONNECTED") // "CONNECTED", "EXPIRED", "REVOKED"
+  scopes                String[]       @default([])
+  status                String         @default("CONNECTED") // "CONNECTED", "EXPIRED", "REVOKED", "ERROR"
+  connectionError       String?
+  lastHealthCheckAt     DateTime?
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
 
@@ -605,16 +608,26 @@ model PublishPost {
   workspaceId      String
   socialAccountId  String
   renderJobId      String?
+  compositionId    String?
+  assetId          String?
   workflowId       String?
   idempotencyKey   String         @unique
   platform         TargetPlatform
+  contentType      String         @default("VIDEO") // "VIDEO", "IMAGE", "WRITTEN"
+  title            String?
   captionText      String
   hashtags         String[]
+  timezone         String         @default("UTC")
   scheduledFor     DateTime?
   publishedAt      DateTime?
   externalPostId   String?        // Postiz post ID
   externalPostUrl  String?
   status           PublishStatus  @default(DRAFT)
+  providerStatus   String         @default("PENDING") // "PENDING", "ACCEPTED", "PROCESSING", "PUBLISHED", "FAILED", "DEAD_LETTER"
+  isSimulated      Boolean        @default(false)
+  retryCount       Int            @default(0)
+  maxRetries       Int            @default(3)
+  nextRetryAt      DateTime?
   approvedByUserId String?
   approvedAt       DateTime?
   metricsJson      Json?          // Views, likes, shares, comments, watchTimeSec
@@ -635,7 +648,9 @@ model PublishAttempt {
   publishPostId  String
   attemptNumber  Int
   idempotencyKey String   @unique
-  status         String   // "SUCCESS", "FAILED"
+  status         String   // "PUBLISHED", "PROCESSING", "FAILED"
+  errorCategory  String?  // "RATE_LIMIT", "AUTH_REVOKED", "VALIDATION", "TRANSIENT_NETWORK", "PROVIDER_REJECTED"
+  isSimulated    Boolean  @default(false)
   responseJson   Json?
   errorMessage   String?
   attemptedAt    DateTime @default(now())

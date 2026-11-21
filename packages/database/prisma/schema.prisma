@@ -150,6 +150,7 @@ model Workspace {
   monthlyRenderMinutesQuota Int      @default(300)
   monthlyStorageBytesQuota  BigInt   @default(53687091200)
   autoPublishApproved       Boolean  @default(false)
+  timezone                  String   @default("UTC")
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
 
@@ -571,7 +572,10 @@ model SocialAccount {
   encryptedAccessToken  String
   encryptedRefreshToken String?
   tokenExpiresAt        DateTime?
+  scopes                String[]       @default([])
   status                String         @default("CONNECTED")
+  connectionError       String?
+  lastHealthCheckAt     DateTime?
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
 
@@ -587,16 +591,26 @@ model PublishPost {
   workspaceId      String
   socialAccountId  String
   renderJobId      String?
+  compositionId    String?
+  assetId          String?
   workflowId       String?
   idempotencyKey   String         @unique
   platform         TargetPlatform
+  contentType      String         @default("VIDEO")
+  title            String?
   captionText      String
   hashtags         String[]
+  timezone         String         @default("UTC")
   scheduledFor     DateTime?
   publishedAt      DateTime?
   externalPostId   String?
   externalPostUrl  String?
   status           PublishStatus  @default(DRAFT)
+  providerStatus   String         @default("PENDING")
+  isSimulated      Boolean        @default(false)
+  retryCount       Int            @default(0)
+  maxRetries       Int            @default(3)
+  nextRetryAt      DateTime?
   approvedByUserId String?
   approvedAt       DateTime?
   metricsJson      Json?
@@ -618,6 +632,8 @@ model PublishAttempt {
   attemptNumber  Int
   idempotencyKey String   @unique
   status         String
+  errorCategory  String?
+  isSimulated    Boolean  @default(false)
   responseJson   Json?
   errorMessage   String?
   attemptedAt    DateTime @default(now())
