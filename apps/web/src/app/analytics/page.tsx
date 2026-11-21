@@ -221,7 +221,7 @@ export default function AnalyticsPage() {
             <p className="mt-1 text-sm text-zinc-400">
               Real stored metric snapshots only. Unavailable metrics are never estimated.
               {overview && !overview.liveProviderConfigured && (
-                <span className="ml-2 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[11px] text-amber-300">
+                <span className="mt-1 inline-block max-w-full whitespace-normal break-words rounded border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[11px] text-amber-300 sm:ml-2 sm:mt-0">
                   No live Postiz provider configured: automatic collection returns &quot;Unavailable&quot;
                 </span>
               )}

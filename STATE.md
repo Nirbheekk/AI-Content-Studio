@@ -2,8 +2,8 @@
 
 - **Project**: AI Content Operating System
 - **Spec Status**: `FINALIZED` ([SPEC.md](./SPEC.md))
-- **Active Phase**: Phase 9 Completed & Verified (System Audit, Real H.264/AAC MP4 Rendering, Security & UX Polish) — Ready for Controlled Staging Approval
-- **Last Action**: Completed Phase 9 full system audit (`PHASE_9_AUDIT.md`) and remediated all P0–P3 findings (`PHASE_9_COMPLETION_REPORT.md`): bounded rate-limiter + Fastify `trustProxy`, `STORAGE_BYTES` upload quota enforcement, real FFmpeg H.264/AAC MP4 rendering + FFprobe verification across `9:16`/`16:9`/`1:1`/`4:5`, `composition.render` + `PostizPublishingAdapter` in `apps/workers`, Nginx MinIO presigned proxy route, Redis Pub/Sub SSE bridge, derivative cleanup on delete, and `<video controls>` players in `/studio`, `/editor`, `/repurpose`.
+- **Active Phase**: Phase 10 Completed & Verified (Product Acceptance Testing & Launch Preparation) — Ready for Controlled Staging Approval
+- **Last Action**: Completed Phase 10 acceptance testing across fresh-user workflows, security/RBAC isolation, real FFmpeg H.264/AAC MP4 visual inspection (`9:16`, `16:9`, `1:1`, `4:5`), live browser Desktop/Tablet/Mobile audits (fixed mobile sidebar drawer overflow, `/register` -> `/dashboard` redirect, `/editor` empty-state disabled buttons, `/analytics` badge wrapping), and created launch documentation (`PHASE_10_ACCEPTANCE_REPORT.md`, `PRODUCT_DEMO_GUIDE.md`, `USER_GUIDE.md`, `LAUNCH_CHECKLIST.md`, `PRODUCT_LIMITATIONS.md`, `AI_COST_MODEL.md`).
 - **Empirical Verification**:
   - `pnpm audit`: **0 vulnerabilities**.
   - Trivy (`CRITICAL,HIGH --ignore-unfixed`): `0` vulnerabilities, `0` secrets across all 4 images.

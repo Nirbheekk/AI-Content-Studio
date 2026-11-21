@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useStudio } from '../context/studio-context';
 
 const NAV_ITEMS = [
@@ -21,6 +21,8 @@ const NAV_ITEMS = [
 
 export function AuthScreen({ defaultMode = 'login' }: { defaultMode?: 'login' | 'register' }) {
   const { loginWithCredentials, registerAccount, feedback, setFeedback } = useStudio();
+  const pathname = usePathname();
+  const router = useRouter();
   const [mode, setMode] = useState<'login' | 'register'>(defaultMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -43,6 +45,9 @@ export function AuthScreen({ defaultMode = 'login' }: { defaultMode?: 'login' | 
           ...(workspaceName.trim() ? { workspaceName: workspaceName.trim() } : {}),
         });
       }
+      if (pathname === '/register' || pathname === '/login') {
+        router.replace('/dashboard');
+      }
     } catch (err) {
       setFeedback({
         type: 'error',
@@ -58,6 +63,9 @@ export function AuthScreen({ defaultMode = 'login' }: { defaultMode?: 'login' | 
     setFeedback(null);
     try {
       await loginWithCredentials('founder@aicontent.studio', 'DemoStudioPass!2026');
+      if (pathname === '/register' || pathname === '/login') {
+        router.replace('/dashboard');
+      }
     } catch (err) {
       setFeedback({
         type: 'error',
@@ -214,6 +222,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   } = useStudio();
 
   const [showNewWorkspaceModal, setShowNewWorkspaceModal] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [newWsName, setNewWsName] = useState('');
   const [creatingWs, setCreatingWs] = useState(false);
 
@@ -248,8 +257,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="flex min-h-screen bg-zinc-950 text-zinc-100">
-      <aside className="flex w-64 flex-col border-r border-zinc-800 bg-zinc-900/50">
+    <div className="flex min-h-screen w-full overflow-x-hidden bg-zinc-950 text-zinc-100">
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-zinc-800 bg-zinc-900/50 md:flex">
         <div className="border-b border-zinc-800 p-4">
           <div className="flex items-center justify-between">
             <span className="text-sm font-bold tracking-tight text-white">AI Content Studio</span>
@@ -318,7 +327,80 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900/80 px-4 py-3 md:hidden">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              aria-label="Open navigation"
+              onClick={() => setMobileNavOpen(true)}
+              className="rounded-lg border border-zinc-700 bg-zinc-800 px-2.5 py-1.5 text-xs font-semibold text-white"
+            >
+              Menu
+            </button>
+            <span className="text-sm font-bold text-white">AI Content Studio</span>
+          </div>
+          <span className="rounded bg-indigo-500/20 px-2 py-0.5 text-[10px] font-semibold text-indigo-300">
+            {activeWorkspace?.name ?? 'Studio'}
+          </span>
+        </header>
+
+        {mobileNavOpen && (
+          <div className="fixed inset-0 z-40 flex md:hidden">
+            <div
+              className="fixed inset-0 bg-black/70"
+              onClick={() => setMobileNavOpen(false)}
+            />
+            <div className="relative z-50 flex w-72 max-w-[85vw] flex-col border-r border-zinc-800 bg-zinc-950 p-4">
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+                <span className="text-sm font-bold text-white">AI Content Studio</span>
+                <button
+                  type="button"
+                  aria-label="Close navigation"
+                  onClick={() => setMobileNavOpen(false)}
+                  className="rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-300"
+                >
+                  Close
+                </button>
+              </div>
+              <nav className="mt-3 flex-1 space-y-1 overflow-y-auto">
+                {NAV_ITEMS.map((item) => {
+                  const isActive =
+                    pathname === item.href || (pathname === '/' && item.href === '/dashboard');
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileNavOpen(false)}
+                      className={`block rounded-lg px-3 py-2 text-sm font-medium transition ${
+                        isActive
+                          ? 'bg-indigo-600 text-white'
+                          : 'text-zinc-400 hover:bg-zinc-800/60 hover:text-white'
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </nav>
+              <div className="border-t border-zinc-800 pt-3">
+                <div className="truncate text-xs font-medium text-white">{user.fullName}</div>
+                <div className="truncate text-[11px] text-zinc-400">{user.email}</div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileNavOpen(false);
+                    void logout();
+                  }}
+                  className="mt-2 w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-300"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {feedback && (
           <div
             role="status"
@@ -339,7 +421,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6">{children}</main>
       </div>
 
       {showNewWorkspaceModal && (
