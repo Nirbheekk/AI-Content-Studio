@@ -337,7 +337,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const renderSidebarBody = (onNavigate?: () => void) => (
     <>
-      <div className="border-b border-sidebar-border p-4">
+      <div className="shrink-0 border-b border-sidebar-border p-4">
         <div className="flex items-center justify-between gap-2">
           <Link
             href="/dashboard"
@@ -382,7 +382,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      <nav aria-label="Primary navigation" className="flex-1 space-y-4 overflow-y-auto p-3">
+      <nav aria-label="Primary navigation" className="min-h-0 flex-1 space-y-4 overflow-y-auto p-3">
         {NAV_GROUPS.map((group) => (
           <div key={group.title}>
             <div className="px-3 pb-1 text-[10px] font-semibold tracking-wider text-muted-foreground">
@@ -415,7 +415,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         ))}
       </nav>
 
-      <div className="border-t border-sidebar-border p-4">
+      <div className="shrink-0 border-t border-sidebar-border p-4">
         <div className="truncate text-xs font-medium text-foreground">{user.fullName}</div>
         <div className="truncate text-[11px] text-muted-foreground">{user.email}</div>
         <Button
@@ -436,14 +436,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="flex min-h-screen w-full overflow-x-hidden bg-background text-foreground">
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
+    <div className="flex h-dvh w-full overflow-hidden bg-background text-foreground">
+      <aside className="hidden h-dvh w-64 shrink-0 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar lg:sticky lg:top-0 lg:flex">
         {renderSidebarBody()}
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         {/* Desktop Topbar */}
-        <header className="hidden h-14 items-center justify-between gap-4 border-b border-border bg-card/70 px-6 backdrop-blur-sm lg:flex">
+        <header className="hidden h-14 shrink-0 items-center justify-between gap-4 border-b border-border bg-card/70 px-6 backdrop-blur-sm lg:flex">
           <div className="flex shrink-0 items-center gap-2 whitespace-nowrap text-xs text-muted-foreground">
             <span className="font-mono uppercase tracking-wider">{currentNav.group}</span>
             <span>/</span>
@@ -474,7 +474,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Mobile & Tablet Topbar */}
-        <header className="flex items-center justify-between border-b border-border bg-card px-4 py-2.5 lg:hidden">
+        <header className="flex shrink-0 items-center justify-between border-b border-border bg-card px-4 py-2.5 lg:hidden">
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -495,8 +495,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {mobileNavOpen && (
           <div className="fixed inset-0 z-40 flex lg:hidden">
             <div className="fixed inset-0 bg-black/60" onClick={() => setMobileNavOpen(false)} />
-            <div className="relative z-50 flex w-72 max-w-[85vw] flex-col border-r border-sidebar-border bg-sidebar">
-              <div className="flex items-center justify-end border-b border-sidebar-border px-4 py-2.5">
+            <div className="relative z-50 flex h-full w-72 max-w-[85vw] flex-col overflow-hidden border-r border-sidebar-border bg-sidebar">
+              <div className="flex shrink-0 items-center justify-end border-b border-sidebar-border px-4 py-2.5">
                 <button
                   type="button"
                   aria-label="Close navigation"
@@ -516,7 +516,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div
             role="status"
             className={cn(
-              'flex items-center justify-between border-b px-4 py-2.5 text-xs font-medium md:px-6',
+              'flex shrink-0 items-center justify-between border-b px-4 py-2.5 text-xs font-medium md:px-6',
               feedback.type === 'error'
                 ? 'border-destructive/30 bg-destructive/10 text-destructive'
                 : 'border-success/30 bg-success-surface text-success',
@@ -533,7 +533,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
-        <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6">
+        <main
+          className={cn(
+            'min-h-0 min-w-0 flex-1 overflow-x-hidden p-4 md:p-6',
+            mobileNavOpen ? 'overflow-y-hidden' : 'overflow-y-auto',
+          )}
+        >
           <div className="mx-auto max-w-7xl">{children}</div>
         </main>
       </div>
