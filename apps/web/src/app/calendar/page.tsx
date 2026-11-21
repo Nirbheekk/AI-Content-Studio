@@ -2,7 +2,27 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import {
+  AlertTriangle,
+  Calendar as CalendarIcon,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Plus,
+  Send,
+} from 'lucide-react';
 import { AppShell } from '../../components/app-shell';
+import {
+  Badge,
+  Button,
+  Card,
+  Input,
+  PageHeader,
+  Select,
+  Skeleton,
+  Textarea,
+} from '../../components/design-system/primitives';
 import { useStudio } from '../../context/studio-context';
 import { apiRequest } from '../../lib/api-client';
 
@@ -181,7 +201,6 @@ export default function ContentCalendarPage() {
       });
     }
 
-    // Monthly 35 or 42 cell grid
     const firstOfMonth = new Date(Date.UTC(year, month, 1));
     const startOffset = firstOfMonth.getUTCDay();
     const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
@@ -230,7 +249,6 @@ export default function ContentCalendarPage() {
       return;
     }
 
-    // Preserve time of day or default to 14:00 UTC on target date
     const existingTimePart = post.scheduledFor
       ? post.scheduledFor.slice(11, 19)
       : '14:00:00';
@@ -372,132 +390,146 @@ export default function ContentCalendarPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        {/* Top Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Interactive Content Calendar</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Drag and drop scheduled posts across dates, switch between Monthly, Weekly, and Daily
-              views, and filter by platform or social account.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
+        <PageHeader
+          title="Content Calendar"
+          description="Drag and drop scheduled posts across dates, switch between Monthly, Weekly, and Daily views, and manage multi-platform campaigns."
+          badge={<Badge variant="ai">{calendarData?.totalCount ?? 0} Scheduled / Published</Badge>}
+          actions={
             <Link
               href="/publish"
-              className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground shadow-sm transition-opacity hover:opacity-95"
             >
-              + Compose &amp; Schedule Post
+              <Plus className="h-3.5 w-3.5" />
+              Compose &amp; Schedule Post
             </Link>
-          </div>
-        </div>
+          }
+        />
 
         {/* Controls Bar: View Switcher, Date Nav, Filters & Timezone */}
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card/80 p-4">
-          {/* View Mode Switcher */}
-          <div className="flex items-center gap-1 rounded-lg bg-background p-1">
-            {(['month', 'week', 'day'] as const).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => setView(mode)}
-                className={`rounded-md px-3 py-1.5 text-xs font-semibold capitalize transition ${
-                  view === mode
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
+        <Card className="space-y-3 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* View Mode Switcher */}
+            <div className="flex items-center gap-1 rounded-lg border border-border bg-secondary/40 p-1">
+              {(['month', 'week', 'day'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  aria-pressed={view === mode}
+                  onClick={() => setView(mode)}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
+                    view === mode
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {mode} View
+                </button>
+              ))}
+            </div>
+
+            {/* Date Navigation */}
+            <div className="flex items-center gap-1.5">
+              <Button variant="outline" size="sm" onClick={() => navigateAnchor(-1)}>
+                <ChevronLeft className="h-3.5 w-3.5" />
+                Prev
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => navigateAnchor(0)}>
+                Today
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => navigateAnchor(1)}>
+                Next
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+              <span className="ml-2 text-sm font-semibold text-foreground">{monthHeading}</span>
+            </div>
+
+            {/* Platform, Account, Status & Timezone Filters */}
+            <div className="flex flex-wrap items-center gap-2">
+              <Select
+                aria-label="Filter by Platform"
+                value={platformFilter}
+                onChange={(e) => setPlatformFilter(e.target.value)}
+                className="w-auto"
               >
-                {mode} View
-              </button>
-            ))}
+                <option value="">All Platforms</option>
+                {PLATFORMS.filter(Boolean).map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </Select>
+
+              <Select
+                aria-label="Filter by Social Account"
+                value={accountFilter}
+                onChange={(e) => setAccountFilter(e.target.value)}
+                className="w-auto"
+              >
+                <option value="">All Accounts</option>
+                {accounts.map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.accountHandle} ({acc.platform})
+                  </option>
+                ))}
+              </Select>
+
+              <Select
+                aria-label="Filter by Status"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-auto"
+              >
+                <option value="">All Statuses</option>
+                {STATUSES.filter(Boolean).map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </Select>
+
+              <Select
+                aria-label="Calendar Timezone"
+                value={timezone}
+                onChange={(e) => setTimezone(e.target.value)}
+                className="w-auto"
+              >
+                {TIMEZONES.map((tz) => (
+                  <option key={tz} value={tz}>
+                    TZ: {tz}
+                  </option>
+                ))}
+              </Select>
+            </div>
           </div>
 
-          {/* Date Navigation */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => navigateAnchor(-1)}
-              className="rounded-lg border border-input bg-background px-3 py-1.5 text-xs text-foreground/90 hover:bg-secondary/80"
-            >
-              Prev
-            </button>
-            <button
-              type="button"
-              onClick={() => navigateAnchor(0)}
-              className="rounded-lg border border-input bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary/80"
-            >
-              Today
-            </button>
-            <button
-              type="button"
-              onClick={() => navigateAnchor(1)}
-              className="rounded-lg border border-input bg-background px-3 py-1.5 text-xs text-foreground/90 hover:bg-secondary/80"
-            >
-              Next
-            </button>
-            <span className="ml-2 text-sm font-bold text-foreground">{monthHeading}</span>
+          {/* Status Legend Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2.5 text-[11px] text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-medium text-foreground">Status Legend:</span>
+              <Badge variant="ai">
+                <Clock className="h-3 w-3" />
+                Scheduled
+              </Badge>
+              <Badge variant="success">
+                <CheckCircle2 className="h-3 w-3" />
+                Published
+              </Badge>
+              <Badge variant="info">
+                <Send className="h-3 w-3" />
+                In-Flight
+              </Badge>
+              <Badge variant="destructive">
+                <AlertTriangle className="h-3 w-3" />
+                Failed
+              </Badge>
+              <Badge variant="outline">Cancelled</Badge>
+            </div>
+            <span>Tip: Drag scheduled cards onto another day to reschedule.</span>
           </div>
-
-          {/* Platform, Account, Status & Timezone Filters */}
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              aria-label="Filter by Platform"
-              value={platformFilter}
-              onChange={(e) => setPlatformFilter(e.target.value)}
-              className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground"
-            >
-              <option value="">All Platforms</option>
-              {PLATFORMS.filter(Boolean).map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-
-            <select
-              aria-label="Filter by Social Account"
-              value={accountFilter}
-              onChange={(e) => setAccountFilter(e.target.value)}
-              className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground"
-            >
-              <option value="">All Accounts</option>
-              {accounts.map((acc) => (
-                <option key={acc.id} value={acc.id}>
-                  {acc.accountHandle} ({acc.platform})
-                </option>
-              ))}
-            </select>
-
-            <select
-              aria-label="Filter by Status"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground"
-            >
-              <option value="">All Statuses</option>
-              {STATUSES.filter(Boolean).map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-
-            <select
-              aria-label="Calendar Timezone"
-              value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-              className="rounded-lg border border-primary/40 bg-background px-2.5 py-1.5 text-xs text-primary"
-            >
-              {TIMEZONES.map((tz) => (
-                <option key={tz} value={tz}>
-                  TZ: {tz}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+        </Card>
 
         {/* Calendar Grid */}
-        <div className="rounded-xl border border-border bg-card/70 p-4">
+        <Card className="p-4">
           {view !== 'day' && (
             <div className="mb-2 grid grid-cols-7 gap-2 text-center text-xs font-semibold text-muted-foreground">
               <div>Sun</div>
@@ -511,8 +543,10 @@ export default function ContentCalendarPage() {
           )}
 
           {loading && !calendarData ? (
-            <div className="py-12 text-center text-xs text-muted-foreground/80">
-              Loading calendar schedule...
+            <div className="grid grid-cols-7 gap-2">
+              {Array.from({ length: 14 }).map((_, i) => (
+                <Skeleton key={i} className="h-32" />
+              ))}
             </div>
           ) : (
             <div
@@ -524,10 +558,16 @@ export default function ContentCalendarPage() {
                 const dayEntries = calendarData?.groupedByDate[cell.dateKey] ?? [];
                 const isDragTarget = dragOverDateKey === cell.dateKey;
                 const isToday = cell.dateKey === formatDateKey(new Date());
+                const dayNum = cell.date.getUTCDate();
+                const monthShort = cell.date.toLocaleDateString('en-US', {
+                  month: 'short',
+                  timeZone: 'UTC',
+                });
 
                 return (
                   <div
                     key={cell.dateKey}
+                    title={cell.dateKey}
                     onDragOver={(e) => {
                       e.preventDefault();
                       setDragOverDateKey(cell.dateKey);
@@ -541,28 +581,29 @@ export default function ContentCalendarPage() {
                       e.preventDefault();
                       void handleDropOnDate(cell.dateKey);
                     }}
-                    className={`min-h-[135px] rounded-lg border p-2.5 transition ${
+                    className={`min-h-[135px] rounded-xl border p-2.5 transition-colors ${
                       isDragTarget
-                        ? 'border-primary bg-primary/15'
+                        ? 'border-primary bg-ai-surface'
                         : isToday
-                          ? 'border-primary/50 bg-background'
+                          ? 'border-primary bg-ai-surface/30 ring-1 ring-primary/30'
                           : cell.inCurrentMonth
-                            ? 'border-border bg-background/80'
-                            : 'border-border/60 bg-muted/30 opacity-60'
+                            ? 'border-border bg-secondary/25'
+                            : 'border-border/60 bg-muted/20 opacity-60'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span
-                        className={`text-xs font-semibold ${
-                          isToday ? 'text-primary' : 'text-foreground/90'
-                        }`}
-                      >
-                        {cell.dateKey}
-                      </span>
-                      {dayEntries.length > 0 && (
-                        <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                          {dayEntries.length}
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`text-xs font-semibold tabular-nums ${
+                            isToday ? 'text-primary' : 'text-foreground'
+                          }`}
+                        >
+                          {dayNum === 1 || view === 'day' ? `${monthShort} ${dayNum}` : dayNum}
                         </span>
+                        {isToday && <Badge variant="ai">Today</Badge>}
+                      </div>
+                      {dayEntries.length > 0 && (
+                        <Badge variant="default">{dayEntries.length}</Badge>
                       )}
                     </div>
 
@@ -576,25 +617,25 @@ export default function ContentCalendarPage() {
                             draggable={canDrag}
                             onDragStart={() => setDraggedPostId(entry.id)}
                             onClick={() => openPostInspector(entry)}
-                            className={`cursor-pointer rounded border p-2 text-left text-[11px] transition hover:border-primary ${
+                            className={`cursor-pointer rounded-lg border p-2 text-left text-[11px] transition-colors hover:border-primary ${
                               entry.status === 'PUBLISHED'
-                                ? 'border-success/30 bg-success/10 text-success'
+                                ? 'border-success/35 bg-success-surface text-success'
                                 : entry.status === 'SCHEDULED'
-                                  ? 'border-primary/30 bg-primary/10 text-primary'
+                                  ? 'border-primary/30 bg-ai-surface text-foreground'
                                   : entry.status === 'FAILED'
-                                    ? 'border-red-500/40 bg-red-950/25 text-red-200'
+                                    ? 'border-destructive/40 bg-destructive/15 text-destructive'
                                     : entry.status === 'CANCELLED'
-                                      ? 'border-border bg-card/70 text-muted-foreground/80 line-through'
-                                      : 'border-cyan-500/30 bg-cyan-950/20 text-cyan-200'
+                                      ? 'border-border bg-card/70 text-muted-foreground line-through'
+                                      : 'border-info/35 bg-info-surface text-info'
                             }`}
                           >
                             <div className="flex items-center justify-between gap-1">
-                              <span className="font-bold">{entry.platform}</span>
-                              <span className="rounded bg-black/30 px-1.5 py-0.5 text-[9px] font-semibold">
+                              <span className="truncate font-semibold">{entry.platform}</span>
+                              <span className="shrink-0 rounded border border-current/25 px-1 py-0.5 text-[9px] font-semibold">
                                 {entry.status}
                               </span>
                             </div>
-                            <div className="mt-0.5 truncate text-[10px] opacity-80">
+                            <div className="mt-0.5 truncate text-[10px] opacity-85 tabular-nums">
                               {entry.socialAccount.accountHandle} •{' '}
                               {entry.localDateTimeLabel.slice(11, 16)}
                             </div>
@@ -611,38 +652,47 @@ export default function ContentCalendarPage() {
               })}
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* Post Inspector & Reschedule / Edit Modal */}
       {selectedPost && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
-          <div className="w-full max-w-lg rounded-xl border border-border bg-card p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="rounded bg-primary/15 px-2 py-0.5 text-xs font-bold text-primary">
-                  {selectedPost.platform}
-                </span>
-                <span className="text-xs text-foreground/90">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="calendar-post-title"
+        >
+          <Card className="w-full max-w-lg p-6 shadow-xl">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <CalendarIcon className="h-4 w-4 text-primary" />
+                <Badge variant="ai">{selectedPost.platform}</Badge>
+                <span id="calendar-post-title" className="text-xs font-semibold text-foreground">
                   {selectedPost.socialAccount.accountHandle}
                 </span>
-                <span className="rounded bg-secondary px-2 py-0.5 text-[10px] font-semibold text-foreground">
+                <Badge
+                  variant={
+                    selectedPost.status === 'PUBLISHED'
+                      ? 'success'
+                      : selectedPost.status === 'FAILED'
+                        ? 'destructive'
+                        : 'default'
+                  }
+                >
                   {selectedPost.status}
-                </span>
+                </Badge>
               </div>
-              <button
-                type="button"
-                onClick={() => setSelectedPost(null)}
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
+              <Button variant="outline" size="sm" onClick={() => setSelectedPost(null)}>
                 Close
-              </button>
+              </Button>
             </div>
 
             {selectedPost.status === 'PUBLISHED' ? (
-              <div className="mt-4 space-y-3 text-xs text-foreground/90">
-                <div className="rounded-lg border border-success/30 bg-success/10 p-3 text-success">
-                  Confirmed Published at {selectedPost.localDateTimeLabel} ({selectedPost.displayTimezone})
+              <div className="mt-4 space-y-3 text-xs text-foreground">
+                <div className="rounded-xl border border-success/35 bg-success-surface p-3 text-success">
+                  Confirmed Published at {selectedPost.localDateTimeLabel} (
+                  {selectedPost.displayTimezone})
                 </div>
                 {selectedPost.title && (
                   <div>
@@ -651,7 +701,7 @@ export default function ContentCalendarPage() {
                 )}
                 <div>
                   <strong>Caption:</strong>
-                  <p className="mt-1 rounded bg-background p-2.5 text-foreground">
+                  <p className="mt-1 rounded-lg border border-border bg-secondary/35 p-2.5 text-foreground">
                     {selectedPost.captionText}
                   </p>
                 </div>
@@ -660,7 +710,7 @@ export default function ContentCalendarPage() {
                     href={selectedPost.externalPostUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-block rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
+                    className="inline-flex h-8 items-center rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground"
                   >
                     Open External Post URL
                   </a>
@@ -669,81 +719,76 @@ export default function ContentCalendarPage() {
             ) : (
               <form onSubmit={handleSavePostEdits} className="mt-4 space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-foreground/90">Post Title</label>
-                  <input
+                  <label className="mb-1 block text-xs font-medium text-foreground">
+                    Post Title
+                  </label>
+                  <Input
                     type="text"
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-foreground/90">Caption</label>
-                  <textarea
+                  <label className="mb-1 block text-xs font-medium text-foreground">Caption</label>
+                  <Textarea
                     rows={3}
                     required
                     value={editCaption}
                     onChange={(e) => setEditCaption(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-foreground/90">
+                  <label className="mb-1 block text-xs font-medium text-foreground">
                     Hashtags (comma-separated)
                   </label>
-                  <input
+                  <Input
                     type="text"
                     value={editHashtags}
                     onChange={(e) => setEditHashtags(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-foreground/90">
+                  <label className="mb-1 block text-xs font-medium text-foreground">
                     Reschedule Date &amp; Time ({timezone})
                   </label>
-                  <input
+                  <Input
                     type="datetime-local"
                     value={editScheduleIso}
                     onChange={(e) => setEditScheduleIso(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                   />
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
                   <div className="flex gap-2">
-                    <button
-                      type="button"
+                    <Button
+                      variant="success"
+                      size="sm"
                       onClick={() => void handlePublishImmediatelyFromInspector(selectedPost.id)}
-                      className="rounded-lg bg-success px-3 py-2 text-xs font-semibold text-white hover:bg-success/90"
                     >
                       Publish Now
-                    </button>
+                    </Button>
                     {selectedPost.status !== 'CANCELLED' && (
-                      <button
-                        type="button"
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => void handleCancelFromInspector(selectedPost.id)}
-                        className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300 hover:bg-red-500/20"
+                        className="text-destructive hover:bg-destructive/10"
                       >
                         Cancel Post
-                      </button>
+                      </Button>
                     )}
                   </div>
 
-                  <button
-                    type="submit"
-                    disabled={savingEdit}
-                    className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
-                  >
+                  <Button type="submit" size="sm" disabled={savingEdit}>
                     {savingEdit ? 'Saving...' : 'Save Changes & Reschedule'}
-                  </button>
+                  </Button>
                 </div>
               </form>
             )}
-          </div>
+          </Card>
         </div>
       )}
     </AppShell>

@@ -2,7 +2,32 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import {
+  AlertTriangle,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  Link2,
+  Plus,
+  RefreshCw,
+  Send,
+  ShieldAlert,
+  ShieldCheck,
+  Trash2,
+} from 'lucide-react';
 import { AppShell } from '../../components/app-shell';
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  MetricCard,
+  PageHeader,
+  Select,
+  Textarea,
+} from '../../components/design-system/primitives';
 import { useStudio } from '../../context/studio-context';
 import { apiRequest } from '../../lib/api-client';
 
@@ -141,7 +166,7 @@ export default function PublishCenterPage() {
   const [selectedAssetId, setSelectedAssetId] = useState<string>('');
   const [title, setTitle] = useState('');
   const [captionText, setCaptionText] = useState('');
-  const [hashtagsText, setHashtagsText] = useState('ai, contentstudio, remotion');
+  const [hashtagsText, setHashtagsText] = useState('');
   const [publishMode, setPublishMode] = useState<'IMMEDIATE' | 'SCHEDULED'>('IMMEDIATE');
   const [scheduledDateTime, setScheduledDateTime] = useState(() => {
     const tomorrow = new Date(Date.now() + 24 * 3600 * 1000);
@@ -458,133 +483,137 @@ export default function PublishCenterPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-foreground">Social Publishing Center</h1>
-              {dashboard?.isSimulatedProvider && (
-                <span className="rounded-full border border-warning/40 bg-warning/10 px-2.5 py-0.5 text-[11px] font-medium text-warning">
-                  [SIMULATED POSTIZ SANDBOX]
-                </span>
-              )}
-            </div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Connect OAuth accounts, validate platform capabilities, enforce human approval, and
-              manage scheduled or immediate social campaigns.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/calendar"
-              className="rounded-lg border border-input bg-card px-3.5 py-2 text-xs font-medium text-foreground hover:bg-secondary/80"
-            >
-              Open Interactive Calendar
-            </Link>
-            <button
-              type="button"
-              onClick={() => {
-                setShowOAuthModal(true);
-                void handleGenerateOAuthUrl(oauthPlatform);
-              }}
-              className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
-            >
-              + Connect Social Account (OAuth)
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          title="Social Publishing Center"
+          description="Connect OAuth accounts, validate platform capabilities, enforce human approval, and schedule or publish campaigns."
+          badge={
+            dashboard?.isSimulatedProvider ? (
+              <Badge variant="warning">[SIMULATED POSTIZ SANDBOX]</Badge>
+            ) : (
+              <Badge variant="success">Live Postiz Provider</Badge>
+            )
+          }
+          actions={
+            <>
+              <Link
+                href="/calendar"
+                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-secondary"
+              >
+                <Calendar className="h-3.5 w-3.5 text-primary" />
+                Open Interactive Calendar
+              </Link>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setShowOAuthModal(true);
+                  void handleGenerateOAuthUrl(oauthPlatform);
+                }}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Connect Social Account (OAuth)
+              </Button>
+            </>
+          }
+        />
 
         {/* KPI Summary Cards */}
         {dashboard && (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-            <div className="rounded-xl border border-border bg-card/80 p-3.5">
-              <div className="text-[11px] text-muted-foreground">Connected Accounts</div>
-              <div className="mt-1 text-xl font-bold text-foreground">
-                {dashboard.stats.connectedAccounts} / {dashboard.stats.totalAccounts}
-              </div>
-            </div>
-            <div className="rounded-xl border border-border bg-card/80 p-3.5">
-              <div className="text-[11px] text-muted-foreground">Upcoming Scheduled</div>
-              <div className="mt-1 text-xl font-bold text-primary">
-                {dashboard.stats.scheduledCount}
-              </div>
-            </div>
-            <div className="rounded-xl border border-border bg-card/80 p-3.5">
-              <div className="text-[11px] text-muted-foreground">In-Flight Queue</div>
-              <div className="mt-1 text-xl font-bold text-cyan-400">
-                {dashboard.stats.publishingCount}
-              </div>
-            </div>
-            <div className="rounded-xl border border-border bg-card/80 p-3.5">
-              <div className="text-[11px] text-muted-foreground">Confirmed Published</div>
-              <div className="mt-1 text-xl font-bold text-success">
-                {dashboard.stats.publishedCount}
-              </div>
-            </div>
-            <div className="rounded-xl border border-border bg-card/80 p-3.5">
-              <div className="text-[11px] text-muted-foreground">Failed / Dead-Letter</div>
-              <div className="mt-1 text-xl font-bold text-red-400">
-                {dashboard.stats.failedCount} ({dashboard.stats.deadLetterCount} DLQ)
-              </div>
-            </div>
+          <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-5">
+            <MetricCard
+              label="Connected Accounts"
+              value={`${dashboard.stats.connectedAccounts} / ${dashboard.stats.totalAccounts}`}
+              sublabel="AES-256-GCM encrypted"
+              icon={<Link2 className="h-4 w-4" />}
+            />
+            <MetricCard
+              label="Upcoming Scheduled"
+              value={dashboard.stats.scheduledCount}
+              tone="ai"
+              sublabel="Queued in calendar"
+              icon={<Clock className="h-4 w-4" />}
+            />
+            <MetricCard
+              label="In-Flight Queue"
+              value={dashboard.stats.publishingCount}
+              sublabel="Active workers"
+              icon={<Send className="h-4 w-4" />}
+            />
+            <MetricCard
+              label="Confirmed Published"
+              value={dashboard.stats.publishedCount}
+              tone="success"
+              sublabel={dashboard.isSimulatedProvider ? 'Sandbox deliveries' : 'Live deliveries'}
+              icon={<CheckCircle2 className="h-4 w-4" />}
+            />
+            <MetricCard
+              label="Failed / Recovery"
+              value={`${dashboard.stats.failedCount} (${dashboard.stats.deadLetterCount} DLQ)`}
+              tone={dashboard.stats.failedCount > 0 ? 'warning' : 'default'}
+              sublabel="Backoff retry queue"
+              icon={<AlertTriangle className="h-4 w-4" />}
+            />
           </div>
         )}
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           {/* Left Column: Connected Social Accounts & Health */}
           <div className="space-y-4 lg:col-span-5">
-            <div className="rounded-xl border border-border bg-card/80 p-5">
-              <div className="flex items-center justify-between">
+            <Card className="p-5">
+              <div className="flex items-center justify-between border-b border-border pb-3">
                 <h2 className="text-sm font-semibold text-foreground">Connected Social Accounts</h2>
-                <span className="text-[11px] text-muted-foreground">AES-256-GCM Encrypted</span>
+                <Badge variant="outline">AES-256-GCM Encrypted</Badge>
               </div>
 
               {loading && !dashboard ? (
-                <p className="mt-4 text-xs text-muted-foreground/80">Loading accounts...</p>
+                <p className="mt-4 text-xs text-muted-foreground">Loading accounts...</p>
               ) : !dashboard || dashboard.accounts.length === 0 ? (
-                <div className="mt-4 rounded-lg border border-dashed border-border p-6 text-center">
-                  <p className="text-xs text-muted-foreground">
-                    No social accounts connected to this workspace yet.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowOAuthModal(true);
-                      void handleGenerateOAuthUrl(oauthPlatform);
-                    }}
-                    className="mt-3 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-                  >
-                    Connect First Social Account
-                  </button>
+                <div className="mt-4">
+                  <EmptyState
+                    icon={<Link2 className="h-5 w-5 text-primary" />}
+                    title="No social accounts connected yet"
+                    description="Connect an Instagram, TikTok, YouTube, LinkedIn, X, or Facebook account via OAuth to enable scheduling and publishing."
+                    action={
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setShowOAuthModal(true);
+                          void handleGenerateOAuthUrl(oauthPlatform);
+                        }}
+                      >
+                        Connect First Social Account
+                      </Button>
+                    }
+                  />
                 </div>
               ) : (
                 <div className="mt-4 space-y-3">
                   {dashboard.accounts.map((acc) => (
                     <div
                       key={acc.id}
-                      className={`rounded-lg border p-3.5 transition ${
+                      className={`rounded-xl border p-3.5 transition-colors ${
                         selectedAccountId === acc.id
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border bg-background/70'
+                          ? 'border-primary bg-ai-surface/60'
+                          : 'border-border bg-secondary/35'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <div className="flex items-center gap-2">
-                            <span className="rounded bg-secondary px-2 py-0.5 text-[10px] font-bold text-primary">
-                              {acc.platform}
-                            </span>
-                            <span
-                              className={`rounded px-2 py-0.5 text-[10px] font-semibold ${
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <Badge variant="ai">{acc.platform}</Badge>
+                            <Badge
+                              variant={
                                 acc.status === 'CONNECTED'
-                                  ? 'bg-success/15 text-success'
+                                  ? 'success'
                                   : acc.status === 'EXPIRED'
-                                    ? 'bg-warning/15 text-warning'
-                                    : 'bg-red-500/20 text-red-300'
-                              }`}
+                                    ? 'warning'
+                                    : 'destructive'
+                              }
                             >
+                              {acc.status === 'CONNECTED' && (
+                                <CheckCircle2 className="h-3 w-3" />
+                              )}
                               {acc.status}
-                            </span>
+                            </Badge>
                           </div>
                           <div className="mt-1.5 text-sm font-semibold text-foreground">
                             {acc.accountName}{' '}
@@ -592,78 +621,108 @@ export default function PublishCenterPage() {
                               ({acc.accountHandle})
                             </span>
                           </div>
-                          <div className="mt-1 text-[11px] text-muted-foreground/80">
-                            Token: <code className="text-muted-foreground">{acc.tokenPreview}</code> •
-                            Scopes: {acc.scopes.length}
+                          <div className="mt-1 text-[11px] text-muted-foreground tabular-nums">
+                            Token: <code className="font-mono">{acc.tokenPreview}</code> • Scopes:{' '}
+                            {acc.scopes.length}
                           </div>
                           {acc.connectionError && (
-                            <div className="mt-1 text-[11px] text-red-400">
+                            <div className="mt-1 text-[11px] font-medium text-destructive">
                               Error: {acc.connectionError}
                             </div>
                           )}
                         </div>
-                        <button
-                          type="button"
+                        <Button
+                          variant={selectedAccountId === acc.id ? 'primary' : 'outline'}
+                          size="sm"
                           onClick={() => setSelectedAccountId(acc.id)}
-                          className="rounded border border-input px-2 py-1 text-[11px] text-foreground/90 hover:bg-secondary/80"
                         >
                           {selectedAccountId === acc.id ? 'Selected' : 'Select'}
-                        </button>
+                        </Button>
                       </div>
 
-                      <div className="mt-3 flex flex-wrap gap-1.5 border-t border-border/80 pt-2.5">
-                        <button
-                          type="button"
+                      <div className="mt-3 flex flex-wrap gap-1.5 border-t border-border pt-2.5">
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => void handleHealthCheck(acc.id)}
-                          className="rounded border border-input bg-card px-2 py-1 text-[11px] text-foreground/90 hover:bg-secondary/80"
                         >
                           Check Health
-                        </button>
-                        <button
-                          type="button"
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => void handleRefreshToken(acc.id)}
-                          className="rounded border border-input bg-card px-2 py-1 text-[11px] text-primary hover:bg-secondary/80"
                         >
+                          <RefreshCw className="h-3 w-3" />
                           Rotate Token
-                        </button>
-                        <button
-                          type="button"
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => void handleDisconnectAccount(acc.id)}
-                          className="rounded border border-red-500/30 bg-red-500/10 px-2 py-1 text-[11px] text-red-300 hover:bg-red-500/20"
+                          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                         >
+                          <Trash2 className="h-3 w-3" />
                           Disconnect
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
-            </div>
+            </Card>
           </div>
 
           {/* Right Column: Post Composer */}
           <div className="lg:col-span-7">
-            <div className="rounded-xl border border-border bg-card/80 p-5">
-              <h2 className="text-sm font-semibold text-foreground">
-                Multi-Platform Post Composer &amp; Scheduler
-              </h2>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Validates platform media requirements, aspect ratios, caption limits, and human
-                approval gate before publishing.
-              </p>
+            <Card className="p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">
+                    Multi-Platform Post Composer &amp; Scheduler
+                  </h2>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Validates platform media requirements, aspect ratios, caption limits, and human
+                    approval gate.
+                  </p>
+                </div>
+                {dashboard?.isSimulatedProvider && (
+                  <Badge variant="warning">Sandbox Mode — No Live Public Post</Badge>
+                )}
+              </div>
+
+              {dashboard && dashboard.accounts.length === 0 && (
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-warning/35 bg-warning-surface px-3.5 py-2.5 text-xs text-warning">
+                  <div className="flex items-center gap-2">
+                    <ShieldAlert className="h-4 w-4 shrink-0" />
+                    <span>
+                      Connect at least one social account on the left before submitting a post.
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setShowOAuthModal(true);
+                      void handleGenerateOAuthUrl(oauthPlatform);
+                    }}
+                  >
+                    Connect Account
+                  </Button>
+                </div>
+              )}
 
               <form onSubmit={handleCreateOrPublishPost} className="mt-4 space-y-4">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="block text-xs font-medium text-foreground/90">
+                    <label className="mb-1 block text-xs font-medium text-foreground">
                       Target Connected Account
                     </label>
-                    <select
+                    <Select
                       aria-label="Target Connected Account"
                       required
                       value={selectedAccountId}
                       onChange={(e) => setSelectedAccountId(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                     >
                       <option value="">-- Select Connected Account --</option>
                       {dashboard?.accounts.map((acc) => (
@@ -671,35 +730,48 @@ export default function PublishCenterPage() {
                           {acc.platform} — {acc.accountHandle} ({acc.status})
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-foreground/90">Content Type</label>
-                    <select
+                    <label className="mb-1 block text-xs font-medium text-foreground">
+                      Content Type
+                    </label>
+                    <Select
                       aria-label="Content Type"
                       value={contentType}
                       onChange={(e) =>
                         setContentType(e.target.value as 'VIDEO' | 'IMAGE' | 'WRITTEN')
                       }
-                      className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                     >
                       <option value="VIDEO">VIDEO (Rendered Composition / Video Asset)</option>
                       <option value="IMAGE">IMAGE (Graphic / Frame Asset)</option>
                       <option value="WRITTEN">WRITTEN (Text Post / Thread)</option>
-                    </select>
+                    </Select>
                   </div>
                 </div>
 
                 {/* Platform Capability Guidance Banner */}
                 {activeCap && (
-                  <div className="rounded-lg border border-primary/30 bg-primary/10 p-3 text-xs text-primary">
-                    <div className="font-semibold">{activeCap.displayName} Capabilities:</div>
-                    <div className="mt-1 text-[11px] text-foreground/90">
-                      Allowed Types: <strong>{activeCap.supportedContentTypes.join(', ')}</strong> •
-                      Aspect Ratios: <strong>{activeCap.allowedAspectRatios.join(', ')}</strong> •
-                      Max Caption: <strong>{activeCap.maxCaptionLength} chars</strong> • Max
-                      Hashtags: <strong>{activeCap.maxHashtags}</strong>
+                  <div className="rounded-xl border border-primary/30 bg-ai-surface p-3 text-xs text-foreground">
+                    <div className="font-semibold text-primary">
+                      {activeCap.displayName} Capabilities:
+                    </div>
+                    <div className="mt-1 text-[11px] text-muted-foreground">
+                      Allowed Types:{' '}
+                      <strong className="text-foreground">
+                        {activeCap.supportedContentTypes.join(', ')}
+                      </strong>{' '}
+                      • Aspect Ratios:{' '}
+                      <strong className="text-foreground">
+                        {activeCap.allowedAspectRatios.join(', ')}
+                      </strong>{' '}
+                      • Max Caption:{' '}
+                      <strong className="text-foreground">
+                        {activeCap.maxCaptionLength} chars
+                      </strong>{' '}
+                      • Max Hashtags:{' '}
+                      <strong className="text-foreground">{activeCap.maxHashtags}</strong>
                       {activeCap.requiresTitle ? ' • Requires Video Title' : ''}
                     </div>
                   </div>
@@ -708,17 +780,16 @@ export default function PublishCenterPage() {
                 {contentType !== 'WRITTEN' && (
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
-                      <label className="block text-xs font-medium text-foreground/90">
+                      <label className="mb-1 block text-xs font-medium text-foreground">
                         Attach Approved Composition
                       </label>
-                      <select
+                      <Select
                         aria-label="Attach Approved Composition"
                         value={selectedCompositionId}
                         onChange={(e) => {
                           setSelectedCompositionId(e.target.value);
                           if (e.target.value) setSelectedAssetId('');
                         }}
-                        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                       >
                         <option value="">-- Optional: Select Composition --</option>
                         {dashboard?.compositions.map((c) => (
@@ -726,21 +797,20 @@ export default function PublishCenterPage() {
                             {c.title} ({c.aspectRatio}) [{c.approvalStatus}]
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-foreground/90">
+                      <label className="mb-1 block text-xs font-medium text-foreground">
                         Or Attach Library Asset
                       </label>
-                      <select
+                      <Select
                         aria-label="Or Attach Library Asset"
                         value={selectedAssetId}
                         onChange={(e) => {
                           setSelectedAssetId(e.target.value);
                           if (e.target.value) setSelectedCompositionId('');
                         }}
-                        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                       >
                         <option value="">-- Optional: Select Library Asset --</option>
                         {dashboard?.readyAssets.map((a) => (
@@ -748,195 +818,182 @@ export default function PublishCenterPage() {
                             {a.name} ({a.assetType})
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </div>
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-xs font-medium text-foreground/90">
-                    Post / Video Title {activeCap?.requiresTitle ? '(Required for Platform)' : '(Optional)'}
+                  <label className="mb-1 block text-xs font-medium text-foreground">
+                    Post / Video Title{' '}
+                    {activeCap?.requiresTitle ? '(Required for Platform)' : '(Optional)'}
                   </label>
-                  <input
+                  <Input
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="How AI Agents Automate Creative Video Production"
-                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                   />
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-medium text-foreground/90">
+                  <div className="mb-1 flex items-center justify-between">
+                    <label className="block text-xs font-medium text-foreground">
                       Caption / Post Body
                     </label>
                     <span
-                      className={`text-[11px] ${
+                      className={`text-[11px] tabular-nums ${
                         activeCap && captionText.length > activeCap.maxCaptionLength
-                          ? 'font-bold text-red-400'
+                          ? 'font-bold text-destructive'
                           : 'text-muted-foreground'
                       }`}
                     >
                       {captionText.length} / {activeCap?.maxCaptionLength ?? 2200} chars
                     </span>
                   </div>
-                  <textarea
+                  <Textarea
                     required
                     rows={3}
                     value={captionText}
                     onChange={(e) => setCaptionText(e.target.value)}
                     placeholder="Write your platform-tailored caption..."
-                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                   />
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-medium text-foreground/90">
+                  <div className="mb-1 flex items-center justify-between">
+                    <label className="block text-xs font-medium text-foreground">
                       Hashtags (comma-separated)
                     </label>
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-[11px] text-muted-foreground tabular-nums">
                       {parsedHashtags.length} / {activeCap?.maxHashtags ?? 30} tags
                     </span>
                   </div>
-                  <input
+                  <Input
                     type="text"
                     value={hashtagsText}
                     onChange={(e) => setHashtagsText(e.target.value)}
                     placeholder="ai, videoediting, saas, contentcreator"
-                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                   />
                 </div>
 
                 {/* Scheduling & Timezone Controls */}
-                <div className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-background/60 p-3 sm:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-secondary/35 p-3.5 sm:grid-cols-3">
                   <div>
-                    <label className="block text-xs font-medium text-foreground/90">Delivery Mode</label>
-                    <select
+                    <label className="mb-1 block text-xs font-medium text-foreground">
+                      Delivery Mode
+                    </label>
+                    <Select
                       aria-label="Delivery Mode"
                       value={publishMode}
                       onChange={(e) =>
                         setPublishMode(e.target.value as 'IMMEDIATE' | 'SCHEDULED')
                       }
-                      className="mt-1 w-full rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground"
                     >
                       <option value="IMMEDIATE">Publish Immediately</option>
                       <option value="SCHEDULED">Schedule for Date &amp; Time</option>
-                    </select>
+                    </Select>
                   </div>
 
                   {publishMode === 'SCHEDULED' && (
                     <div>
-                      <label className="block text-xs font-medium text-foreground/90">
+                      <label className="mb-1 block text-xs font-medium text-foreground">
                         Scheduled Date &amp; Time
                       </label>
-                      <input
+                      <Input
                         type="datetime-local"
                         value={scheduledDateTime}
                         onChange={(e) => setScheduledDateTime(e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground"
                       />
                     </div>
                   )}
 
                   <div>
-                    <label className="block text-xs font-medium text-foreground/90">
+                    <label className="mb-1 block text-xs font-medium text-foreground">
                       Target Timezone
                     </label>
-                    <select
+                    <Select
                       aria-label="Target Timezone"
                       value={timezone}
                       onChange={(e) => setTimezone(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground"
                     >
                       {(dashboard?.supportedTimezones ?? ['UTC']).map((tz) => (
                         <option key={tz} value={tz}>
                           {tz}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                 </div>
 
                 {/* Human Approval Gate Checkbox */}
-                <label className="flex items-center gap-2.5 rounded-lg border border-success/30 bg-success/10 px-3.5 py-2.5 text-xs text-success">
+                <label className="flex items-center gap-2.5 rounded-xl border border-success/35 bg-success-surface px-3.5 py-2.5 text-xs text-success">
                   <input
                     type="checkbox"
                     checked={explicitApprovalConfirmed}
                     onChange={(e) => setExplicitApprovalConfirmed(e.target.checked)}
                     className="rounded border-input"
                   />
+                  <ShieldCheck className="h-4 w-4 shrink-0" />
                   <span>
                     <strong>Human Approval Gate:</strong> I explicitly approve this content and
                     authorize publication to the selected social account.
                   </span>
                 </label>
 
-                <button
+                <Button
                   type="submit"
                   disabled={submittingPost || !selectedAccountId}
-                  className="w-full rounded-lg bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
+                  className="w-full"
                 >
+                  <Send className="h-3.5 w-3.5" />
                   {submittingPost
                     ? 'Validating & Submitting...'
                     : publishMode === 'IMMEDIATE'
                       ? 'Approve & Publish Immediately'
                       : 'Approve & Schedule Post'}
-                </button>
+                </Button>
               </form>
-            </div>
+            </Card>
           </div>
         </div>
 
         {/* Bottom Section: Queues, History & Recovery */}
-        <div className="rounded-xl border border-border bg-card/80 p-5">
+        <Card className="p-5">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
-            <div className="flex gap-2">
-              <button
-                type="button"
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={activeTab === 'SCHEDULED' ? 'primary' : 'outline'}
+                size="sm"
                 onClick={() => setActiveTab('SCHEDULED')}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-                  activeTab === 'SCHEDULED'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-background text-muted-foreground hover:text-foreground'
-                }`}
               >
+                <Clock className="h-3.5 w-3.5" />
                 Upcoming Scheduled ({dashboard?.upcomingScheduled.length ?? 0})
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant={activeTab === 'PUBLISHED' ? 'success' : 'outline'}
+                size="sm"
                 onClick={() => setActiveTab('PUBLISHED')}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-                  activeTab === 'PUBLISHED'
-                    ? 'bg-success text-white'
-                    : 'bg-background text-muted-foreground hover:text-foreground'
-                }`}
               >
+                <CheckCircle2 className="h-3.5 w-3.5" />
                 Confirmed Published ({dashboard?.recentlyPublished.length ?? 0})
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant={activeTab === 'FAILED' ? 'destructive' : 'outline'}
+                size="sm"
                 onClick={() => setActiveTab('FAILED')}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-                  activeTab === 'FAILED'
-                    ? 'bg-red-600 text-foreground'
-                    : 'bg-background text-muted-foreground hover:text-foreground'
-                }`}
               >
+                <AlertTriangle className="h-3.5 w-3.5" />
                 Failed &amp; Recovery ({dashboard?.failedJobs.length ?? 0})
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant={activeTab === 'QUEUE' ? 'secondary' : 'outline'}
+                size="sm"
                 onClick={() => setActiveTab('QUEUE')}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-                  activeTab === 'QUEUE'
-                    ? 'bg-cyan-600 text-foreground'
-                    : 'bg-background text-muted-foreground hover:text-foreground'
-                }`}
               >
+                <Send className="h-3.5 w-3.5" />
                 In-Flight Queue ({dashboard?.publishingQueue.length ?? 0})
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -946,48 +1003,49 @@ export default function PublishCenterPage() {
                 dashboard.upcomingScheduled.map((post) => (
                   <div
                     key={post.id}
-                    className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border bg-background p-4"
+                    className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-secondary/35 p-4"
                   >
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="rounded bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">
-                          {post.platform}
-                        </span>
-                        <span className="text-xs font-medium text-foreground/90">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="ai">
+                          <Clock className="h-3 w-3" />
+                          SCHEDULED
+                        </Badge>
+                        <Badge variant="default">{post.platform}</Badge>
+                        <span className="text-xs font-medium text-foreground">
                           {post.socialAccount.accountHandle}
                         </span>
-                        <span className="rounded bg-secondary px-2 py-0.5 text-[10px] text-foreground/90">
-                          {post.contentType}
-                        </span>
-                        <span className="text-xs text-primary">
-                          Scheduled: {post.localScheduledLabel} ({post.timezone})
+                        <Badge variant="outline">{post.contentType}</Badge>
+                        <span className="text-xs font-medium text-primary tabular-nums">
+                          {post.localScheduledLabel} ({post.timezone})
                         </span>
                       </div>
                       {post.title && (
                         <div className="text-xs font-semibold text-foreground">{post.title}</div>
                       )}
-                      <p className="text-xs text-foreground/90">{post.captionText}</p>
+                      <p className="text-xs text-foreground">{post.captionText}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button
-                        type="button"
+                      <Button
+                        variant="success"
+                        size="sm"
                         onClick={() => void handlePublishNow(post.id)}
-                        className="rounded-lg bg-success px-3 py-1.5 text-xs font-medium text-white hover:bg-success/90"
                       >
                         Publish Now
-                      </button>
-                      <button
-                        type="button"
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => void handleCancelPost(post.id)}
-                        className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-xs text-red-300 hover:bg-red-500/20"
+                        className="text-destructive hover:bg-destructive/10"
                       >
                         Cancel
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-muted-foreground/80">No upcoming scheduled posts.</p>
+                <p className="text-xs text-muted-foreground">No upcoming scheduled posts.</p>
               ))}
 
             {activeTab === 'PUBLISHED' &&
@@ -995,30 +1053,27 @@ export default function PublishCenterPage() {
                 dashboard.recentlyPublished.map((post) => (
                   <div
                     key={post.id}
-                    className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border bg-background p-4"
+                    className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-secondary/35 p-4"
                   >
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="rounded bg-success/15 px-2 py-0.5 text-[10px] font-bold text-success">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="success">
+                          <CheckCircle2 className="h-3 w-3" />
                           CONFIRMED PUBLISHED
-                        </span>
-                        <span className="rounded bg-secondary px-2 py-0.5 text-[10px] font-bold text-primary">
-                          {post.platform}
-                        </span>
-                        <span className="text-xs text-foreground/90">
+                        </Badge>
+                        <Badge variant="ai">{post.platform}</Badge>
+                        <span className="text-xs font-medium text-foreground">
                           {post.socialAccount.accountHandle}
                         </span>
                         {post.isSimulated && (
-                          <span className="rounded border border-warning/30 bg-warning/10 px-2 py-0.5 text-[10px] text-warning">
-                            [SIMULATED SANDBOX]
-                          </span>
+                          <Badge variant="warning">[SIMULATED SANDBOX]</Badge>
                         )}
                       </div>
                       <p className="text-xs text-foreground">{post.captionText}</p>
-                      <div className="text-[11px] text-muted-foreground/80">
-                        External ID: <code>{post.externalPostId}</code> • Published:{' '}
-                        {post.localEffectiveLabel} ({post.timezone}) • Idempotency:{' '}
-                        <code>{post.idempotencyKey.slice(0, 16)}...</code>
+                      <div className="text-[11px] text-muted-foreground tabular-nums">
+                        External ID: <code className="font-mono">{post.externalPostId}</code> •
+                        Published: {post.localEffectiveLabel} ({post.timezone}) • Idempotency:{' '}
+                        <code className="font-mono">{post.idempotencyKey.slice(0, 16)}...</code>
                       </div>
                     </div>
                     {post.externalPostUrl && (
@@ -1026,15 +1081,16 @@ export default function PublishCenterPage() {
                         href={post.externalPostUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-primary hover:bg-secondary/80"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-medium text-primary hover:bg-secondary"
                       >
+                        <ExternalLink className="h-3.5 w-3.5" />
                         View Post Reference
                       </a>
                     )}
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-muted-foreground/80">No published posts yet.</p>
+                <p className="text-xs text-muted-foreground">No published posts yet.</p>
               ))}
 
             {activeTab === 'FAILED' &&
@@ -1042,22 +1098,23 @@ export default function PublishCenterPage() {
                 dashboard.failedJobs.map((post) => (
                   <div
                     key={post.id}
-                    className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-red-500/30 bg-background p-4"
+                    className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-destructive/35 bg-destructive/5 p-4"
                   >
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="rounded bg-red-500/20 px-2 py-0.5 text-[10px] font-bold text-red-300">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="destructive">
+                          <AlertTriangle className="h-3 w-3" />
                           {post.providerStatus}
-                        </span>
-                        <span className="rounded bg-secondary px-2 py-0.5 text-[10px] font-bold text-primary">
-                          {post.platform}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
+                        </Badge>
+                        <Badge variant="ai">{post.platform}</Badge>
+                        <span className="text-xs text-muted-foreground tabular-nums">
                           Retries: {post.retryCount} / {post.maxRetries}
                         </span>
                       </div>
                       <p className="text-xs text-foreground">{post.captionText}</p>
-                      <div className="text-xs text-red-400">Error: {post.errorMessage}</div>
+                      <div className="text-xs font-medium text-destructive">
+                        Error: {post.errorMessage}
+                      </div>
                       {post.nextRetryAt && (
                         <div className="text-[11px] text-warning">
                           Next Backoff Retry: {post.nextRetryAt}
@@ -1065,25 +1122,26 @@ export default function PublishCenterPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <button
-                        type="button"
+                      <Button
+                        variant="primary"
+                        size="sm"
                         onClick={() => void handleRetryFailedPost(post.id)}
-                        className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
                       >
+                        <RefreshCw className="h-3.5 w-3.5" />
                         Retry &amp; Recover Now
-                      </button>
-                      <button
-                        type="button"
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => void handleCancelPost(post.id)}
-                        className="rounded-lg border border-input px-3 py-1.5 text-xs text-foreground/90 hover:bg-secondary/80"
                       >
                         Cancel
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-muted-foreground/80">No failed publishing jobs.</p>
+                <p className="text-xs text-muted-foreground">No failed publishing jobs.</p>
               ))}
 
             {activeTab === 'QUEUE' &&
@@ -1091,103 +1149,103 @@ export default function PublishCenterPage() {
                 dashboard.publishingQueue.map((post) => (
                   <div
                     key={post.id}
-                    className="flex items-center justify-between rounded-lg border border-border bg-background p-4"
+                    className="flex items-center justify-between rounded-xl border border-border bg-secondary/35 p-4"
                   >
                     <div>
-                      <span className="rounded bg-cyan-500/20 px-2 py-0.5 text-[10px] font-bold text-cyan-300">
+                      <Badge variant="info">
                         {post.status} ({post.providerStatus})
-                      </span>
+                      </Badge>
                       <p className="mt-1 text-xs text-foreground">{post.captionText}</p>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-muted-foreground/80">No in-flight publishing jobs.</p>
+                <p className="text-xs text-muted-foreground">No in-flight publishing jobs.</p>
               ))}
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* OAuth Connection Modal */}
       {showOAuthModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
-          <div className="w-full max-w-lg rounded-xl border border-border bg-card p-6">
-            <h2 className="text-lg font-bold text-foreground">Connect Social Account via OAuth</h2>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="oauth-connect-title"
+        >
+          <Card className="w-full max-w-lg p-6 shadow-xl">
+            <h2 id="oauth-connect-title" className="text-lg font-semibold text-foreground">
+              Connect Social Account via OAuth
+            </h2>
             <p className="mt-1 text-xs text-muted-foreground">
               Tokens are encrypted at rest with AES-256-GCM and scoped strictly to this workspace.
             </p>
 
             <form onSubmit={handleCompleteOAuthConnect} className="mt-4 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-foreground/90">Social Platform</label>
-                <select
+                <label className="mb-1 block text-xs font-medium text-foreground">
+                  Social Platform
+                </label>
+                <Select
                   aria-label="Social Platform"
                   value={oauthPlatform}
                   onChange={(e) => {
                     setOauthPlatform(e.target.value);
                     void handleGenerateOAuthUrl(e.target.value);
                   }}
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                 >
                   {PLATFORMS.map((p) => (
                     <option key={p} value={p}>
                       {p}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               {oauthAuthorizationUrl && (
-                <div className="rounded-lg border border-border bg-background p-3 text-[11px] text-muted-foreground">
-                  <div className="font-semibold text-foreground/90">
+                <div className="rounded-xl border border-border bg-secondary/35 p-3 text-[11px] text-muted-foreground">
+                  <div className="font-semibold text-foreground">
                     Required OAuth Scopes: {oauthScopes.join(', ')}
                   </div>
-                  <div className="mt-1 truncate text-muted-foreground/80">
-                    Endpoint: {oauthAuthorizationUrl}
-                  </div>
+                  <div className="mt-1 truncate">Endpoint: {oauthAuthorizationUrl}</div>
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-medium text-foreground/90">Account Name</label>
-                <input
+                <label className="mb-1 block text-xs font-medium text-foreground">
+                  Account Name
+                </label>
+                <Input
                   type="text"
                   required
                   value={oauthAccountName}
                   onChange={(e) => setOauthAccountName(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-foreground/90">Account Handle</label>
-                <input
+                <label className="mb-1 block text-xs font-medium text-foreground">
+                  Account Handle
+                </label>
+                <Input
                   type="text"
                   required
                   value={oauthAccountHandle}
                   onChange={(e) => setOauthAccountHandle(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                 />
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowOAuthModal(false)}
-                  className="rounded-lg border border-input px-4 py-2 text-xs text-foreground/90"
-                >
+                <Button variant="outline" onClick={() => setShowOAuthModal(false)}>
                   Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={connectingOAuth}
-                  className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
-                >
+                </Button>
+                <Button type="submit" disabled={connectingOAuth}>
                   {connectingOAuth ? 'Exchanging OAuth Code...' : 'Authorize & Connect Account'}
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
+          </Card>
         </div>
       )}
     </AppShell>

@@ -1,7 +1,32 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import {
+  Eye,
+  FileText,
+  Film,
+  FolderOpen,
+  Image as ImageIcon,
+  LayoutGrid,
+  List,
+  Music,
+  Search,
+  Sparkles,
+  Trash2,
+  Upload,
+} from 'lucide-react';
 import { AppShell } from '../../components/app-shell';
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  PageHeader,
+  Select,
+  Skeleton,
+} from '../../components/design-system/primitives';
+import { VideoPlayer } from '../../components/creative/video-player';
 import { useStudio } from '../../context/studio-context';
 import { apiRequest, AssetDto, ProjectDto } from '../../lib/api-client';
 
@@ -13,6 +38,10 @@ function formatBytes(bytes: number): string {
   return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i] ?? 'B'}`;
 }
 
+function formatCleanTitle(raw: string): string {
+  return raw.replace(/[-_]\d{10,14}$/, '').trim() || raw;
+}
+
 export default function ContentLibraryPage() {
   const { accessToken, activeWorkspace, setFeedback } = useStudio();
   const [assets, setAssets] = useState<AssetDto[]>([]);
@@ -21,11 +50,12 @@ export default function ContentLibraryPage() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [search, setSearch] = useState<string>('');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Upload state
   const [uploadProjectId, setUploadProjectId] = useState<string>('');
-  const [folderPath, setFolderPath] = useState<string>('/raw-clips');
-  const [tagsInput, setTagsInput] = useState<string>('podcast, hook');
+  const [folderPath, setFolderPath] = useState<string>('');
+  const [tagsInput, setTagsInput] = useState<string>('');
   const [uploading, setUploading] = useState<boolean>(false);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
 
@@ -100,7 +130,7 @@ export default function ContentLibraryPage() {
             mimeType,
             sizeBytes: file.size || arrayBuffer.byteLength || 1,
             ...(uploadProjectId ? { projectId: uploadProjectId } : {}),
-            folderPath: folderPath.trim() || '/',
+            folderPath: folderPath.trim() || '/raw-clips',
             tags,
           },
         });
@@ -202,61 +232,78 @@ export default function ContentLibraryPage() {
     }
   };
 
+  const renderAssetTypeIcon = (type: AssetDto['assetType']) => {
+    if (type === 'VIDEO') return <Film className="h-5 w-5 text-primary" />;
+    if (type === 'AUDIO') return <Music className="h-5 w-5 text-info" />;
+    if (type === 'IMAGE') return <ImageIcon className="h-5 w-5 text-success" />;
+    return <FileText className="h-5 w-5 text-warning" />;
+  };
+
   return (
     <AppShell>
-      <div className="space-y-8">
-        <div className="border-b border-border pb-5">
-          <h1 className="text-2xl font-bold text-foreground">Content Asset Library &amp; AI Analysis</h1>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Upload raw media to MinIO object storage with magic-byte validation, SHA-256 duplicate
-            detection, automated STT transcription, and scene hook extraction.
-          </p>
-        </div>
+      <div className="space-y-6">
+        <PageHeader
+          title="Media Library"
+          description="Ingest raw footage, audio, and brand assets with magic-byte validation, SHA-256 deduplication, STT transcription, and scene hook analysis."
+          badge={<Badge variant="ai">{assets.length} Assets</Badge>}
+        />
 
-        <div className="rounded-xl border border-border bg-card/70 p-5">
-          <h2 className="text-sm font-semibold text-foreground">Upload Media to MinIO Storage</h2>
-          <div className="mt-3 grid gap-3 md:grid-cols-4">
-            <div>
-              <label className="block text-[11px] text-muted-foreground">Assign to Project</label>
-              <select
+        {/* Upload Dropzone & Configuration Card */}
+        <Card className="p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-3">
+            <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+              <Upload className="h-4 w-4 text-primary" />
+              <span>Upload Media to MinIO Object Storage</span>
+            </div>
+            <Badge variant="outline">Magic-Byte &amp; SHA-256 Verified</Badge>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-12">
+            <div className="md:col-span-3">
+              <label className="mb-1 block text-[11px] font-medium text-muted-foreground">
+                Assign to Project
+              </label>
+              <Select
+                aria-label="Assign to Project"
                 value={uploadProjectId}
                 onChange={(e) => setUploadProjectId(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
               >
                 <option value="">Workspace Global Library</option>
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name}
+                    {formatCleanTitle(p.name)}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
-            <div>
-              <label className="block text-[11px] text-muted-foreground">Virtual Folder Path</label>
-              <input
+            <div className="md:col-span-3">
+              <label className="mb-1 block text-[11px] font-medium text-muted-foreground">
+                Virtual Folder Path
+              </label>
+              <Input
                 type="text"
                 value={folderPath}
                 onChange={(e) => setFolderPath(e.target.value)}
-                placeholder="/podcast/clips"
-                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
+                placeholder="/raw-clips"
               />
             </div>
 
-            <div>
-              <label className="block text-[11px] text-muted-foreground">Tags (comma-separated)</label>
-              <input
+            <div className="md:col-span-3">
+              <label className="mb-1 block text-[11px] font-medium text-muted-foreground">
+                Tags (comma-separated)
+              </label>
+              <Input
                 type="text"
                 value={tagsInput}
                 onChange={(e) => setTagsInput(e.target.value)}
                 placeholder="hook, b-roll, ep1"
-                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
               />
             </div>
 
-            <div>
-              <label className="block text-[11px] text-muted-foreground">Select File(s)</label>
-              <label className="mt-1 flex cursor-pointer items-center justify-center rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90">
+            <div className="flex flex-col justify-end md:col-span-3">
+              <label className="inline-flex h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-4 text-xs font-medium text-primary-foreground shadow-sm transition-opacity hover:opacity-95">
+                <Upload className="h-3.5 w-3.5" />
                 <span>{uploading ? 'Uploading & Verifying...' : 'Choose Files to Upload'}</span>
                 <input
                   type="file"
@@ -268,87 +315,149 @@ export default function ContentLibraryPage() {
               </label>
             </div>
           </div>
-        </div>
+        </Card>
 
+        {/* Filters, Search & Grid/List View Toggle */}
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-2">
-            <select
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              aria-label="Filter by project"
               value={selectedProjectId}
               onChange={(e) => setSelectedProjectId(e.target.value)}
-              className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-foreground"
+              className="w-auto min-w-[170px]"
             >
               <option value="">All Projects</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name}
+                  {formatCleanTitle(p.name)}
                 </option>
               ))}
-            </select>
+            </Select>
 
-            <select
+            <Select
+              aria-label="Filter by media type"
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-foreground"
+              className="w-auto min-w-[155px]"
             >
               <option value="">All Media Types</option>
               <option value="VIDEO">VIDEO</option>
               <option value="AUDIO">AUDIO</option>
               <option value="IMAGE">IMAGE</option>
               <option value="DOCUMENT">DOCUMENT</option>
-            </select>
+            </Select>
           </div>
 
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by filename..."
-            className="w-64 rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-foreground"
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative w-56">
+              <Search className="pointer-events-none absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by filename..."
+                className="pl-8 text-xs"
+              />
+            </div>
+
+            <div className="flex items-center rounded-lg border border-border bg-card p-1">
+              <button
+                type="button"
+                aria-label="Grid view"
+                aria-pressed={viewMode === 'grid'}
+                onClick={() => setViewMode('grid')}
+                className={`rounded-md p-1.5 transition-colors ${
+                  viewMode === 'grid'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                aria-label="List view"
+                aria-pressed={viewMode === 'list'}
+                onClick={() => setViewMode('list')}
+                className={`rounded-md p-1.5 transition-colors ${
+                  viewMode === 'list'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <List className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
         </div>
 
+        {/* Asset Cards Grid / List */}
         {loading ? (
-          <div className="text-xs text-muted-foreground">Loading content library...</div>
-        ) : assets.length === 0 ? (
-          <div className="rounded-xl border border-border bg-muted/40 p-10 text-center text-xs text-muted-foreground/80">
-            No assets uploaded yet. Use the upload panel above to add videos, images, audio, or
-            documents.
-          </div>
-        ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Skeleton className="h-56" />
+            <Skeleton className="h-56" />
+            <Skeleton className="h-56" />
+          </div>
+        ) : assets.length === 0 ? (
+          <EmptyState
+            icon={<Upload className="h-5 w-5 text-primary" />}
+            title="No media assets in library yet"
+            description="Upload raw videos, audio recordings, images, or script documents above to run AI transcription and scene hook extraction."
+          />
+        ) : (
+          <div
+            className={
+              viewMode === 'grid'
+                ? 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
+                : 'space-y-3'
+            }
+          >
             {assets.map((asset) => (
-              <div
+              <Card
                 key={asset.id}
-                className="flex flex-col justify-between rounded-xl border border-border bg-card/80 p-4"
+                className="flex flex-col justify-between overflow-hidden p-4 transition-colors hover:border-primary/40"
               >
                 <div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="rounded bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                      {asset.assetType}
-                    </span>
-                    <span
-                      className={`rounded px-2 py-0.5 text-[10px] font-semibold ${
-                        asset.status === 'READY'
-                          ? 'bg-success/15 text-success'
-                          : 'bg-warning/15 text-warning'
-                      }`}
-                    >
+                  {/* Visual Media Header */}
+                  <div className="mb-3 flex h-24 items-center justify-between rounded-lg border border-border bg-secondary/50 px-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card shadow-sm">
+                        {renderAssetTypeIcon(asset.assetType)}
+                      </div>
+                      <div>
+                        <Badge variant="ai">{asset.assetType}</Badge>
+                        <div className="mt-1 font-mono text-[11px] text-muted-foreground tabular-nums">
+                          {formatBytes(asset.sizeBytes)}
+                        </div>
+                      </div>
+                    </div>
+                    <Badge variant={asset.status === 'READY' ? 'success' : 'warning'}>
                       {asset.status}
-                    </span>
+                    </Badge>
                   </div>
 
-                  <h3 className="mt-2 truncate text-sm font-semibold text-foreground">
+                  <h3
+                    title={asset.originalName}
+                    className="truncate text-sm font-semibold text-foreground"
+                  >
                     {asset.originalName}
                   </h3>
-                  <div className="mt-1 text-[11px] text-muted-foreground">
-                    {formatBytes(asset.sizeBytes)} • {asset.mimeType}
-                  </div>
-                  <div className="mt-1 text-[11px] text-muted-foreground/80">
-                    Folder: {asset.folderPath} • Project: {asset.project?.name ?? 'Global'}
+
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
+                    <span>{asset.mimeType}</span>
+                    <span>•</span>
+                    <span className="inline-flex items-center gap-1">
+                      <FolderOpen className="h-3 w-3" />
+                      {asset.folderPath}
+                    </span>
+                    <span>•</span>
+                    <span>
+                      {asset.project?.name ? formatCleanTitle(asset.project.name) : 'Global'}
+                    </span>
                   </div>
 
                   {asset.aiSummary && (
-                    <p className="mt-2 line-clamp-2 rounded border border-border bg-background/70 p-2 text-[11px] text-foreground/90">
+                    <p className="mt-2.5 line-clamp-2 rounded-lg border border-border bg-secondary/35 p-2 text-[11px] text-foreground">
                       {asset.aiSummary}
                     </p>
                   )}
@@ -356,86 +465,125 @@ export default function ContentLibraryPage() {
                   {asset.tags.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1">
                       {asset.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded bg-secondary px-2 py-0.5 text-[10px] text-foreground/90"
-                        >
+                        <Badge key={tag} variant="default">
                           #{tag}
-                        </span>
+                        </Badge>
                       ))}
                     </div>
                   )}
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-3">
-                  <button
-                    type="button"
-                    disabled={analyzingId === asset.id}
-                    onClick={() => void handleAnalyzeAsset(asset)}
-                    className="rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                  >
-                    {analyzingId === asset.id ? 'Analyzing...' : 'AI Analyze & Transcribe'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleOpenPreview(asset)}
-                    className="rounded-md bg-secondary px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted/80"
-                  >
-                    Inspect
-                  </button>
-                  <button
-                    type="button"
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      size="sm"
+                      variant="ai"
+                      disabled={analyzingId === asset.id}
+                      onClick={() => void handleAnalyzeAsset(asset)}
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                      {analyzingId === asset.id ? 'Analyzing...' : 'AI Analyze'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void handleOpenPreview(asset)}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      Inspect
+                    </Button>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    aria-label={`Delete ${asset.originalName}`}
                     onClick={() => setDeleteTarget(asset)}
-                    className="rounded-md border border-red-500/40 px-2.5 py-1.5 text-xs text-red-300 hover:bg-red-500/10"
+                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                   >
+                    <Trash2 className="h-3.5 w-3.5" />
                     Delete
-                  </button>
+                  </Button>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         )}
 
+        {/* Asset Inspection & Real Preview Modal */}
         {previewAsset && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
-            <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-border bg-card p-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-base font-semibold text-foreground">{previewAsset.originalName}</h2>
-                <button
-                  type="button"
-                  onClick={() => setPreviewAsset(null)}
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                >
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="inspect-asset-title"
+          >
+            <Card className="max-h-[85vh] w-full max-w-2xl overflow-y-auto p-6 shadow-xl">
+              <div className="flex items-center justify-between border-b border-border pb-3">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  {renderAssetTypeIcon(previewAsset.assetType)}
+                  <h2
+                    id="inspect-asset-title"
+                    className="truncate text-base font-semibold text-foreground"
+                  >
+                    {previewAsset.originalName}
+                  </h2>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setPreviewAsset(null)}>
                   Close
-                </button>
-              </div>
-              <div className="mt-3 space-y-2 text-xs text-foreground/90">
-                <div>
-                  <strong>MIME Type (Magic-Byte Verified):</strong> {previewAsset.mimeType}
-                </div>
-                <div>
-                  <strong>Size:</strong> {formatBytes(previewAsset.sizeBytes)}
-                </div>
-                <div>
-                  <strong>SHA-256 Checksum:</strong>{' '}
-                  <span className="font-mono text-[11px]">{previewAsset.checksumSha256}</span>
-                </div>
-                {previewAsset.aiSummary && (
-                  <div className="rounded-lg border border-primary/30 bg-primary/10 p-3 text-primary">
-                    <strong>Content Intelligence Summary:</strong> {previewAsset.aiSummary}
-                  </div>
-                )}
+                </Button>
               </div>
 
+              {/* Real Media Playback Preview when downloadUrl exists */}
+              {previewAsset.downloadUrl && previewAsset.assetType === 'VIDEO' && (
+                <div className="mt-4">
+                  <VideoPlayer
+                    src={previewAsset.downloadUrl}
+                    sizeBytes={previewAsset.sizeBytes}
+                  />
+                </div>
+              )}
+
+              {previewAsset.downloadUrl && previewAsset.assetType === 'AUDIO' && (
+                <div className="mt-4 rounded-xl border border-border bg-secondary/40 p-3">
+                  <audio controls src={previewAsset.downloadUrl} className="w-full" />
+                </div>
+              )}
+
+              <div className="mt-4 grid gap-2 rounded-xl border border-border bg-secondary/35 p-3.5 text-xs sm:grid-cols-2">
+                <div>
+                  <span className="text-muted-foreground">MIME Type (Magic-Byte Verified): </span>
+                  <strong className="text-foreground">{previewAsset.mimeType}</strong>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">File Size: </span>
+                  <strong className="font-mono text-foreground tabular-nums">
+                    {formatBytes(previewAsset.sizeBytes)}
+                  </strong>
+                </div>
+                <div className="sm:col-span-2">
+                  <span className="text-muted-foreground">SHA-256 Checksum: </span>
+                  <span className="break-all font-mono text-[11px] text-foreground">
+                    {previewAsset.checksumSha256}
+                  </span>
+                </div>
+              </div>
+
+              {previewAsset.aiSummary && (
+                <div className="mt-4 rounded-xl border border-primary/30 bg-ai-surface p-3.5 text-xs text-foreground">
+                  <strong className="text-primary">Content Intelligence Summary:</strong>{' '}
+                  {previewAsset.aiSummary}
+                </div>
+              )}
+
               {previewAsset.transcript && (
-                <div className="mt-4 rounded-lg border border-border bg-background p-3">
+                <div className="mt-4 rounded-xl border border-border bg-secondary/30 p-3.5">
                   <div className="flex items-center justify-between text-xs font-semibold text-foreground">
                     <span>Word-Synchronized Transcript ({previewAsset.transcript.language})</span>
-                    <span className="text-[10px] text-muted-foreground">
-                      Provider: {previewAsset.transcript.provider}
-                    </span>
+                    <Badge variant="outline">Provider: {previewAsset.transcript.provider}</Badge>
                   </div>
-                  <p className="mt-2 text-xs text-foreground/90">{previewAsset.transcript.fullText}</p>
+                  <p className="mt-2 text-xs leading-relaxed text-foreground">
+                    {previewAsset.transcript.fullText}
+                  </p>
                 </div>
               )}
 
@@ -447,21 +595,19 @@ export default function ContentLibraryPage() {
                   {previewAsset.scenes.map((sc) => (
                     <div
                       key={sc.id}
-                      className="flex items-center justify-between rounded border border-border bg-background px-3 py-2 text-xs"
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-secondary/35 px-3 py-2 text-xs"
                     >
                       <div>
-                        <span className="font-semibold text-primary">
-                          Scene #{sc.sceneIndex + 1} ({sc.startSec}s - {sc.endSec}s)
+                        <span className="font-semibold text-primary tabular-nums">
+                          Scene #{sc.sceneIndex + 1} ({sc.startSec}s – {sc.endSec}s)
                         </span>
                         <div className="text-[11px] text-muted-foreground">{sc.description}</div>
                       </div>
-                      <div className="text-right">
-                        <span className="rounded bg-success/15 px-2 py-0.5 text-[10px] font-semibold text-success">
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="success">
                           Hook: {Math.round((sc.hookScore ?? 0.8) * 100)}%
-                        </span>
-                        {sc.isBroll && (
-                          <div className="mt-1 text-[10px] text-cyan-300">B-Roll Cutaway</div>
-                        )}
+                        </Badge>
+                        {sc.isBroll && <Badge variant="info">B-Roll Cutaway</Badge>}
                       </div>
                     </div>
                   ))}
@@ -469,46 +615,47 @@ export default function ContentLibraryPage() {
               )}
 
               {previewAsset.downloadUrl && (
-                <div className="mt-4">
+                <div className="mt-4 flex justify-end">
                   <a
                     href={previewAsset.downloadUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-block rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                    className="inline-flex h-9 items-center rounded-lg bg-primary px-4 text-xs font-medium text-primary-foreground shadow-sm transition-opacity hover:opacity-95"
                   >
                     Open Presigned MinIO Download URL
                   </a>
                 </div>
               )}
-            </div>
+            </Card>
           </div>
         )}
 
+        {/* Destructive Delete Asset Modal */}
         {deleteTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
-            <div className="w-full max-w-md rounded-xl border border-red-500/40 bg-card p-6">
-              <h2 className="text-base font-semibold text-foreground">Delete Asset</h2>
-              <p className="mt-2 text-xs text-foreground/90">
-                Delete <strong>{deleteTarget.originalName}</strong> from MinIO object storage and
-                workspace metadata?
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-asset-title"
+          >
+            <Card className="w-full max-w-md border-destructive/40 p-6 shadow-xl">
+              <h2 id="delete-asset-title" className="text-base font-semibold text-foreground">
+                Delete Asset
+              </h2>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Delete <strong className="text-foreground">{deleteTarget.originalName}</strong> from
+                MinIO object storage and workspace metadata?
               </p>
               <div className="mt-5 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setDeleteTarget(null)}
-                  className="rounded-lg border border-input px-3 py-1.5 text-xs text-foreground/90"
-                >
+                <Button variant="outline" size="sm" onClick={() => setDeleteTarget(null)}>
                   Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleConfirmDelete()}
-                  className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-foreground"
-                >
+                </Button>
+                <Button variant="destructive" size="sm" onClick={() => void handleConfirmDelete()}>
+                  <Trash2 className="h-3.5 w-3.5" />
                   Delete Asset
-                </button>
+                </Button>
               </div>
-            </div>
+            </Card>
           </div>
         )}
       </div>

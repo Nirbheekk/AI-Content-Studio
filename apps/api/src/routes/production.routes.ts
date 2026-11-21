@@ -463,13 +463,39 @@ export async function registerProductionRoutes(
       throw new NotFoundError('Composition', compositionId);
     }
 
+    const rendersBucket = storage.getConfig().rendersBucket;
+    const mappedVersions = composition.versions.map((ver) => ({
+      ...ver,
+      renderJobs: ver.renderJobs.map((rj) => ({
+        ...rj,
+        outputSizeBytes: Number(rj.outputSizeBytes ?? 0n),
+        downloadUrl: rj.outputStorageKey
+          ? storage.createPresignedUrl({
+              method: 'GET',
+              bucket: rendersBucket,
+              storageKey: rj.outputStorageKey,
+              expiresInSec: 3600,
+              usePublicEndpoint: true,
+            })
+          : null,
+        qaFrameUrls: rj.qaFrameKeys.map((key) =>
+          storage.createPresignedUrl({
+            method: 'GET',
+            bucket: rendersBucket,
+            storageKey: key,
+            expiresInSec: 3600,
+            usePublicEndpoint: true,
+          }),
+        ),
+      })),
+    }));
+
     const activeVersion =
-      composition.versions.find((v) => v.id === composition.currentVersionId) ??
-      composition.versions[composition.versions.length - 1] ??
+      mappedVersions.find((v) => v.id === composition.currentVersionId) ??
+      mappedVersions[mappedVersions.length - 1] ??
       null;
 
     const compiled = activeVersion ? compileCompositionSpec(activeVersion.specJson) : null;
-    const rendersBucket = storage.getConfig().rendersBucket;
 
     return reply.status(200).send({
       success: true,
@@ -477,31 +503,7 @@ export async function registerProductionRoutes(
         ...composition,
         activeVersion,
         compiled,
-        versions: composition.versions.map((ver) => ({
-          ...ver,
-          renderJobs: ver.renderJobs.map((rj) => ({
-            ...rj,
-            outputSizeBytes: Number(rj.outputSizeBytes ?? 0n),
-            downloadUrl: rj.outputStorageKey
-              ? storage.createPresignedUrl({
-                  method: 'GET',
-                  bucket: rendersBucket,
-                  storageKey: rj.outputStorageKey,
-                  expiresInSec: 3600,
-                  usePublicEndpoint: true,
-                })
-              : null,
-            qaFrameUrls: rj.qaFrameKeys.map((key) =>
-              storage.createPresignedUrl({
-                method: 'GET',
-                bucket: rendersBucket,
-                storageKey: key,
-                expiresInSec: 3600,
-                usePublicEndpoint: true,
-              }),
-            ),
-          })),
-        })),
+        versions: mappedVersions,
       },
     });
   });

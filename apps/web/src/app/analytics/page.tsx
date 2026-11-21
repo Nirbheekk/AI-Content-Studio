@@ -1,7 +1,29 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import {
+  AlertTriangle,
+  BarChart3,
+  Download,
+  FileSpreadsheet,
+  RefreshCw,
+  Send,
+  Sparkles,
+  Wallet,
+} from 'lucide-react';
 import { AppShell } from '../../components/app-shell';
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  MetricCard,
+  PageHeader,
+  Select,
+  Skeleton,
+} from '../../components/design-system/primitives';
 import { useStudio } from '../../context/studio-context';
 import { apiRequest, getApiBaseUrl } from '../../lib/api-client';
 
@@ -19,12 +41,14 @@ interface PostRow {
   unavailableMetrics: string[];
   unavailableReason: string | null;
 }
+
 interface Summary {
   postCount: number;
   totals: Metrics;
   avgEngagementRate: number | null;
   postsWithEngagementData: number;
 }
+
 interface Overview {
   range: { from: string; to: string };
   liveProviderConfigured: boolean;
@@ -35,24 +59,40 @@ interface Overview {
   posts: PostRow[];
   notes: string;
 }
+
 interface Insight {
   kind: string;
   type: string;
   summary: string;
   sampleSize: number;
 }
+
 interface InsightResult {
   evidence: { insights: Insight[]; sampleSize: number };
   aiSuggestions: { items: Array<{ kind: string; text: string }>; note: string };
 }
+
 interface UsageData {
   periodStart: string;
-  statuses: Array<{ category: string; used: number; limit: number; percentUsed: number; exceeded: boolean; alert: boolean }>;
-  usageByProvider: Array<{ provider: string; category: string; quantity: number; estimatedCostUsd: number }>;
+  statuses: Array<{
+    category: string;
+    used: number;
+    limit: number;
+    percentUsed: number;
+    exceeded: boolean;
+    alert: boolean;
+  }>;
+  usageByProvider: Array<{
+    provider: string;
+    category: string;
+    quantity: number;
+    estimatedCostUsd: number;
+  }>;
   workspace: { planTier: string; usageAlertThresholdPct: number };
   alerts: string[];
   costDisclosure: string;
 }
+
 interface InvoiceRow {
   id: string;
   periodStart: string;
@@ -62,25 +102,38 @@ interface InvoiceRow {
 }
 
 const fmt = (v: number | null | undefined, digits = 0) =>
-  v === null || v === undefined ? 'Unavailable' : v.toLocaleString(undefined, { maximumFractionDigits: digits });
+  v === null || v === undefined
+    ? 'Unavailable'
+    : v.toLocaleString(undefined, { maximumFractionDigits: digits });
+
 const pct = (v: number | null) => (v === null ? 'Unavailable' : `${(v * 100).toFixed(2)}%`);
 
 function TrendChart({ data }: { data: Array<{ date: string; value: number | null }> }) {
   const pts = data.filter((d) => d.value !== null) as Array<{ date: string; value: number }>;
   if (pts.length === 0) {
-    return <p className="text-xs text-muted-foreground/80">No metric data in this range to chart.</p>;
+    return (
+      <p className="py-4 text-xs text-muted-foreground">
+        No measured metric snapshots in this date range to chart.
+      </p>
+    );
   }
   const max = Math.max(...pts.map((p) => p.value), 1);
   return (
-    <div role="img" aria-label="Engagement trend chart" className="flex h-32 items-end gap-1">
+    <div
+      role="img"
+      aria-label="Engagement trend chart"
+      className="flex h-36 items-end gap-1.5 rounded-xl border border-border bg-secondary/35 p-3"
+    >
       {pts.map((p) => (
         <div key={p.date} className="group flex flex-1 flex-col items-center justify-end">
           <div
-            className="w-full rounded-t bg-primary/80"
-            style={{ height: `${Math.max(4, (p.value / max) * 100)}%` }}
+            className="w-full rounded-t bg-primary transition-opacity group-hover:opacity-90"
+            style={{ height: `${Math.max(6, (p.value / max) * 100)}%` }}
             title={`${p.date}: ${p.value}`}
           />
-          <span className="mt-1 text-[9px] text-muted-foreground/80">{p.date.slice(5)}</span>
+          <span className="mt-1.5 font-mono text-[9px] text-muted-foreground tabular-nums">
+            {p.date.slice(5)}
+          </span>
         </div>
       ))}
     </div>
@@ -95,7 +148,9 @@ export default function AnalyticsPage() {
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [from, setFrom] = useState(() => new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10));
+  const [from, setFrom] = useState(() =>
+    new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10),
+  );
   const [to, setTo] = useState(() => new Date().toISOString().slice(0, 10));
   const [platform, setPlatform] = useState('');
   const [selectedPost, setSelectedPost] = useState<PostRow | null>(null);
@@ -121,7 +176,10 @@ export default function AnalyticsPage() {
         workspaceId: activeWorkspace.id,
       });
       setOverview(ov);
-      const us = await apiRequest<UsageData>('/api/v1/usage', { accessToken, workspaceId: activeWorkspace.id });
+      const us = await apiRequest<UsageData>('/api/v1/usage', {
+        accessToken,
+        workspaceId: activeWorkspace.id,
+      });
       setUsage(us);
       if (canAdmin) {
         const inv = await apiRequest<{ invoices: InvoiceRow[] }>('/api/v1/billing/invoices', {
@@ -131,7 +189,10 @@ export default function AnalyticsPage() {
         setInvoices(inv.invoices);
       }
     } catch (err) {
-      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to load analytics' });
+      setFeedback({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Failed to load analytics',
+      });
     } finally {
       setLoading(false);
     }
@@ -144,24 +205,42 @@ export default function AnalyticsPage() {
   const call = async (path: string, method: 'POST' | 'PUT', body: unknown, okMsg: string) => {
     if (!activeWorkspace || !accessToken) return null;
     try {
-      const res = await apiRequest<unknown>(path, { method, accessToken, workspaceId: activeWorkspace.id, body });
+      const res = await apiRequest<unknown>(path, {
+        method,
+        accessToken,
+        workspaceId: activeWorkspace.id,
+        body,
+      });
       setFeedback({ type: 'success', message: okMsg });
       return res;
     } catch (err) {
-      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Request failed' });
+      setFeedback({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Request failed',
+      });
       return null;
     }
   };
 
   const collect = async () => {
-    const res = (await call('/api/v1/analytics/collect', 'POST', {}, 'Collection finished. Unavailable metrics are shown explicitly.')) as {
+    const res = (await call(
+      '/api/v1/analytics/collect',
+      'POST',
+      {},
+      'Collection finished. Unavailable metrics are shown explicitly.',
+    )) as {
       attempted: number;
     } | null;
     if (res) await load();
   };
 
   const generateInsights = async () => {
-    const res = (await call('/api/v1/analytics/insights', 'POST', {}, 'Insight report generated.')) as InsightResult | null;
+    const res = (await call(
+      '/api/v1/analytics/insights',
+      'POST',
+      {},
+      'Insight report generated.',
+    )) as InsightResult | null;
     if (res) {
       setInsights(res);
       setTab('insights');
@@ -198,140 +277,295 @@ export default function AnalyticsPage() {
   };
 
   const generateInvoice = async () => {
-    if (await call('/api/v1/billing/invoices/generate', 'POST', {}, 'Draft invoice created (ESTIMATED).')) await load();
+    if (
+      await call(
+        '/api/v1/billing/invoices/generate',
+        'POST',
+        {},
+        'Draft invoice created (ESTIMATED).',
+      )
+    )
+      await load();
   };
-
-  const tabBtn = (id: typeof tab, label: string) => (
-    <button
-      type="button"
-      onClick={() => setTab(id)}
-      aria-pressed={tab === id}
-      className={`rounded-lg px-3 py-1.5 text-xs font-medium ${tab === id ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:text-foreground'}`}
-    >
-      {label}
-    </button>
-  );
 
   return (
     <AppShell>
       <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Analytics &amp; Intelligence</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Real stored metric snapshots only. Unavailable metrics are never estimated.
-              {overview && !overview.liveProviderConfigured && (
-                <span className="mt-1 inline-block max-w-full whitespace-normal break-words rounded border border-warning/40 bg-warning/10 px-2 py-0.5 text-[11px] text-warning sm:ml-2 sm:mt-0">
-                  No live Postiz provider configured: automatic collection returns &quot;Unavailable&quot;
-                </span>
-              )}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => void collect()} className="rounded-lg border border-input bg-card px-3 py-2 text-xs text-foreground hover:bg-secondary/80">
-              Collect Metrics
-            </button>
-            <button type="button" onClick={() => void exportCsv()} className="rounded-lg border border-input bg-card px-3 py-2 text-xs text-foreground hover:bg-secondary/80">
-              Export CSV
-            </button>
-            <button type="button" onClick={() => void generateInsights()} className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90">
-              Generate Insights
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          title="Analytics &amp; Intelligence"
+          description="Real stored metric snapshots only. Unavailable platform metrics are explicitly reported and never fabricated."
+          badge={
+            overview && !overview.liveProviderConfigured ? (
+              <Badge variant="warning">
+                Sandbox Mode — Automatic Collection Returns &quot;Unavailable&quot;
+              </Badge>
+            ) : (
+              <Badge variant="success">Live Metrics Active</Badge>
+            )
+          }
+          actions={
+            <>
+              <Button variant="outline" size="sm" onClick={() => void collect()}>
+                <RefreshCw className="h-3.5 w-3.5" />
+                Collect Metrics
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => void exportCsv()}>
+                <Download className="h-3.5 w-3.5" />
+                Export CSV
+              </Button>
+              <Button variant="ai" size="sm" onClick={() => void generateInsights()}>
+                <Sparkles className="h-3.5 w-3.5" />
+                Generate Insights
+              </Button>
+            </>
+          }
+        />
 
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex gap-2">
-            {tabBtn('overview', 'Performance')}
-            {tabBtn('insights', 'AI Insights')}
-            {tabBtn('usage', 'Usage & Billing')}
-          </div>
-          <label className="text-[11px] text-muted-foreground">
-            From
-            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="ml-1 rounded border border-border bg-background px-2 py-1 text-xs text-foreground" />
-          </label>
-          <label className="text-[11px] text-muted-foreground">
-            To
-            <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="ml-1 rounded border border-border bg-background px-2 py-1 text-xs text-foreground" />
-          </label>
-          <select aria-label="Platform filter" value={platform} onChange={(e) => setPlatform(e.target.value)} className="rounded border border-border bg-background px-2 py-1 text-xs text-foreground">
-            <option value="">All platforms</option>
-            {['INSTAGRAM_REELS', 'TIKTOK', 'YOUTUBE_SHORTS', 'YOUTUBE_LONG', 'LINKEDIN', 'X_TWITTER', 'FACEBOOK'].map((p) => (
-              <option key={p} value={p}>{p}</option>
+        {/* Navigation Tabs & Date/Platform Filter Bar */}
+        <Card className="flex flex-wrap items-center justify-between gap-3 p-3.5">
+          <div className="flex items-center gap-1 rounded-lg border border-border bg-secondary/40 p-1">
+            {(
+              [
+                ['overview', 'Performance'],
+                ['insights', 'AI Insights'],
+                ['usage', 'Usage & Billing'],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={tab === id}
+                onClick={() => setTab(id)}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  tab === id
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {label}
+              </button>
             ))}
-          </select>
-        </div>
+          </div>
 
-        {loading && !overview && <p className="text-xs text-muted-foreground/80">Loading analytics...</p>}
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span>From</span>
+              <Input
+                type="date"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+                className="h-8 w-auto text-xs"
+              />
+            </label>
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span>To</span>
+              <Input
+                type="date"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                className="h-8 w-auto text-xs"
+              />
+            </label>
+            <Select
+              aria-label="Platform filter"
+              value={platform}
+              onChange={(e) => setPlatform(e.target.value)}
+              className="h-8 w-auto text-xs"
+            >
+              <option value="">All Platforms</option>
+              {[
+                'INSTAGRAM_REELS',
+                'TIKTOK',
+                'YOUTUBE_SHORTS',
+                'YOUTUBE_LONG',
+                'LINKEDIN',
+                'X_TWITTER',
+                'FACEBOOK',
+              ].map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </Select>
+          </div>
+        </Card>
+
+        {loading && !overview && (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-6">
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+          </div>
+        )}
 
         {tab === 'overview' && overview && (
           <div className="space-y-6">
+            {/* Always render the 6 core KPI headers with real totals or honest Unavailable/0 state */}
+            <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-6">
+              {(['views', 'impressions', 'reach', 'likes', 'comments', 'shares'] as const).map(
+                (k) => (
+                  <MetricCard
+                    key={k}
+                    label={k.charAt(0).toUpperCase() + k.slice(1)}
+                    value={
+                      overview.overall.postCount === 0
+                        ? '0'
+                        : fmt(overview.overall.totals[k])
+                    }
+                    sublabel={
+                      overview.overall.postCount === 0
+                        ? '0 snapshots in range'
+                        : `${overview.overall.postCount} tracked post(s)`
+                    }
+                  />
+                ),
+              )}
+            </div>
+
             {overview.overall.postCount === 0 ? (
-              <div className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-                No metric snapshots in this range. Publish content, then use &quot;Collect Metrics&quot;.
-              </div>
+              <EmptyState
+                icon={<BarChart3 className="h-5 w-5 text-primary" />}
+                title="No metric snapshots in this date range"
+                description="Publish content in the Publishing Center, then click Collect Metrics to record verified snapshot totals. AI Content Studio never fabricates analytics data."
+                action={
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <Link
+                      href="/publish"
+                      className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground"
+                    >
+                      <Send className="h-3.5 w-3.5" />
+                      Open Publishing Center
+                    </Link>
+                    <Button variant="outline" size="sm" onClick={() => void collect()}>
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      Collect Metrics Now
+                    </Button>
+                  </div>
+                }
+              />
             ) : (
               <>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-                  {['views', 'impressions', 'reach', 'likes', 'comments', 'shares'].map((k) => (
-                    <div key={k} className="rounded-xl border border-border bg-card/80 p-3.5">
-                      <div className="text-[11px] capitalize text-muted-foreground">{k}</div>
-                      <div className="mt-1 text-lg font-bold text-foreground">{fmt(overview.overall.totals[k])}</div>
-                    </div>
-                  ))}
-                </div>
-                <div className="rounded-xl border border-border bg-card/80 p-4">
-                  <h2 className="mb-3 text-sm font-semibold text-foreground">
-                    Average engagement rate: {pct(overview.overall.avgEngagementRate)}
-                    <span className="ml-2 text-[11px] font-normal text-muted-foreground/80">
-                      ({overview.overall.postsWithEngagementData} of {overview.overall.postCount} posts have data)
-                    </span>
-                  </h2>
-                  <TrendChart data={overview.trend.map((t) => ({ date: t.date, value: t.totals['likes'] ?? null }))} />
-                  <p className="mt-1 text-[10px] text-muted-foreground/80">Daily likes across snapshots collected that day.</p>
-                </div>
+                <Card className="p-5">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <h2 className="text-sm font-semibold text-foreground">
+                      Average Engagement Rate:{' '}
+                      <span className="text-primary tabular-nums">
+                        {pct(overview.overall.avgEngagementRate)}
+                      </span>
+                    </h2>
+                    <Badge variant="outline">
+                      {overview.overall.postsWithEngagementData} of {overview.overall.postCount}{' '}
+                      posts have engagement data
+                    </Badge>
+                  </div>
+                  <TrendChart
+                    data={overview.trend.map((t) => ({
+                      date: t.date,
+                      value: t.totals['likes'] ?? null,
+                    }))}
+                  />
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Daily likes across verified snapshots collected on each date.
+                  </p>
+                </Card>
+
                 <div className="grid gap-4 lg:grid-cols-2">
-                  <div className="rounded-xl border border-border bg-card/80 p-4">
-                    <h2 className="mb-2 text-sm font-semibold text-foreground">By platform</h2>
+                  <Card className="p-5">
+                    <h2 className="mb-2.5 text-sm font-semibold text-foreground">
+                      Performance by Platform
+                    </h2>
                     {overview.platforms.map((p) => (
-                      <div key={p.platform} className="flex justify-between border-t border-border py-1.5 text-xs text-foreground/90">
-                        <span>{p.platform} ({p.postCount})</span>
-                        <span>{pct(p.avgEngagementRate)}</span>
+                      <div
+                        key={p.platform}
+                        className="flex items-center justify-between border-t border-border py-2 text-xs text-foreground"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Badge variant="ai">{p.platform}</Badge>
+                          <span className="text-muted-foreground">({p.postCount} posts)</span>
+                        </div>
+                        <span className="font-mono font-semibold tabular-nums">
+                          {pct(p.avgEngagementRate)}
+                        </span>
                       </div>
                     ))}
-                  </div>
-                  <div className="rounded-xl border border-border bg-card/80 p-4">
-                    <h2 className="mb-2 text-sm font-semibold text-foreground">By campaign (project)</h2>
+                  </Card>
+
+                  <Card className="p-5">
+                    <h2 className="mb-2.5 text-sm font-semibold text-foreground">
+                      Performance by Campaign (Project)
+                    </h2>
                     {overview.campaigns.map((c) => (
-                      <div key={c.campaign} className="flex justify-between border-t border-border py-1.5 text-xs text-foreground/90">
-                        <span>{c.campaign} ({c.postCount})</span>
-                        <span>{pct(c.avgEngagementRate)}</span>
+                      <div
+                        key={c.campaign}
+                        className="flex items-center justify-between border-t border-border py-2 text-xs text-foreground"
+                      >
+                        <span>
+                          {c.campaign}{' '}
+                          <span className="text-muted-foreground">({c.postCount} posts)</span>
+                        </span>
+                        <span className="font-mono font-semibold tabular-nums">
+                          {pct(c.avgEngagementRate)}
+                        </span>
                       </div>
                     ))}
-                  </div>
+                  </Card>
                 </div>
-                <div className="rounded-xl border border-border bg-card/80 p-4">
-                  <h2 className="mb-2 text-sm font-semibold text-foreground">Post performance</h2>
+
+                <Card className="p-5">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h2 className="text-sm font-semibold text-foreground">
+                      Post Performance Breakdown
+                    </h2>
+                    <span className="text-[11px] text-muted-foreground">
+                      Click any post row to inspect snapshot details
+                    </span>
+                  </div>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs text-foreground/90">
-                      <thead className="text-muted-foreground/80">
-                        <tr><th className="py-1">Post</th><th>Platform</th><th>Source</th><th>Views</th><th>Likes</th><th>Eng. rate</th></tr>
+                    <table className="w-full text-left text-xs text-foreground">
+                      <thead className="border-b border-border text-[11px] uppercase text-muted-foreground">
+                        <tr>
+                          <th className="py-2 pr-3">Post</th>
+                          <th className="py-2 pr-3">Platform</th>
+                          <th className="py-2 pr-3">Source</th>
+                          <th className="py-2 pr-3">Views</th>
+                          <th className="py-2 pr-3">Likes</th>
+                          <th className="py-2">Eng. Rate</th>
+                        </tr>
                       </thead>
                       <tbody>
                         {overview.posts.map((p) => (
-                          <tr key={p.publishPostId} onClick={() => setSelectedPost(p)} className="cursor-pointer border-t border-border hover:bg-secondary/80/40">
-                            <td className="max-w-[240px] truncate py-1.5">{p.title ?? p.caption}</td>
-                            <td>{p.platform}</td>
-                            <td>{p.source}</td>
-                            <td>{fmt(p.metrics['views'])}</td>
-                            <td>{fmt(p.metrics['likes'])}</td>
-                            <td>{pct(p.engagementRate)}</td>
+                          <tr
+                            key={p.publishPostId}
+                            onClick={() => setSelectedPost(p)}
+                            className="cursor-pointer border-t border-border transition-colors hover:bg-secondary/50"
+                          >
+                            <td className="max-w-[260px] truncate py-2.5 pr-3 font-medium">
+                              {p.title ?? p.caption}
+                            </td>
+                            <td className="py-2.5 pr-3">
+                              <Badge variant="ai">{p.platform}</Badge>
+                            </td>
+                            <td className="py-2.5 pr-3">
+                              <Badge variant="outline">{p.source}</Badge>
+                            </td>
+                            <td className="py-2.5 pr-3 font-mono tabular-nums">
+                              {fmt(p.metrics['views'])}
+                            </td>
+                            <td className="py-2.5 pr-3 font-mono tabular-nums">
+                              {fmt(p.metrics['likes'])}
+                            </td>
+                            <td className="py-2.5 font-mono font-semibold tabular-nums">
+                              {pct(p.engagementRate)}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                </div>
+                </Card>
               </>
             )}
           </div>
@@ -340,32 +574,63 @@ export default function AnalyticsPage() {
         {tab === 'insights' && (
           <div className="space-y-4">
             {!insights ? (
-              <div className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-                Click &quot;Generate Insights&quot; to analyze stored snapshots.
-              </div>
+              <EmptyState
+                icon={<Sparkles className="h-5 w-5 text-primary" />}
+                title="No AI Insight Report generated yet"
+                description="Click Generate Insights to analyze stored metric snapshots and compare evidence-backed observations with creative recommendations."
+                action={
+                  <Button variant="ai" size="sm" onClick={() => void generateInsights()}>
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Generate Insights Now
+                  </Button>
+                }
+              />
             ) : (
               <>
-                <div className="rounded-xl border border-success/30 bg-success/5 p-4">
-                  <h2 className="text-sm font-semibold text-success">Evidence-based insights (computed from your data)</h2>
-                  {insights.evidence.insights.length === 0 && <p className="mt-2 text-xs text-muted-foreground">Not enough data.</p>}
-                  <ul className="mt-2 space-y-2">
-                    {insights.evidence.insights.map((i, idx) => (
-                      <li key={idx} className="text-xs text-foreground">
-                        <span className="mr-2 rounded bg-success/15 px-1.5 py-0.5 text-[10px] text-success">EVIDENCE · {i.type} · n={i.sampleSize}</span>
-                        {i.summary}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="rounded-xl border border-warning/30 bg-warning/5 p-4">
-                  <h2 className="text-sm font-semibold text-warning">AI-generated suggestions (hypotheses, not measured)</h2>
-                  <p className="mt-1 text-[11px] text-muted-foreground">{insights.aiSuggestions.note}</p>
-                  <ul className="mt-2 list-disc space-y-1 pl-5">
+                <Card className="border-success/35 bg-success-surface/60 p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h2 className="text-sm font-semibold text-success">
+                      Evidence-Based Insights (Computed Directly from Stored Snapshots)
+                    </h2>
+                    <Badge variant="success">Measured Data • n={insights.evidence.sampleSize}</Badge>
+                  </div>
+                  {insights.evidence.insights.length === 0 ? (
+                    <p className="mt-2.5 text-xs text-muted-foreground">
+                      Not enough measured snapshot data yet to compute statistical evidence.
+                    </p>
+                  ) : (
+                    <ul className="mt-3 space-y-2">
+                      {insights.evidence.insights.map((i, idx) => (
+                        <li
+                          key={idx}
+                          className="flex flex-wrap items-center gap-2 rounded-lg border border-success/25 bg-card p-3 text-xs text-foreground"
+                        >
+                          <Badge variant="success">
+                            EVIDENCE • {i.type} • n={i.sampleSize}
+                          </Badge>
+                          <span>{i.summary}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Card>
+
+                <Card className="border-warning/35 bg-warning-surface/60 p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h2 className="text-sm font-semibold text-warning">
+                      AI-Generated Creative Suggestions (Speculative Hypotheses, Not Measured)
+                    </h2>
+                    <Badge variant="warning">Speculative Recommendation</Badge>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {insights.aiSuggestions.note}
+                  </p>
+                  <ul className="mt-3 list-disc space-y-1.5 pl-5 text-xs text-foreground">
                     {insights.aiSuggestions.items.map((s, idx) => (
-                      <li key={idx} className="text-xs text-foreground">{s.text}</li>
+                      <li key={idx}>{s.text}</li>
                     ))}
                   </ul>
-                </div>
+                </Card>
               </>
             )}
           </div>
@@ -373,77 +638,199 @@ export default function AnalyticsPage() {
 
         {tab === 'usage' && usage && (
           <div className="space-y-4">
-            <p className="rounded border border-border bg-card/80 p-3 text-xs text-muted-foreground">{usage.costDisclosure}</p>
+            <Card className="flex items-center justify-between gap-3 p-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Wallet className="h-4 w-4 text-primary" />
+                <span>{usage.costDisclosure}</span>
+              </div>
+              <Badge variant="ai">Plan: {usage.workspace.planTier}</Badge>
+            </Card>
+
             {usage.alerts.map((a) => (
-              <div key={a} role="alert" className="rounded border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">{a}</div>
+              <div
+                key={a}
+                role="alert"
+                className="flex items-center gap-2 rounded-xl border border-warning/40 bg-warning-surface px-4 py-2.5 text-xs text-warning"
+              >
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span>{a}</span>
+              </div>
             ))}
-            <div className="grid gap-3 sm:grid-cols-3">
+
+            <div className="grid gap-3.5 sm:grid-cols-3">
               {usage.statuses.map((s) => (
-                <div key={s.category} className="rounded-xl border border-border bg-card/80 p-4">
-                  <div className="text-[11px] text-muted-foreground">{s.category}</div>
-                  <div className="mt-1 text-sm font-bold text-foreground">{s.used.toLocaleString()} / {s.limit.toLocaleString()}</div>
-                  <div className="mt-2 h-2 rounded bg-secondary">
-                    <div className={`h-2 rounded ${s.exceeded ? 'bg-red-500' : s.alert ? 'bg-warning' : 'bg-success'}`} style={{ width: `${Math.min(100, s.percentUsed)}%` }} />
+                <Card key={s.category} className="p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-muted-foreground">{s.category}</span>
+                    <Badge
+                      variant={s.exceeded ? 'destructive' : s.alert ? 'warning' : 'success'}
+                    >
+                      {s.percentUsed}% used
+                    </Badge>
                   </div>
-                  <div className="mt-1 text-[10px] text-muted-foreground/80">{s.percentUsed}% used{s.exceeded ? ' · QUOTA EXCEEDED' : ''}</div>
-                </div>
+                  <div className="mt-2 font-mono text-base font-semibold text-foreground tabular-nums">
+                    {s.used.toLocaleString()} / {s.limit.toLocaleString()}
+                  </div>
+                  <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-secondary">
+                    <div
+                      className={`h-full rounded-full ${
+                        s.exceeded
+                          ? 'bg-destructive'
+                          : s.alert
+                            ? 'bg-warning'
+                            : 'bg-success'
+                      }`}
+                      style={{ width: `${Math.min(100, s.percentUsed)}%` }}
+                    />
+                  </div>
+                  {s.exceeded && (
+                    <div className="mt-1.5 text-[11px] font-semibold text-destructive">
+                      QUOTA EXCEEDED
+                    </div>
+                  )}
+                </Card>
               ))}
             </div>
-            <div className="rounded-xl border border-border bg-card/80 p-4">
-              <h2 className="mb-2 text-sm font-semibold text-foreground">Estimated cost by provider (this month)</h2>
-              {usage.usageByProvider.length === 0 && <p className="text-xs text-muted-foreground/80">No usage recorded.</p>}
-              {usage.usageByProvider.map((u) => (
-                <div key={`${u.provider}-${u.category}`} className="flex justify-between border-t border-border py-1.5 text-xs text-foreground/90">
-                  <span>{u.provider} · {u.category}</span>
-                  <span>{u.quantity.toLocaleString()} · est. ${u.estimatedCostUsd.toFixed(4)}</span>
-                </div>
-              ))}
-            </div>
+
+            <Card className="p-5">
+              <h2 className="mb-2.5 text-sm font-semibold text-foreground">
+                Estimated Cost by Provider (Current Billing Period)
+              </h2>
+              {usage.usageByProvider.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No provider usage recorded yet.</p>
+              ) : (
+                usage.usageByProvider.map((u) => (
+                  <div
+                    key={`${u.provider}-${u.category}`}
+                    className="flex items-center justify-between border-t border-border py-2 text-xs text-foreground"
+                  >
+                    <span>
+                      <strong>{u.provider}</strong> • {u.category}
+                    </span>
+                    <span className="font-mono tabular-nums">
+                      {u.quantity.toLocaleString()} units • est. $
+                      {u.estimatedCostUsd.toFixed(4)}
+                    </span>
+                  </div>
+                ))
+              )}
+            </Card>
+
             {canAdmin ? (
               <div className="grid gap-4 lg:grid-cols-2">
-                <form onSubmit={saveQuotas} className="space-y-2 rounded-xl border border-border bg-card/80 p-4">
-                  <h2 className="text-sm font-semibold text-foreground">Quotas (plan: {usage.workspace.planTier})</h2>
-                  <input aria-label="Monthly token quota" type="number" min={1} value={tokenQuota} onChange={(e) => setTokenQuota(e.target.value)} placeholder="Monthly LLM token quota" className="w-full rounded border border-border bg-background px-3 py-2 text-xs text-foreground" />
-                  <input aria-label="Monthly render minutes quota" type="number" min={1} value={renderQuota} onChange={(e) => setRenderQuota(e.target.value)} placeholder="Monthly render minutes quota" className="w-full rounded border border-border bg-background px-3 py-2 text-xs text-foreground" />
-                  <button type="submit" className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground">Save Quotas</button>
-                </form>
-                <div className="rounded-xl border border-border bg-card/80 p-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-semibold text-foreground">Invoices (drafts)</h2>
-                    <button type="button" onClick={() => void generateInvoice()} className="rounded border border-input px-2 py-1 text-xs text-foreground hover:bg-secondary/80">Generate draft</button>
-                  </div>
-                  {invoices.length === 0 && <p className="mt-2 text-xs text-muted-foreground/80">No invoices yet.</p>}
-                  {invoices.map((i) => (
-                    <div key={i.id} className="flex justify-between border-t border-border py-1.5 text-xs text-foreground/90">
-                      <span>{i.periodStart.slice(0, 7)} · {i.status}</span>
-                      <span>${i.amountUsd.toFixed(2)} ({i.costKind})</span>
+                <Card className="p-5">
+                  <h2 className="text-sm font-semibold text-foreground">
+                    Workspace Quota Limits (Plan: {usage.workspace.planTier})
+                  </h2>
+                  <form onSubmit={saveQuotas} className="mt-3 space-y-3">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-foreground">
+                        Monthly LLM Token Quota
+                      </label>
+                      <Input
+                        aria-label="Monthly token quota"
+                        type="number"
+                        min={1}
+                        value={tokenQuota}
+                        onChange={(e) => setTokenQuota(e.target.value)}
+                        placeholder="Monthly LLM token quota"
+                      />
                     </div>
-                  ))}
-                </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-foreground">
+                        Monthly Render Minutes Quota
+                      </label>
+                      <Input
+                        aria-label="Monthly render minutes quota"
+                        type="number"
+                        min={1}
+                        value={renderQuota}
+                        onChange={(e) => setRenderQuota(e.target.value)}
+                        placeholder="Monthly render minutes quota"
+                      />
+                    </div>
+                    <Button type="submit" size="sm">
+                      Save Quotas
+                    </Button>
+                  </form>
+                </Card>
+
+                <Card className="p-5">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-semibold text-foreground">
+                      Estimated Usage Invoices (Drafts)
+                    </h2>
+                    <Button variant="outline" size="sm" onClick={() => void generateInvoice()}>
+                      <FileSpreadsheet className="h-3.5 w-3.5" />
+                      Generate Draft
+                    </Button>
+                  </div>
+                  {invoices.length === 0 ? (
+                    <p className="mt-3 text-xs text-muted-foreground">No draft invoices yet.</p>
+                  ) : (
+                    <div className="mt-3 space-y-1.5">
+                      {invoices.map((i) => (
+                        <div
+                          key={i.id}
+                          className="flex items-center justify-between border-t border-border py-2 text-xs text-foreground"
+                        >
+                          <span className="font-mono tabular-nums">
+                            {i.periodStart.slice(0, 7)} • {i.status}
+                          </span>
+                          <Badge variant="outline">
+                            ${i.amountUsd.toFixed(2)} ({i.costKind})
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground/80">Quota and billing management requires ADMIN or OWNER role.</p>
+              <p className="text-xs text-muted-foreground">
+                Quota and billing management requires ADMIN or OWNER role.
+              </p>
             )}
           </div>
         )}
       </div>
 
       {selectedPost && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4" role="dialog" aria-modal="true">
-          <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 text-xs text-foreground/90">
-            <div className="flex justify-between">
-              <h3 className="text-sm font-semibold text-foreground">{selectedPost.platform} post analytics</h3>
-              <button type="button" onClick={() => setSelectedPost(null)} className="text-muted-foreground hover:text-foreground">Close</button>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="post-analytics-title"
+        >
+          <Card className="w-full max-w-md p-6 text-xs text-foreground shadow-xl">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 id="post-analytics-title" className="text-sm font-semibold text-foreground">
+                {selectedPost.platform} Post Analytics Snapshot
+              </h3>
+              <Button variant="outline" size="sm" onClick={() => setSelectedPost(null)}>
+                Close
+              </Button>
             </div>
-            <p className="mt-2">{selectedPost.caption}</p>
-            <p className="mt-2 text-muted-foreground/80">Source: {selectedPost.source} · collected {selectedPost.collectedAt}</p>
-            <dl className="mt-3 grid grid-cols-2 gap-2">
+            <p className="mt-3 font-medium">{selectedPost.caption}</p>
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Source: {selectedPost.source} • Collected {selectedPost.collectedAt}
+            </p>
+            <dl className="mt-4 grid grid-cols-2 gap-2.5 rounded-xl border border-border bg-secondary/35 p-3">
               {Object.entries(selectedPost.metrics).map(([k, v]) => (
-                <div key={k}><dt className="text-muted-foreground/80">{k}</dt><dd>{fmt(v, 2)}</dd></div>
+                <div key={k}>
+                  <dt className="text-[11px] capitalize text-muted-foreground">{k}</dt>
+                  <dd className="font-mono font-semibold text-foreground tabular-nums">
+                    {fmt(v, 2)}
+                  </dd>
+                </div>
               ))}
             </dl>
-            {selectedPost.unavailableReason && <p className="mt-3 text-warning">Unavailable: {selectedPost.unavailableReason}</p>}
-          </div>
+            {selectedPost.unavailableReason && (
+              <p className="mt-3 rounded-lg border border-warning/35 bg-warning-surface px-3 py-2 text-warning">
+                Unavailable Reason: {selectedPost.unavailableReason}
+              </p>
+            )}
+          </Card>
         </div>
       )}
     </AppShell>

@@ -1,7 +1,38 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Film,
+  GitCompare,
+  Layers,
+  MessageSquare,
+  Palette,
+  Pause,
+  Play,
+  Plus,
+  Repeat,
+  RotateCcw,
+  RotateCw,
+  ShieldCheck,
+  Sparkles,
+  Subtitles,
+  Wand2,
+} from 'lucide-react';
 import { AppShell } from '../../components/app-shell';
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  PageHeader,
+  Select,
+  Textarea,
+} from '../../components/design-system/primitives';
+import { VideoPlayer } from '../../components/creative/video-player';
 import { useStudio } from '../../context/studio-context';
 import { apiRequest } from '../../lib/api-client';
 
@@ -575,136 +606,198 @@ export default function InteractiveEditorPage() {
     compiled?.sequences[0] ??
     null;
 
+  const playheadPercent = compiled
+    ? Math.min(100, Math.round((currentFrame / Math.max(1, compiled.durationInFrames - 1)) * 100))
+    : 0;
+
   return (
     <AppShell>
-      <div className="space-y-6">
-        {/* Top Editor Toolbar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card/80 p-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <select
-              value={selectedCompId}
-              onChange={(e) => {
-                setSelectedCompId(e.target.value);
-                void loadCompositionDetail(e.target.value);
-              }}
-              className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground"
-            >
-              {compositions.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.title}
-                </option>
-              ))}
-            </select>
+      <div className="space-y-5">
+        <PageHeader
+          title="Video Editor"
+          description="Inspect multi-track timelines, edit individual scenes with AI, adjust aspect ratios, compare versions, and render final MP4 output."
+          badge={
+            detail?.activeVersion ? (
+              <div className="flex items-center gap-2">
+                <Badge variant="ai">v{detail.activeVersion.versionNumber}</Badge>
+                <Badge variant={detail.approvalStatus === 'APPROVED' ? 'success' : 'warning'}>
+                  {detail.approvalStatus}
+                </Badge>
+              </div>
+            ) : (
+              <Badge variant="outline">No Composition Loaded</Badge>
+            )
+          }
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <Select
+                aria-label="Select composition"
+                value={selectedCompId}
+                onChange={(e) => {
+                  setSelectedCompId(e.target.value);
+                  void loadCompositionDetail(e.target.value);
+                }}
+                className="w-auto min-w-[200px]"
+              >
+                {compositions.length === 0 ? (
+                  <option value="">No compositions available</option>
+                ) : (
+                  compositions.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.title}
+                    </option>
+                  ))
+                )}
+              </Select>
 
-            {detail?.activeVersion && (
-              <span className="rounded bg-primary/15 px-2.5 py-1 text-xs font-bold text-primary">
-                v{detail.activeVersion.versionNumber} ({detail.approvalStatus})
-              </span>
-            )}
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={busy || !selectedCompId}
+                onClick={() => void handleUndoRedo('undo')}
+                title="Undo version"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Undo
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={busy || !selectedCompId}
+                onClick={() => void handleUndoRedo('redo')}
+                title="Redo version"
+              >
+                <RotateCw className="h-3.5 w-3.5" />
+                Redo
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={busy || !selectedCompId}
+                onClick={() => void handleCompareVersions()}
+              >
+                <GitCompare className="h-3.5 w-3.5" />
+                Compare Versions
+              </Button>
+            </div>
+          }
+        />
 
-            <h1 className="text-sm font-bold text-foreground">Video Editor</h1>
-
-            <button
-              type="button"
-              disabled={busy || !selectedCompId}
-              onClick={() => void handleUndoRedo('undo')}
-              className="rounded border border-input bg-secondary px-2.5 py-1 text-xs text-foreground hover:bg-muted/80 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Undo
-            </button>
-            <button
-              type="button"
-              disabled={busy || !selectedCompId}
-              onClick={() => void handleUndoRedo('redo')}
-              className="rounded border border-input bg-secondary px-2.5 py-1 text-xs text-foreground hover:bg-muted/80 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Redo
-            </button>
-            <button
-              type="button"
-              disabled={busy || !selectedCompId}
-              onClick={() => void handleCompareVersions()}
-              className="rounded border border-input bg-secondary px-2.5 py-1 text-xs text-foreground hover:bg-muted/80 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Compare Versions
-            </button>
+        {/* Studio Format & Action Bar */}
+        <Card className="flex flex-wrap items-center justify-between gap-3 p-3.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">Aspect Ratio:</span>
+            {(
+              [
+                ['PORTRAIT_9_16', '9:16 Reels/TikTok'],
+                ['LANDSCAPE_16_9', '16:9 YouTube'],
+                ['SQUARE_1_1', '1:1 Square'],
+                ['PORTRAIT_4_5', '4:5 Feed'],
+              ] as const
+            ).map(([ratio, label]) => (
+              <Button
+                key={ratio}
+                variant={detail?.aspectRatio === ratio ? 'primary' : 'outline'}
+                size="sm"
+                disabled={busy || !selectedCompId}
+                onClick={() => void handleSwitchAspectRatio(ratio)}
+              >
+                {label}
+              </Button>
+            ))}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {(
-              [
-                ['PORTRAIT_9_16', '9:16'],
-                ['LANDSCAPE_16_9', '16:9'],
-                ['SQUARE_1_1', '1:1'],
-                ['PORTRAIT_4_5', '4:5'],
-              ] as const
-            ).map(([ratio, label]) => (
-              <button
-                key={ratio}
-                type="button"
-                disabled={busy || !selectedCompId}
-                onClick={() => void handleSwitchAspectRatio(ratio)}
-                className={`rounded px-2.5 py-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
-                  detail?.aspectRatio === ratio
-                    ? 'bg-primary text-primary-foreground'
-                    : 'border border-border bg-background text-muted-foreground'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="sm"
               disabled={busy || !selectedCompId}
               onClick={() => void handleApplyBrandKit()}
-              className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/90/20 disabled:cursor-not-allowed disabled:opacity-40"
             >
+              <Palette className="h-3.5 w-3.5 text-primary" />
               Apply Brand Kit
-            </button>
+            </Button>
 
-            <button
-              type="button"
+            <Button
+              variant="primary"
+              size="sm"
               disabled={busy || !selectedCompId}
               onClick={() => void handleRenderComposition()}
-              className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Render MP4
-            </button>
+              <Film className="h-3.5 w-3.5" />
+              {busy ? 'Rendering...' : 'Render MP4'}
+            </Button>
 
-            <button
-              type="button"
+            <Button
+              variant="success"
+              size="sm"
               disabled={busy || !selectedCompId}
               onClick={() => void handleApproveComposition()}
-              className="rounded-lg bg-success px-3 py-1.5 text-xs font-semibold text-white hover:bg-success/90 disabled:cursor-not-allowed disabled:opacity-40"
             >
+              <ShieldCheck className="h-3.5 w-3.5" />
               Approve
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
 
-        {/* Main Editor Grid: Player + Inspector + Collaboration */}
-        <div className="grid gap-6 lg:grid-cols-12">
-          {/* Left: Remotion Preview Canvas & Multi-Track Timeline */}
-          <div className="space-y-4 rounded-xl border border-border bg-card/70 p-4 lg:col-span-7">
-            {compiled && frameScene ? (
-              <>
+        {!selectedCompId || !compiled || !frameScene ? (
+          <EmptyState
+            icon={<Film className="h-5 w-5 text-primary" />}
+            title="No video composition loaded in the editor"
+            description="Toolbar and timeline controls are disabled until a composition is generated. Create a video in AI Studio or batch-convert an asset in the Repurpose Engine."
+            action={
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Link
+                  href="/studio"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-xs font-medium text-primary-foreground shadow-sm"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Generate in AI Studio
+                </Link>
+                <Link
+                  href="/repurpose"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-card px-4 text-xs font-medium text-foreground hover:bg-secondary"
+                >
+                  <Repeat className="h-3.5 w-3.5" />
+                  Open Repurpose Engine
+                </Link>
+              </div>
+            }
+          />
+        ) : (
+          <div className="grid gap-6 lg:grid-cols-12">
+            {/* Left: Remotion Preview Canvas, Rendered MP4 & Multi-Track Timeline */}
+            <Card className="space-y-4 p-4 lg:col-span-7">
+              <div className="flex items-center justify-between border-b border-border pb-2.5">
+                <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                  <Film className="h-3.5 w-3.5 text-primary" />
+                  <span>Composition Preview Stage</span>
+                </div>
+                <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                  {compiled.width}×{compiled.height} • {compiled.fps}fps • Frame {currentFrame}/
+                  {compiled.durationInFrames}
+                </span>
+              </div>
+
+              {/* Dark True-Color Studio Preview Monitor */}
+              <div className="rounded-xl border border-border bg-canvas p-4">
                 <div
-                  className="mx-auto flex h-64 max-w-md flex-col justify-between rounded-xl border border-input p-4 shadow-2xl"
+                  className="mx-auto flex h-64 max-w-md flex-col justify-between rounded-xl border border-white/15 p-4 shadow-2xl"
                   style={{ backgroundColor: compiled.brand.secondaryColor }}
                 >
-                  <div className="flex items-center justify-between text-[10px] text-foreground/90">
-                    <span className="rounded bg-black/60 px-2 py-0.5 font-mono">
-                      {compiled.width}x{compiled.height} • {compiled.fps}fps • {frameScene.layout}
+                  <div className="flex items-center justify-between text-[10px] text-white">
+                    <span className="rounded bg-black/65 px-2 py-0.5 font-mono">
+                      {frameScene.layout} • {frameScene.transitionIn}
                     </span>
-                    <span className="font-mono">
-                      Frame {currentFrame} / {compiled.durationInFrames}
+                    <span className="rounded bg-black/65 px-2 py-0.5 font-mono tabular-nums">
+                      Scene #{frameScene.orderIndex + 1} (f{frameScene.startFrame}–
+                      {frameScene.endFrame})
                     </span>
                   </div>
 
                   <div className="my-auto text-center">
                     <div
-                      className="inline-block rounded-lg px-4 py-2 text-sm font-bold text-foreground shadow"
+                      className="inline-block rounded-lg px-4 py-2 text-sm font-bold text-white shadow-md"
                       style={{ backgroundColor: compiled.brand.primaryColor }}
                     >
                       {frameScene.headlineText}
@@ -713,351 +806,431 @@ export default function InteractiveEditorPage() {
 
                   <div className="space-y-2">
                     <div
-                      className="rounded bg-black/75 px-3 py-1.5 text-center text-xs font-semibold"
+                      className="rounded bg-black/80 px-3 py-1.5 text-center text-xs font-semibold"
                       style={{ color: compiled.captions.highlightColor }}
                     >
                       {frameScene.narrationText}
                     </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded bg-secondary">
+                    <div className="h-1.5 w-full overflow-hidden rounded bg-black/50">
                       <div
-                        className="h-full"
+                        className="h-full transition-all"
                         style={{
-                          width: `${Math.round((currentFrame / Math.max(1, compiled.durationInFrames)) * 100)}%`,
+                          width: `${playheadPercent}%`,
                           backgroundColor: compiled.brand.accentColor,
                         }}
                       />
                     </div>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsPlaying((p) => !p)}
-                    className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
-                  >
-                    {isPlaying ? 'Pause' : 'Play'}
-                  </button>
-                  <input
-                    type="range"
-                    min={0}
-                    max={Math.max(1, compiled.durationInFrames - 1)}
-                    value={currentFrame}
-                    onChange={(e) => setCurrentFrame(Number(e.target.value))}
-                    className="flex-1"
-                  />
-                </div>
-
-                {(() => {
-                  const activeVer =
-                    detail?.versions.find((v) => v.id === detail.currentVersionId) ??
-                    detail?.versions[0];
-                  const latestMp4 = activeVer?.renderJobs.find((r) => r.downloadUrl)?.downloadUrl;
-                  if (!latestMp4) return null;
-                  return (
-                    <div className="space-y-2 rounded-lg border border-border bg-background p-3">
-                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                        <span>Rendered MP4 Preview (v{activeVer?.versionNumber})</span>
-                        <a
-                          href={latestMp4}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-semibold text-primary hover:underline"
-                        >
-                          Download MP4
-                        </a>
-                      </div>
-                      <video
-                        key={latestMp4}
-                        controls
-                        playsInline
-                        preload="metadata"
-                        src={latestMp4}
-                        className="max-h-64 w-full rounded-lg border border-border bg-black object-contain"
-                      />
-                    </div>
-                  );
-                })()}
-
-                {/* Multi-Track Timeline */}
-                <div className="space-y-2 border-t border-border pt-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase text-muted-foreground">
-                      Multi-Track Scene Timeline ({compiled.sequences.length} Scenes)
-                    </span>
-                    <div className="flex gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => void handleReorderScene(-1)}
-                        className="rounded border border-input px-2 py-1 text-[11px] text-foreground/90 hover:bg-secondary/80"
-                      >
-                        Move Left
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleReorderScene(1)}
-                        className="rounded border border-input px-2 py-1 text-[11px] text-foreground/90 hover:bg-secondary/80"
-                      >
-                        Move Right
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleAddScene()}
-                        className="rounded bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground"
-                      >
-                        + Add Scene
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Track 1: Scene Blocks */}
-                  <div className="flex gap-2 overflow-x-auto pb-2">
-                    {compiled.sequences.map((seq) => (
-                      <button
-                        key={seq.sceneId}
-                        type="button"
-                        onClick={() => {
-                          setSelectedSceneId(seq.sceneId);
-                          setCurrentFrame(seq.startFrame);
-                        }}
-                        className={`min-w-[150px] flex-1 rounded-lg border p-2.5 text-left transition ${
-                          selectedScene?.sceneId === seq.sceneId
-                            ? 'border-primary bg-primary/15 text-foreground'
-                            : 'border-border bg-background text-foreground/90'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between text-[10px] text-primary">
-                          <span>Scene #{seq.orderIndex + 1}</span>
-                          <span>{seq.durationInFrames}f</span>
-                        </div>
-                        <div className="mt-1 truncate text-xs font-semibold">
-                          {seq.headlineText}
-                        </div>
-                        <div className="mt-0.5 text-[10px] text-muted-foreground/80">
-                          {seq.layout} • {seq.transitionIn} • {seq.overlays.length} overlays
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="p-8 text-center text-xs text-muted-foreground/80">
-                No composition selected. Generate one in AI Studio or Repurpose Engine.
               </div>
-            )}
-          </div>
 
-          {/* Right: Scene Inspector, Granular AI Edit, Subtitles & Collaboration Comments */}
-          <div className="space-y-4 lg:col-span-5">
-            {selectedScene && (
-              <div className="rounded-xl border border-border bg-card/70 p-4">
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Selected Scene Inspector ({selectedScene.sceneId})
-                </h2>
-
-                {/* Granular AI Scene Edit Command */}
-                <form onSubmit={handleGranularAiSceneEdit} className="mt-3 flex gap-1.5">
-                  <input
-                    type="text"
-                    value={aiScenePrompt}
-                    onChange={(e) => setAiScenePrompt(e.target.value)}
-                    placeholder="AI Scene Command (e.g. 'Use zoom-punch and stronger hook')..."
-                    className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground"
-                  />
-                  <button
-                    type="submit"
-                    disabled={busy}
-                    className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
-                  >
-                    AI Edit Scene
-                  </button>
-                </form>
-
-                {/* Manual Scene Property Form */}
-                <form onSubmit={handleSaveSceneTrackEdit} className="mt-3 space-y-3">
-                  <div>
-                    <label className="block text-[11px] text-muted-foreground">Headline Text</label>
-                    <input
-                      type="text"
-                      value={editHeadline}
-                      onChange={(e) => setEditHeadline(e.target.value)}
-                      className="mt-1 w-full rounded border border-border bg-background px-2.5 py-1.5 text-xs text-foreground"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] text-muted-foreground">Narration / Captions</label>
-                    <textarea
-                      rows={2}
-                      value={editNarration}
-                      onChange={(e) => setEditNarration(e.target.value)}
-                      className="mt-1 w-full rounded border border-border bg-background px-2.5 py-1.5 text-xs text-foreground"
-                    />
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <label className="block text-[11px] text-muted-foreground">Layout</label>
-                      <select
-                        value={editLayout}
-                        onChange={(e) => setEditLayout(e.target.value)}
-                        className="mt-1 w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground"
-                      >
-                        <option value="talking-head">talking-head</option>
-                        <option value="podcast-split">podcast-split</option>
-                        <option value="b-roll-overlay">b-roll-overlay</option>
-                        <option value="full-bleed">full-bleed</option>
-                        <option value="data-explainer">data-explainer</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[11px] text-muted-foreground">Transition</label>
-                      <select
-                        value={editTransition}
-                        onChange={(e) => setEditTransition(e.target.value)}
-                        className="mt-1 w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground"
-                      >
-                        <option value="fade">fade</option>
-                        <option value="spring-slide">spring-slide</option>
-                        <option value="zoom-punch">zoom-punch</option>
-                        <option value="whip-pan">whip-pan</option>
-                        <option value="none">none</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[11px] text-muted-foreground">Duration (Frames)</label>
-                      <input
-                        type="number"
-                        min={15}
-                        max={1800}
-                        value={editDurationFrames}
-                        onChange={(e) => setEditDurationFrames(Number(e.target.value))}
-                        className="mt-1 w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1">
-                    <div className="flex gap-1.5">
-                      <select
-                        value={newOverlayType}
-                        onChange={(e) => setNewOverlayType(e.target.value)}
-                        className="rounded border border-border bg-background px-2 py-1 text-xs text-foreground"
-                      >
-                        <option value="KineticTypography">KineticTypography</option>
-                        <option value="AnimatedHeadline">AnimatedHeadline</option>
-                        <option value="WordSyncedCaptions">WordSyncedCaptions</option>
-                        <option value="LowerThird">LowerThird</option>
-                        <option value="ChartGraphic">ChartGraphic</option>
-                        <option value="SoundVisualization">SoundVisualization</option>
-                        <option value="CallToActionScene">CallToActionScene</option>
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() => void handleAddOverlay()}
-                        className="rounded border border-input bg-secondary px-2.5 py-1 text-xs text-foreground"
-                      >
-                        + Add Overlay
-                      </button>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={busy}
-                      className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
-                    >
-                      Save Scene Changes
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-
-            {/* Version Comparison Diff Report */}
-            {diffReport && (
-              <div className="rounded-xl border border-primary/40 bg-card/70 p-4 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-primary">
-                    Version Diff: v{diffReport.diff.fromVersionNumber} vs v
-                    {diffReport.diff.toVersionNumber} ({diffReport.diff.totalChangesCount} changes)
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setDiffReport(null)}
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    Close
-                  </button>
-                </div>
-                <ul className="mt-2 space-y-1 text-[11px] text-foreground/90">
-                  {diffReport.diff.brandChanges.map((c, i) => (
-                    <li key={`b-${i}`}>• Brand: {c}</li>
-                  ))}
-                  {diffReport.diff.captionChanges.map((c, i) => (
-                    <li key={`c-${i}`}>• Captions: {c}</li>
-                  ))}
-                  {diffReport.diff.sceneDiffs
-                    .filter((s) => s.status !== 'UNCHANGED')
-                    .map((s) => (
-                      <li key={s.sceneId}>
-                        • Scene {s.sceneId} ({s.status}): {s.changes.join('; ')}
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Collaboration Comments & Subtitles */}
-            <div className="rounded-xl border border-border bg-card/70 p-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Frame Comments &amp; Subtitles (.SRT)
-              </h3>
-              <form onSubmit={handleAddComment} className="mt-2 flex gap-1.5">
+              {/* Transport Controls */}
+              <div className="flex items-center gap-3 rounded-xl border border-border bg-secondary/40 px-3 py-2">
+                <Button size="sm" variant="primary" onClick={() => setIsPlaying((p) => !p)}>
+                  {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                  {isPlaying ? 'Pause' : 'Play'}
+                </Button>
                 <input
-                  type="text"
-                  value={newCommentText}
-                  onChange={(e) => setNewCommentText(e.target.value)}
-                  placeholder={`Comment on frame ${currentFrame}...`}
-                  className="flex-1 rounded border border-border bg-background px-2.5 py-1.5 text-xs text-foreground"
+                  type="range"
+                  aria-label="Playhead frame scrubber"
+                  min={0}
+                  max={Math.max(1, compiled.durationInFrames - 1)}
+                  value={currentFrame}
+                  onChange={(e) => setCurrentFrame(Number(e.target.value))}
+                  className="flex-1 accent-primary"
                 />
-                <button
-                  type="submit"
-                  className="rounded bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
-                >
-                  Comment
-                </button>
-              </form>
-
-              <div className="mt-3 max-h-32 space-y-1.5 overflow-y-auto">
-                {comments.map((cm) => (
-                  <div
-                    key={cm.id}
-                    className="rounded border border-border bg-background p-2 text-[11px]"
-                  >
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>
-                        <strong>{cm.author.fullName}</strong> (v{cm.versionNumber} • f
-                        {cm.frameIndex ?? 0})
-                      </span>
-                      <span>{cm.resolved ? 'Resolved' : 'Open'}</span>
-                    </div>
-                    <div className="mt-0.5 text-foreground">{cm.content}</div>
-                  </div>
-                ))}
+                <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                  {(currentFrame / compiled.fps).toFixed(2)}s / {compiled.totalDurationSec}s
+                </span>
               </div>
 
-              {subtitlesSrt && (
-                <details className="mt-3 text-xs">
-                  <summary className="cursor-pointer font-medium text-primary">
-                    View Generated SubRip (.SRT) Subtitles
-                  </summary>
-                  <pre className="mt-2 max-h-28 overflow-y-auto rounded bg-background p-2 font-mono text-[10px] text-foreground/90">
-                    {subtitlesSrt}
-                  </pre>
-                </details>
+              {(() => {
+                const activeVer =
+                  detail?.versions.find((v) => v.id === detail.currentVersionId) ??
+                  detail?.versions[0];
+                const latestRender = activeVer?.renderJobs.find((r) => r.downloadUrl);
+                if (!latestRender?.downloadUrl) return null;
+                return (
+                  <div className="space-y-2 rounded-xl border border-border bg-secondary/30 p-3">
+                    <div className="flex items-center justify-between text-xs font-medium text-foreground">
+                      <span>Rendered MP4 Output (v{activeVer?.versionNumber})</span>
+                      <Badge variant="success">H.264 / AAC Ready</Badge>
+                    </div>
+                    <VideoPlayer
+                      src={latestRender.downloadUrl}
+                      sizeBytes={latestRender.outputSizeBytes}
+                    />
+                  </div>
+                );
+              })()}
+
+              {/* Multi-Track Studio Timeline */}
+              <div className="space-y-3 rounded-xl border border-border bg-timeline p-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Layers className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                      Multi-Track Timeline ({compiled.sequences.length} Scenes)
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => void handleReorderScene(-1)}
+                    >
+                      <ArrowLeft className="h-3 w-3" />
+                      Move Left
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => void handleReorderScene(1)}
+                    >
+                      Move Right
+                      <ArrowRight className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => void handleAddScene()}
+                    >
+                      <Plus className="h-3 w-3" />
+                      Add Scene
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Playhead Progress Ruler */}
+                <div className="relative h-2 w-full overflow-hidden rounded-full bg-secondary">
+                  <div
+                    className="h-full bg-primary transition-all"
+                    style={{ width: `${playheadPercent}%` }}
+                  />
+                </div>
+
+                {/* Track V1: Scene & Layout Blocks */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <span>Track V1 • Video &amp; Layout Scenes</span>
+                    <span className="font-mono tabular-nums">{compiled.durationInFrames} frames</span>
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {compiled.sequences.map((seq) => {
+                      const isSelected = selectedScene?.sceneId === seq.sceneId;
+                      return (
+                        <button
+                          key={seq.sceneId}
+                          type="button"
+                          onClick={() => {
+                            setSelectedSceneId(seq.sceneId);
+                            setCurrentFrame(seq.startFrame);
+                          }}
+                          className={`min-w-[155px] flex-1 rounded-lg border p-2.5 text-left transition-all ${
+                            isSelected
+                              ? 'border-primary bg-accent text-accent-foreground shadow-sm ring-1 ring-primary'
+                              : 'border-border bg-card text-foreground hover:border-primary/40'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between text-[10px] font-semibold text-primary tabular-nums">
+                            <span>Scene #{seq.orderIndex + 1}</span>
+                            <span>
+                              f{seq.startFrame}–{seq.endFrame} ({seq.durationInFrames}f)
+                            </span>
+                          </div>
+                          <div className="mt-1 truncate text-xs font-semibold text-foreground">
+                            {seq.headlineText}
+                          </div>
+                          <div className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                            {seq.layout} • {seq.transitionIn}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Track FX2: Motion Overlays */}
+                <div className="space-y-1">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Track FX2 • Motion Graphic Overlays
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {compiled.sequences.map((seq) => (
+                      <div
+                        key={`fx-${seq.sceneId}`}
+                        className="min-w-[155px] flex-1 rounded-md border border-border bg-card/75 px-2.5 py-1.5 text-[10px]"
+                      >
+                        {seq.overlays.length === 0 ? (
+                          <span className="text-muted-foreground">No overlays</span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {seq.overlays.map((ov) => (
+                              <Badge key={ov.id} variant="info">
+                                {ov.component}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Track CC3: Word-Synced Captions */}
+                <div className="space-y-1">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Track CC3 • Word-Synced Captions &amp; Narration
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto">
+                    {compiled.sequences.map((seq) => (
+                      <div
+                        key={`cc-${seq.sceneId}`}
+                        className="min-w-[155px] flex-1 truncate rounded-md border border-border bg-card/75 px-2.5 py-1.5 text-[10px] text-muted-foreground"
+                      >
+                        {seq.narrationText}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Right: Scene Inspector, Granular AI Edit, Version Diff, Comments & Subtitles */}
+            <div className="space-y-4 lg:col-span-5">
+              {selectedScene && (
+                <Card className="p-4">
+                  <div className="flex items-center justify-between border-b border-border pb-2.5">
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Selected Scene Inspector
+                    </h2>
+                    <Badge variant="ai">
+                      Scene #{selectedScene.orderIndex + 1} ({selectedScene.sceneId})
+                    </Badge>
+                  </div>
+
+                  {/* Granular AI Scene Edit Command */}
+                  <form onSubmit={handleGranularAiSceneEdit} className="mt-3 flex gap-1.5">
+                    <Input
+                      type="text"
+                      value={aiScenePrompt}
+                      onChange={(e) => setAiScenePrompt(e.target.value)}
+                      placeholder="AI Scene Command (e.g. 'Use zoom-punch and stronger hook')..."
+                      className="h-8 flex-1 text-xs"
+                    />
+                    <Button type="submit" variant="ai" size="sm" disabled={busy}>
+                      <Wand2 className="h-3.5 w-3.5" />
+                      AI Edit Scene
+                    </Button>
+                  </form>
+
+                  {/* Manual Scene Property Form */}
+                  <form onSubmit={handleSaveSceneTrackEdit} className="mt-3 space-y-3">
+                    <div>
+                      <label className="mb-1 block text-[11px] font-medium text-muted-foreground">
+                        Headline Text
+                      </label>
+                      <Input
+                        type="text"
+                        value={editHeadline}
+                        onChange={(e) => setEditHeadline(e.target.value)}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[11px] font-medium text-muted-foreground">
+                        Narration / Captions
+                      </label>
+                      <Textarea
+                        rows={2}
+                        value={editNarration}
+                        onChange={(e) => setEditNarration(e.target.value)}
+                        className="min-h-[60px] text-xs"
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="mb-1 block text-[11px] font-medium text-muted-foreground">
+                          Layout
+                        </label>
+                        <Select
+                          value={editLayout}
+                          onChange={(e) => setEditLayout(e.target.value)}
+                          className="h-8 text-xs"
+                        >
+                          <option value="talking-head">talking-head</option>
+                          <option value="podcast-split">podcast-split</option>
+                          <option value="b-roll-overlay">b-roll-overlay</option>
+                          <option value="full-bleed">full-bleed</option>
+                          <option value="data-explainer">data-explainer</option>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-[11px] font-medium text-muted-foreground">
+                          Transition
+                        </label>
+                        <Select
+                          value={editTransition}
+                          onChange={(e) => setEditTransition(e.target.value)}
+                          className="h-8 text-xs"
+                        >
+                          <option value="fade">fade</option>
+                          <option value="spring-slide">spring-slide</option>
+                          <option value="zoom-punch">zoom-punch</option>
+                          <option value="whip-pan">whip-pan</option>
+                          <option value="none">none</option>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-[11px] font-medium text-muted-foreground">
+                          Duration (Frames)
+                        </label>
+                        <Input
+                          type="number"
+                          min={15}
+                          max={1800}
+                          value={editDurationFrames}
+                          onChange={(e) => setEditDurationFrames(Number(e.target.value))}
+                          className="h-8 text-xs tabular-nums"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+                      <div className="flex items-center gap-1.5">
+                        <Select
+                          aria-label="Overlay component"
+                          value={newOverlayType}
+                          onChange={(e) => setNewOverlayType(e.target.value)}
+                          className="h-8 w-auto text-xs"
+                        >
+                          <option value="KineticTypography">KineticTypography</option>
+                          <option value="AnimatedHeadline">AnimatedHeadline</option>
+                          <option value="WordSyncedCaptions">WordSyncedCaptions</option>
+                          <option value="LowerThird">LowerThird</option>
+                          <option value="ChartGraphic">ChartGraphic</option>
+                          <option value="SoundVisualization">SoundVisualization</option>
+                          <option value="CallToActionScene">CallToActionScene</option>
+                        </Select>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={busy}
+                          onClick={() => void handleAddOverlay()}
+                        >
+                          <Plus className="h-3 w-3" />
+                          Overlay
+                        </Button>
+                      </div>
+
+                      <Button type="submit" size="sm" disabled={busy}>
+                        Save Scene Changes
+                      </Button>
+                    </div>
+                  </form>
+                </Card>
               )}
+
+              {/* Version Comparison Diff Report */}
+              {diffReport && (
+                <Card className="border-primary/40 p-4 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-primary">
+                      Version Diff: v{diffReport.diff.fromVersionNumber} vs v
+                      {diffReport.diff.toVersionNumber} ({diffReport.diff.totalChangesCount}{' '}
+                      changes)
+                    </span>
+                    <Button variant="ghost" size="sm" onClick={() => setDiffReport(null)}>
+                      Close
+                    </Button>
+                  </div>
+                  <ul className="mt-2 space-y-1 text-[11px] text-foreground">
+                    {diffReport.diff.brandChanges.map((c, i) => (
+                      <li key={`b-${i}`}>• Brand: {c}</li>
+                    ))}
+                    {diffReport.diff.captionChanges.map((c, i) => (
+                      <li key={`c-${i}`}>• Captions: {c}</li>
+                    ))}
+                    {diffReport.diff.sceneDiffs
+                      .filter((s) => s.status !== 'UNCHANGED')
+                      .map((s) => (
+                        <li key={s.sceneId}>
+                          • Scene {s.sceneId} ({s.status}): {s.changes.join('; ')}
+                        </li>
+                      ))}
+                  </ul>
+                </Card>
+              )}
+
+              {/* Collaboration Comments & Subtitles */}
+              <Card className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <MessageSquare className="h-3.5 w-3.5 text-primary" />
+                    <span>Frame Comments &amp; Subtitles (.SRT)</span>
+                  </div>
+                  <Badge variant="outline">Frame {currentFrame}</Badge>
+                </div>
+
+                <form onSubmit={handleAddComment} className="mt-3 flex gap-1.5">
+                  <Input
+                    type="text"
+                    disabled={!selectedCompId}
+                    value={newCommentText}
+                    onChange={(e) => setNewCommentText(e.target.value)}
+                    placeholder={`Comment on frame ${currentFrame}...`}
+                    className="h-8 flex-1 text-xs"
+                  />
+                  <Button type="submit" size="sm" disabled={!selectedCompId || !newCommentText.trim()}>
+                    Comment
+                  </Button>
+                </form>
+
+                <div className="mt-3 max-h-36 space-y-1.5 overflow-y-auto">
+                  {comments.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      No frame comments yet. Scrub to a frame and leave review notes.
+                    </p>
+                  ) : (
+                    comments.map((cm) => (
+                      <div
+                        key={cm.id}
+                        className="rounded-lg border border-border bg-secondary/35 p-2.5 text-[11px]"
+                      >
+                        <div className="flex items-center justify-between text-muted-foreground">
+                          <span>
+                            <strong className="text-foreground">{cm.author.fullName}</strong> (v
+                            {cm.versionNumber} • f{cm.frameIndex ?? 0})
+                          </span>
+                          <Badge variant={cm.resolved ? 'success' : 'info'}>
+                            {cm.resolved ? 'Resolved' : 'Open'}
+                          </Badge>
+                        </div>
+                        <div className="mt-1 text-foreground">{cm.content}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {subtitlesSrt && (
+                  <details className="mt-3 rounded-lg border border-border bg-secondary/30 p-2.5 text-xs">
+                    <summary className="flex cursor-pointer items-center gap-1.5 font-medium text-primary">
+                      <Subtitles className="h-3.5 w-3.5" />
+                      <span>View Generated SubRip (.SRT) Subtitles</span>
+                    </summary>
+                    <pre className="mt-2 max-h-28 overflow-y-auto rounded bg-card p-2 font-mono text-[10px] text-foreground">
+                      {subtitlesSrt}
+                    </pre>
+                  </details>
+                )}
+              </Card>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </AppShell>
   );

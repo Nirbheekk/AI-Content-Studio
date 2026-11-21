@@ -2,9 +2,45 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import {
+  Archive,
+  ArchiveRestore,
+  ArrowRight,
+  FolderKanban,
+  FolderPlus,
+  Image as ImageIcon,
+  Pencil,
+  Search,
+  Sparkles,
+  Trash2,
+} from 'lucide-react';
 import { AppShell } from '../../components/app-shell';
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  PageHeader,
+  Skeleton,
+  Textarea,
+} from '../../components/design-system/primitives';
 import { useStudio } from '../../context/studio-context';
 import { apiRequest, ProjectDto } from '../../lib/api-client';
+
+function formatCleanTitle(raw: string): string {
+  return raw.replace(/[-_]\d{10,14}$/, '').trim() || raw;
+}
+
+function formatUpdatedDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return 'Recently';
+  return d.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
 
 export default function ProjectsPage() {
   const { accessToken, activeWorkspace, setFeedback } = useStudio();
@@ -154,55 +190,63 @@ export default function ProjectsPage() {
     }
   };
 
+  const brandPrimary = activeWorkspace?.brandKit?.primaryColor ?? '#6956E8';
+
   return (
     <AppShell>
-      <div className="space-y-8">
-        <div className="border-b border-border pb-5">
-          <h1 className="text-2xl font-bold text-foreground">Projects</h1>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Organize raw media uploads, AI Studio conversations, and video compositions by project.
-          </p>
-        </div>
+      <div className="space-y-6">
+        <PageHeader
+          title="Projects"
+          description="Organize raw media uploads, AI Studio sessions, production workflows, and video compositions by campaign project."
+          badge={<Badge variant="ai">{projects.length} Projects</Badge>}
+        />
 
-        <form
-          onSubmit={handleCreate}
-          className="grid gap-3 rounded-xl border border-border bg-card/70 p-4 md:grid-cols-3"
-        >
-          <input
-            type="text"
-            required
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="New Project Name..."
-            className="rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
-          />
-          <input
-            type="text"
-            value={newDesc}
-            onChange={(e) => setNewDesc(e.target.value)}
-            placeholder="Optional description or campaign brief..."
-            className="rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
-          />
-          <button
-            type="submit"
-            disabled={creating}
-            className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-          >
-            {creating ? 'Creating...' : '+ Create Project'}
-          </button>
-        </form>
+        {/* Quick Create Project Bar */}
+        <Card className="p-4">
+          <div className="mb-2.5 flex items-center gap-2 text-xs font-semibold text-foreground">
+            <FolderPlus className="h-3.5 w-3.5 text-primary" />
+            <span>Create New Campaign Project</span>
+          </div>
+          <form onSubmit={handleCreate} className="grid gap-3 md:grid-cols-12">
+            <div className="md:col-span-4">
+              <Input
+                type="text"
+                required
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="New Project Name..."
+              />
+            </div>
+            <div className="md:col-span-5">
+              <Input
+                type="text"
+                value={newDesc}
+                onChange={(e) => setNewDesc(e.target.value)}
+                placeholder="Optional description or campaign brief..."
+              />
+            </div>
+            <div className="md:col-span-3">
+              <Button type="submit" disabled={creating} className="w-full">
+                <FolderPlus className="h-3.5 w-3.5" />
+                {creating ? 'Creating...' : 'Create Project'}
+              </Button>
+            </div>
+          </form>
+        </Card>
 
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex gap-2">
+        {/* Filter Tabs & Search */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card p-1">
             {(['ALL', 'ACTIVE', 'ARCHIVED'] as const).map((st) => (
               <button
                 key={st}
                 type="button"
+                aria-pressed={statusFilter === st}
                 onClick={() => setStatusFilter(st)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                   statusFilter === st
-                    ? 'bg-primary text-primary-foreground'
-                    : 'border border-border bg-card text-muted-foreground'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {st}
@@ -210,164 +254,243 @@ export default function ProjectsPage() {
             ))}
           </div>
 
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search projects..."
-            className="w-64 rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-foreground"
-          />
+          <div className="relative w-full sm:w-64">
+            <Search className="pointer-events-none absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search projects..."
+              className="pl-8 text-xs"
+            />
+          </div>
         </div>
 
+        {/* Project Cards Grid */}
         {loading ? (
-          <div className="text-xs text-muted-foreground">Loading projects...</div>
-        ) : projects.length === 0 ? (
-          <div className="rounded-xl border border-border bg-muted/40 p-8 text-center text-xs text-muted-foreground/80">
-            No matching projects found in this workspace.
+          <div className="grid gap-4 md:grid-cols-2">
+            <Skeleton className="h-44" />
+            <Skeleton className="h-44" />
+            <Skeleton className="h-44" />
+            <Skeleton className="h-44" />
           </div>
+        ) : projects.length === 0 ? (
+          <EmptyState
+            icon={<FolderKanban className="h-5 w-5 text-primary" />}
+            title="No matching projects found"
+            description="Create a project above or adjust your status filter and search query."
+          />
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
-            {projects.map((proj) => (
-              <div
-                key={proj.id}
-                className="flex flex-col justify-between rounded-xl border border-border bg-card/80 p-5"
-              >
-                <div>
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-base font-semibold text-foreground">{proj.name}</h2>
-                    <span
-                      className={`rounded px-2 py-0.5 text-[10px] font-semibold ${
-                        proj.status === 'ACTIVE'
-                          ? 'bg-success/15 text-success'
-                          : 'bg-warning/15 text-warning'
-                      }`}
-                    >
-                      {proj.status}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {proj.description || 'No description provided'}
-                  </p>
-                  <div className="mt-3 flex gap-4 text-[11px] text-muted-foreground/80">
-                    <span>{proj._count?.assets ?? 0} Assets</span>
-                    <span>{proj._count?.conversations ?? 0} Conversations</span>
-                    <span>{proj._count?.workflows ?? 0} Workflows</span>
-                  </div>
-                </div>
+            {projects.map((proj) => {
+              const displayTitle = formatCleanTitle(proj.name);
+              return (
+                <Card
+                  key={proj.id}
+                  className="flex flex-col justify-between p-5 transition-colors hover:border-primary/40"
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border text-xs font-bold text-white shadow-sm"
+                          style={{ backgroundColor: brandPrimary }}
+                        >
+                          {displayTitle.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <h2
+                            title={proj.name}
+                            className="truncate text-base font-semibold text-foreground"
+                          >
+                            {displayTitle}
+                          </h2>
+                          <div className="text-[11px] text-muted-foreground">
+                            Updated {formatUpdatedDate(proj.updatedAt)}
+                          </div>
+                        </div>
+                      </div>
+                      <Badge variant={proj.status === 'ACTIVE' ? 'success' : 'warning'}>
+                        {proj.status}
+                      </Badge>
+                    </div>
 
-                <div className="mt-4 flex flex-wrap gap-2 border-t border-border/80 pt-3">
-                  <Link
-                    href={`/studio?projectId=${proj.id}`}
-                    className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-                  >
-                    Open AI Studio
-                  </Link>
-                  <Link
-                    href={`/library?projectId=${proj.id}`}
-                    className="rounded-md border border-input bg-secondary px-3 py-1.5 text-xs text-foreground hover:bg-muted/80"
-                  >
-                    Assets
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingProject(proj);
-                      setEditName(proj.name);
-                      setEditDesc(proj.description ?? '');
-                    }}
-                    className="rounded-md border border-input px-3 py-1.5 text-xs text-foreground/90 hover:bg-secondary/80"
-                  >
-                    Rename / Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleArchiveToggle(proj)}
-                    className="rounded-md border border-input px-3 py-1.5 text-xs text-foreground/90 hover:bg-secondary/80"
-                  >
-                    {proj.status === 'ACTIVE' ? 'Archive' : 'Restore'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmDeleteProject(proj)}
-                    className="rounded-md border border-red-500/40 px-3 py-1.5 text-xs text-red-300 hover:bg-red-500/10"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
+                    <p className="mt-3 line-clamp-2 text-xs text-muted-foreground">
+                      {proj.description ||
+                        'Creative production workspace for raw media, AI scripts, and rendered video compositions.'}
+                    </p>
+
+                    <div className="mt-3.5 grid grid-cols-3 gap-2 rounded-lg border border-border bg-secondary/40 px-3 py-2 text-center text-[11px] tabular-nums">
+                      <div>
+                        <div className="font-semibold text-foreground">
+                          {proj._count?.assets ?? 0}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">Assets</div>
+                      </div>
+                      <div>
+                        <div className="font-semibold text-foreground">
+                          {proj._count?.conversations ?? 0}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">Sessions</div>
+                      </div>
+                      <div>
+                        <div className="font-semibold text-foreground">
+                          {proj._count?.workflows ?? 0}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">Workflows</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Clean Single-Row Action Hierarchy */}
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+                    <div className="flex items-center gap-1.5">
+                      <Link
+                        href={`/studio?projectId=${proj.id}`}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground shadow-sm transition-opacity hover:opacity-95"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Open AI Studio
+                        <ArrowRight className="h-3 w-3" />
+                      </Link>
+                      <Link
+                        href={`/library?projectId=${proj.id}`}
+                        className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-card px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-secondary"
+                      >
+                        <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                        Assets
+                      </Link>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        title="Rename or edit project"
+                        onClick={() => {
+                          setEditingProject(proj);
+                          setEditName(proj.name);
+                          setEditDesc(proj.description ?? '');
+                        }}
+                      >
+                        <Pencil className="h-3 w-3" />
+                        Rename
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        title={proj.status === 'ACTIVE' ? 'Archive project' : 'Restore project'}
+                        onClick={() => void handleArchiveToggle(proj)}
+                      >
+                        {proj.status === 'ACTIVE' ? (
+                          <>
+                            <Archive className="h-3 w-3" />
+                            Archive
+                          </>
+                        ) : (
+                          <>
+                            <ArchiveRestore className="h-3 w-3" />
+                            Restore
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        title="Delete project"
+                        aria-label={`Delete ${proj.name}`}
+                        onClick={() => setConfirmDeleteProject(proj)}
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         )}
 
+        {/* Edit Modal */}
         {editingProject && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-            <div className="w-full max-w-md rounded-xl border border-border bg-card p-6">
-              <h2 className="text-base font-semibold text-foreground">Edit Project</h2>
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-project-title"
+          >
+            <Card className="w-full max-w-md p-6 shadow-xl">
+              <h2 id="edit-project-title" className="text-base font-semibold text-foreground">
+                Edit Project
+              </h2>
               <form onSubmit={handleUpdate} className="mt-4 space-y-4">
                 <div>
-                  <label className="block text-xs text-foreground/90">Project Name</label>
-                  <input
+                  <label className="mb-1 block text-xs font-medium text-foreground">
+                    Project Name
+                  </label>
+                  <Input
                     type="text"
                     required
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-foreground/90">Description</label>
-                  <textarea
+                  <label className="mb-1 block text-xs font-medium text-foreground">
+                    Description
+                  </label>
+                  <Textarea
                     rows={3}
                     value={editDesc}
                     onChange={(e) => setEditDesc(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
                   />
                 </div>
                 <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setEditingProject(null)}
-                    className="rounded-lg border border-input px-3 py-1.5 text-xs text-foreground/90"
-                  >
+                  <Button variant="outline" size="sm" onClick={() => setEditingProject(null)}>
                     Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
-                  >
+                  </Button>
+                  <Button type="submit" size="sm">
                     Save Changes
-                  </button>
+                  </Button>
                 </div>
               </form>
-            </div>
+            </Card>
           </div>
         )}
 
+        {/* Destructive Delete Confirmation Dialog */}
         {confirmDeleteProject && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-            <div className="w-full max-w-md rounded-xl border border-red-500/40 bg-card p-6">
-              <h2 className="text-base font-semibold text-foreground">Confirm Project Deletion</h2>
-              <p className="mt-2 text-xs text-foreground/90">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-project-title"
+          >
+            <Card className="w-full max-w-md border-destructive/40 p-6 shadow-xl">
+              <h2 id="delete-project-title" className="text-base font-semibold text-foreground">
+                Confirm Project Deletion
+              </h2>
+              <p className="mt-2 text-xs text-muted-foreground">
                 Are you sure you want to permanently delete{' '}
-                <strong>{confirmDeleteProject.name}</strong>? This action cannot be undone.
+                <strong className="text-foreground">{confirmDeleteProject.name}</strong>? This
+                action removes associated conversations and cannot be undone.
               </p>
               <div className="mt-5 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setConfirmDeleteProject(null)}
-                  className="rounded-lg border border-input px-3 py-1.5 text-xs text-foreground/90"
-                >
+                <Button variant="outline" size="sm" onClick={() => setConfirmDeleteProject(null)}>
                   Cancel
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
                   onClick={() => void handleConfirmedDelete()}
-                  className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-red-500"
                 >
+                  <Trash2 className="h-3.5 w-3.5" />
                   Confirm Delete
-                </button>
+                </Button>
               </div>
-            </div>
+            </Card>
           </div>
         )}
       </div>
