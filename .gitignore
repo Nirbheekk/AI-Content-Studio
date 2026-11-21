@@ -21,6 +21,8 @@ coverage/
 *.pem
 *.key
 secrets/
+backups/
+docker/nginx/certs/
 
 # Generated Media & Scratch
 tmp/

@@ -219,5 +219,24 @@ export async function startWorkerRuntime(): Promise<{
     `[@ai-content-os/workers] Role=${config.role} Queue=${queueName} Health=http://0.0.0.0:${config.port}/health`,
   );
 
+  let shuttingDown = false;
+  const shutdown = async (signal: string): Promise<void> => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`[@ai-content-os/workers] Role=${config.role} received ${signal}, shutting down gracefully...`);
+    try {
+      await worker.close();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+      await prisma.$disconnect();
+      process.exit(0);
+    } catch (error) {
+      console.error(`[@ai-content-os/workers] Role=${config.role} shutdown error:`, error);
+      process.exit(1);
+    }
+  };
+
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
+
   return { worker, server };
 }

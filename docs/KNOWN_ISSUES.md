@@ -74,3 +74,10 @@
 - **Severity**: Commercial Disclosure Notice
 - **Description**: Generated invoices (`POST /api/v1/billing/invoices/generate`) are draft cost accounting calculations based on base unit rates (LLM token count, Remotion rendering time, S3 storage volume). They do not represent completed credit card transactions or Stripe charges.
 - **Mitigation**: All generated invoices strictly store and display `costKind: 'ESTIMATED'` and `status: 'DRAFT'` until an external billing provider (e.g. Stripe webhook) is connected.
+
+## 6. Phase 6 Infrastructure & Dependency Audit Disclosures
+
+### KI-014: Dependency Security Audit Findings (`pnpm audit --audit-level=high`)
+- **Severity**: High (Requires Patching Before Public Internet Exposure)
+- **Description**: Running `pnpm audit --audit-level=high` reported 62 advisories (5 low, 32 moderate, 17 high, 8 critical), including `next@15.1.0` (GHSA-9qr9-h5gf-34mp, GHSA-f82v-jwr5-mffw — patched in Next >= `15.1.11` / `15.5.28`), `zod` (< `4.6.6`), and `vitest` (devDependency only).
+- **Mitigation**: Upgrade `next` to a patched `15.x` release and re-verify `pnpm audit --audit-level=high` before exposing the application to public traffic. `.github/workflows/ci-cd.yml` runs `pnpm audit --audit-level=high` and Trivy container scans on every build.

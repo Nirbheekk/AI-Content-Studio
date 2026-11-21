@@ -1,6 +1,22 @@
 services:
   postgres:
     ports: !override []
+    command:
+      - postgres
+      - -c
+      - max_connections=200
+      - -c
+      - shared_buffers=512MB
+      - -c
+      - effective_cache_size=1536MB
+      - -c
+      - work_mem=8MB
+      - -c
+      - wal_level=replica
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER_REQUIRED}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD_REQUIRED}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB_REQUIRED}
     deploy:
       resources:
         limits:
@@ -9,6 +25,25 @@ services:
 
   redis:
     ports: !override []
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
+      - --maxmemory
+      - 768mb
+      - --maxmemory-policy
+      - noeviction
+      - --requirepass
+      - ${REDIS_PASSWORD:?REDIS_PASSWORD_REQUIRED}
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?REDIS_PASSWORD_REQUIRED}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     deploy:
       resources:
         limits:
@@ -17,6 +52,9 @@ services:
 
   minio:
     ports: !override []
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER_REQUIRED}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD_REQUIRED}
     deploy:
       resources:
         limits:
@@ -24,9 +62,19 @@ services:
           memory: 2G
 
   api:
+    ports: !override []
+    stop_grace_period: 30s
     environment:
       NODE_ENV: production
-    ports: !override []
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public&connection_limit=20&pool_timeout=10
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      S3_ENDPOINT: http://minio:9000
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:?S3_PUBLIC_ENDPOINT_REQUIRED}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?S3_ACCESS_KEY_REQUIRED}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?S3_SECRET_KEY_REQUIRED}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET_REQUIRED}
+      ENCRYPTION_MASTER_KEY: ${ENCRYPTION_MASTER_KEY:?ENCRYPTION_MASTER_KEY_REQUIRED}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS_REQUIRED}
     deploy:
       resources:
         limits:
@@ -34,9 +82,16 @@ services:
           memory: 2G
 
   frontend:
+    ports: !override []
+    stop_grace_period: 30s
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL_REQUIRED}
     environment:
       NODE_ENV: production
-    ports: !override []
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL_REQUIRED}
     deploy:
       resources:
         limits:
@@ -44,8 +99,13 @@ services:
           memory: 1G
 
   worker:
+    container_name: !reset null
+    stop_grace_period: 30s
     environment:
       NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public&connection_limit=10
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      ENCRYPTION_MASTER_KEY: ${ENCRYPTION_MASTER_KEY:?ENCRYPTION_MASTER_KEY_REQUIRED}
     deploy:
       resources:
         limits:
@@ -53,8 +113,13 @@ services:
           memory: 1G
 
   ai-orchestrator:
+    container_name: !reset null
+    stop_grace_period: 30s
     environment:
       NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public&connection_limit=10
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      ENCRYPTION_MASTER_KEY: ${ENCRYPTION_MASTER_KEY:?ENCRYPTION_MASTER_KEY_REQUIRED}
     deploy:
       resources:
         limits:
@@ -62,8 +127,14 @@ services:
           memory: 2G
 
   media-worker:
+    container_name: !reset null
+    stop_grace_period: 30s
     environment:
       NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public&connection_limit=10
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?S3_ACCESS_KEY_REQUIRED}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?S3_SECRET_KEY_REQUIRED}
     deploy:
       resources:
         limits:
@@ -71,11 +142,22 @@ services:
           memory: 4G
 
   rendering-worker:
+    container_name: !reset null
+    stop_grace_period: 30s
+    shm_size: "1gb"
     environment:
       NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public&connection_limit=5
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?S3_ACCESS_KEY_REQUIRED}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?S3_SECRET_KEY_REQUIRED}
     read_only: true
     tmpfs:
       - /tmp/remotion:size=2G,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     deploy:
       resources:
         limits:
@@ -83,8 +165,13 @@ services:
           memory: 8G
 
   publishing-worker:
+    container_name: !reset null
+    stop_grace_period: 30s
     environment:
       NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public&connection_limit=10
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      ENCRYPTION_MASTER_KEY: ${ENCRYPTION_MASTER_KEY:?ENCRYPTION_MASTER_KEY_REQUIRED}
     deploy:
       resources:
         limits:
@@ -92,8 +179,13 @@ services:
           memory: 1G
 
   nginx:
-    ports:
+    ports: !override
       - "80:80"
+      - "443:443"
+    volumes: !override
+      - ./docker/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/certs:/etc/nginx/certs:ro
+      - certbot_www:/var/www/certbot:ro
     deploy:
       resources:
         limits:
@@ -103,3 +195,6 @@ services:
 networks:
   render-sandbox-network:
     internal: true
+
+volumes:
+  certbot_www:

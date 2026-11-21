@@ -55,7 +55,10 @@ Development is structured into incremental, empirically verified phases. No phas
 
 ---
 
-## Phase 6: Docker Optimization & Production Deployment (NEXT)
-- [ ] **6.1 Multi-Stage Production Container Builds & Lean Images**
-- [ ] **6.2 Production Orchestration & Reverse Proxy (Nginx / SSL)**
-- [ ] **6.3 Final End-to-End System Smoke Test & Operational Runbook**
+## Phase 6: Docker Optimization & Production Deployment (COMPLETED)
+- [x] **6.1 Multi-Stage Production Container Builds & Lean Images**:
+  - Pinned `node:22-alpine` immutable sha256 digest, `--frozen-lockfile`, `prod-deps` pruning, Next.js `output: 'standalone'`, graceful `SIGTERM`/`SIGINT` shutdown, and `rendering-worker` Chromium/FFmpeg/fonts sandbox.
+- [x] **6.2 Production Orchestration, Reverse Proxy & Backups**:
+  - Hardened `docker-compose.prod.yml` (internal `render-sandbox-network`, secret `:?` guards, PostgreSQL/Redis tuning, `stop_grace_period: 30s`), `docker/nginx/nginx.prod.conf` (TLS 1.2/1.3, ACME renewal, SSE zero-buffering, rate limits), backup/restore scripts, and GitHub Actions CI/CD (`.github/workflows/ci-cd.yml` with Trivy scan).
+- [x] **6.3 Operational Documentation & Phase 6 Verification Gate**:
+  - Verified all 11 containers healthy, `pg_dump`/`pg_restore` (30 tables), MinIO archive/restore, Nginx `/api/ready` routing, and 15/15 test suites (47/47 tests). Created 7 operational guides.
