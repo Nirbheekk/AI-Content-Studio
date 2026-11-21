@@ -2,11 +2,8 @@
 
 - **Project**: AI Content Operating System
 - **Spec Status**: `FINALIZED` ([SPEC.md](./SPEC.md))
-- **Active Phase**: Phase 7 Completed & Verified (Pre-Deployment Security Baseline Established) — Awaiting User Deployment Approval
-- **Last Action**: Completed Phase 7 Dependency Security Remediation & Pre-Deployment Readiness:
-  - Remediated all 62 `pnpm audit` advisories (5 low, 32 moderate, 17 high, 8 critical) -> **0 vulnerabilities**: upgraded `next` (`15.1.0` -> `15.5.29`), `zod` (`3.23.8` -> `4.6.7`, updated `z.record(z.string(), z.unknown())` in `packages/shared/src/composition.ts`), `vitest` (`2.1.9` -> `4.1.12`), and scoped `next>postcss` override (`^8.5.23` -> `8.5.33`) in `pnpm-workspace.yaml`.
-  - Stripped unused `npm`/`corepack` from all 4 production Docker `runner` stages and rebuilt all images.
-  - Verified Trivy (`CRITICAL,HIGH --ignore-unfixed`) reports **0 vulnerabilities** and **0 secrets** across `aicos-api:1.0.0`, `aicos-frontend:1.0.0`, `aicos-worker:1.0.0`, and `aicos-rendering-worker:1.0.0`.
+- **Active Phase**: Phase 9 Completed & Verified (System Audit, Real H.264/AAC MP4 Rendering, Security & UX Polish) — Ready for Controlled Staging Approval
+- **Last Action**: Completed Phase 9 full system audit (`PHASE_9_AUDIT.md`) and remediated all P0–P3 findings (`PHASE_9_COMPLETION_REPORT.md`): bounded rate-limiter + Fastify `trustProxy`, `STORAGE_BYTES` upload quota enforcement, real FFmpeg H.264/AAC MP4 rendering + FFprobe verification across `9:16`/`16:9`/`1:1`/`4:5`, `composition.render` + `PostizPublishingAdapter` in `apps/workers`, Nginx MinIO presigned proxy route, Redis Pub/Sub SSE bridge, derivative cleanup on delete, and `<video controls>` players in `/studio`, `/editor`, `/repurpose`.
 - **Empirical Verification**:
   - `pnpm audit`: **0 vulnerabilities**.
   - Trivy (`CRITICAL,HIGH --ignore-unfixed`): `0` vulnerabilities, `0` secrets across all 4 images.

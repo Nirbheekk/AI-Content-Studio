@@ -1,3 +1,5 @@
+import process from 'node:process';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   ...(process.platform !== 'win32' || process.env['NEXT_OUTPUT_STANDALONE'] === 'true'

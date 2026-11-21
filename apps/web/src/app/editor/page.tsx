@@ -741,6 +741,37 @@ export default function InteractiveEditorPage() {
                   />
                 </div>
 
+                {(() => {
+                  const activeVer =
+                    detail?.versions.find((v) => v.id === detail.currentVersionId) ??
+                    detail?.versions[0];
+                  const latestMp4 = activeVer?.renderJobs.find((r) => r.downloadUrl)?.downloadUrl;
+                  if (!latestMp4) return null;
+                  return (
+                    <div className="space-y-2 rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+                      <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                        <span>Rendered MP4 Preview (v{activeVer?.versionNumber})</span>
+                        <a
+                          href={latestMp4}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-semibold text-indigo-400 hover:underline"
+                        >
+                          Download MP4
+                        </a>
+                      </div>
+                      <video
+                        key={latestMp4}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        src={latestMp4}
+                        className="max-h-64 w-full rounded-lg border border-zinc-800 bg-black object-contain"
+                      />
+                    </div>
+                  );
+                })()}
+
                 {/* Multi-Track Timeline */}
                 <div className="space-y-2 border-t border-zinc-800 pt-4">
                   <div className="flex items-center justify-between">

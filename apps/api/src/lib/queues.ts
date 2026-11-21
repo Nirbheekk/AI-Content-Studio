@@ -1,27 +1,84 @@
 import { EventEmitter } from 'node:events';
 import { Queue } from 'bullmq';
+import { Redis } from 'ioredis';
 import { QUEUE_NAMES, WorkflowSseEvent } from '@ai-content-os/shared';
+
+const WORKFLOW_REDIS_CHANNEL = 'aicos:workflow:events';
 
 class WorkflowEventBus {
   private readonly emitter = new EventEmitter();
+  private pubClient: Redis | null = null;
+  private subClient: Redis | null = null;
+  private subInitialized = false;
 
   constructor() {
     this.emitter.setMaxListeners(200);
   }
 
+  private ensureSubscriber(): void {
+    if (this.subInitialized || !process.env['REDIS_URL']) return;
+    this.subInitialized = true;
+    try {
+      const sub = new Redis(process.env['REDIS_URL'], {
+        maxRetriesPerRequest: 1,
+        lazyConnect: true,
+      });
+      sub.on('error', () => undefined);
+      sub.on('message', (_channel, raw) => {
+        try {
+          const parsed = JSON.parse(raw) as WorkflowSseEvent;
+          if (parsed?.workflowId) {
+            this.emitter.emit(`workflow:${parsed.workflowId}`, parsed);
+          }
+        } catch {
+          // Ignore malformed pubsub message
+        }
+      });
+      void sub.connect().then(() => sub.subscribe(WORKFLOW_REDIS_CHANNEL)).catch(() => undefined);
+      this.subClient = sub;
+    } catch {
+      // Fallback to local EventEmitter only
+    }
+  }
+
   public emitWorkflowEvent(event: WorkflowSseEvent): void {
     this.emitter.emit(`workflow:${event.workflowId}`, event);
+    if (process.env['REDIS_URL']) {
+      try {
+        if (!this.pubClient) {
+          this.pubClient = new Redis(process.env['REDIS_URL'], {
+            maxRetriesPerRequest: 1,
+            enableOfflineQueue: false,
+            lazyConnect: true,
+          });
+          this.pubClient.on('error', () => undefined);
+        }
+        void this.pubClient.publish(WORKFLOW_REDIS_CHANNEL, JSON.stringify(event)).catch(() => undefined);
+      } catch {
+        // Best-effort Redis Pub/Sub
+      }
+    }
   }
 
   public subscribe(
     workflowId: string,
     listener: (event: WorkflowSseEvent) => void,
   ): () => void {
+    this.ensureSubscriber();
     const channel = `workflow:${workflowId}`;
     this.emitter.on(channel, listener);
     return () => {
       this.emitter.off(channel, listener);
     };
+  }
+
+  public async close(): Promise<void> {
+    await Promise.all([
+      this.pubClient?.quit().catch(() => undefined),
+      this.subClient?.quit().catch(() => undefined),
+    ]);
+    this.pubClient = null;
+    this.subClient = null;
   }
 }
 

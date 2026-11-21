@@ -499,7 +499,31 @@ export async function registerCreativeWorkflowRoutes(
 
     const spec = CompositionSpecSchema.parse(currentVersion.specJson);
     const compiled = compileCompositionSpec(spec);
-    const mp4Bytes = synthesizeMp4Artifact(compiled);
+
+    const latestRender = await prisma.renderJob.findFirst({
+      where: {
+        compositionId: composition.id,
+        compositionVersionId: currentVersion.id,
+        status: 'COMPLETED',
+        outputStorageKey: { not: null },
+      },
+      orderBy: { completedAt: 'desc' },
+    });
+
+    let mp4Bytes: Uint8Array | null = null;
+    if (latestRender?.outputStorageKey) {
+      try {
+        mp4Bytes = await storage.getObjectBuffer({
+          bucket: storage.getConfig().rendersBucket,
+          storageKey: latestRender.outputStorageKey,
+        });
+      } catch {
+        mp4Bytes = null;
+      }
+    }
+    if (!mp4Bytes) {
+      mp4Bytes = synthesizeMp4Artifact(compiled);
+    }
     const bundleReport = inspectFullCompositionMediaBundle(spec, mp4Bytes);
 
     return reply.status(200).send({

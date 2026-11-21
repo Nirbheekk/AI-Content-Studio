@@ -16,6 +16,7 @@ import { prisma } from '@ai-content-os/database';
 import { MinioStorageAdapter } from '@ai-content-os/integrations';
 import { enqueueMediaProcessingJob } from '../lib/queues.js';
 import { authorizeWorkspace } from '../middleware/auth.js';
+import { assertQuotaAvailable, computeQuotaStatuses } from './intelligence.routes.js';
 
 export async function registerAssetRoutes(
   app: FastifyInstance,
@@ -23,6 +24,7 @@ export async function registerAssetRoutes(
 ): Promise<void> {
   app.post('/api/v1/assets/upload-url', async (request, reply) => {
     const ctx = await authorizeWorkspace(request, 'EDITOR');
+    await assertQuotaAvailable(ctx.workspaceId, 'STORAGE_BYTES');
     const parsed = RequestUploadUrlSchema.safeParse(request.body);
     if (!parsed.success) {
       throw new ValidationError('Invalid upload request payload', parsed.error.flatten());
@@ -30,6 +32,14 @@ export async function registerAssetRoutes(
 
     const { originalName, mimeType, sizeBytes, projectId, folderPath, checksumSha256, tags } =
       parsed.data;
+
+    const { statuses } = await computeQuotaStatuses(ctx.workspaceId);
+    const storageQuota = statuses.find((s) => s.category === 'STORAGE_BYTES');
+    if (storageQuota && storageQuota.used + sizeBytes > storageQuota.limit) {
+      throw new ValidationError(
+        `Upload size (${sizeBytes} bytes) would exceed monthly STORAGE_BYTES quota (${storageQuota.used}/${storageQuota.limit} bytes)`,
+      );
+    }
 
     let cleanFolder: string;
     try {
@@ -399,6 +409,7 @@ export async function registerAssetRoutes(
 
     const asset = await prisma.asset.findFirst({
       where: { id: assetId, workspaceId: ctx.workspaceId },
+      include: { derivatives: true },
     });
     if (!asset) {
       throw new NotFoundError('Asset', assetId);
@@ -408,6 +419,15 @@ export async function registerAssetRoutes(
       bucket: asset.bucketName,
       storageKey: asset.storageKey,
     });
+    const derivativesBucket = storage.getConfig().derivativesBucket;
+    for (const derivative of asset.derivatives) {
+      await storage
+        .deleteObject({
+          bucket: derivativesBucket,
+          storageKey: derivative.storageKey,
+        })
+        .catch(() => null);
+    }
 
     await prisma.$transaction([
       prisma.asset.delete({ where: { id: asset.id } }),

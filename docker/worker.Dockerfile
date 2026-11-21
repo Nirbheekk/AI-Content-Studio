@@ -9,15 +9,24 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json tsconfig.base.js
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/database/package.json ./packages/database/
 COPY packages/database/prisma ./packages/database/prisma
+COPY packages/ai-providers/package.json ./packages/ai-providers/
+COPY packages/remotion-engine/package.json ./packages/remotion-engine/
+COPY packages/integrations/package.json ./packages/integrations/
 COPY apps/workers/package.json ./apps/workers/
 RUN pnpm install --frozen-lockfile
 
 FROM deps AS builder
 COPY packages/shared ./packages/shared
 COPY packages/database ./packages/database
+COPY packages/ai-providers ./packages/ai-providers
+COPY packages/remotion-engine ./packages/remotion-engine
+COPY packages/integrations ./packages/integrations
 COPY apps/workers ./apps/workers
 RUN pnpm --filter @ai-content-os/shared build \
  && pnpm --filter @ai-content-os/database build \
+ && pnpm --filter @ai-content-os/ai-providers build \
+ && pnpm --filter @ai-content-os/remotion-engine build \
+ && pnpm --filter @ai-content-os/integrations build \
  && pnpm --filter @ai-content-os/workers build
 
 FROM base AS prod-deps
@@ -25,6 +34,9 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/database/package.json ./packages/database/
 COPY packages/database/prisma ./packages/database/prisma
+COPY packages/ai-providers/package.json ./packages/ai-providers/
+COPY packages/remotion-engine/package.json ./packages/remotion-engine/
+COPY packages/integrations/package.json ./packages/integrations/
 COPY apps/workers/package.json ./apps/workers/
 RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 
@@ -43,6 +55,15 @@ COPY --from=builder --chown=node:node /app/packages/database/package.json ./pack
 COPY --from=builder --chown=node:node /app/packages/database/dist ./packages/database/dist
 COPY --from=builder --chown=node:node /app/packages/database/prisma ./packages/database/prisma
 COPY --from=prod-deps --chown=node:node /app/packages/database/node_modules ./packages/database/node_modules
+COPY --from=builder --chown=node:node /app/packages/ai-providers/package.json ./packages/ai-providers/package.json
+COPY --from=builder --chown=node:node /app/packages/ai-providers/dist ./packages/ai-providers/dist
+COPY --from=prod-deps --chown=node:node /app/packages/ai-providers/node_modules ./packages/ai-providers/node_modules
+COPY --from=builder --chown=node:node /app/packages/remotion-engine/package.json ./packages/remotion-engine/package.json
+COPY --from=builder --chown=node:node /app/packages/remotion-engine/dist ./packages/remotion-engine/dist
+COPY --from=prod-deps --chown=node:node /app/packages/remotion-engine/node_modules ./packages/remotion-engine/node_modules
+COPY --from=builder --chown=node:node /app/packages/integrations/package.json ./packages/integrations/package.json
+COPY --from=builder --chown=node:node /app/packages/integrations/dist ./packages/integrations/dist
+COPY --from=prod-deps --chown=node:node /app/packages/integrations/node_modules ./packages/integrations/node_modules
 COPY --from=builder --chown=node:node /app/apps/workers/package.json ./apps/workers/package.json
 COPY --from=builder --chown=node:node /app/apps/workers/dist ./apps/workers/dist
 COPY --from=prod-deps --chown=node:node /app/apps/workers/node_modules ./apps/workers/node_modules

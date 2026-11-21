@@ -29,8 +29,8 @@ import {
   compileCompositionSpec,
   inspectCompositionAndFrames,
   PLATFORM_TEMPLATES,
+  renderCompositionMp4,
   renderInspectionFramePng,
-  synthesizeMp4Artifact,
 } from '@ai-content-os/remotion-engine';
 import { workflowEventBus } from '../lib/queues.js';
 
@@ -362,8 +362,9 @@ export async function renderAndInspectCompositionVersion(params: {
     qaFrameKeys.push(frameKey);
   }
 
-  // Synthesize final MP4 binary and upload to MinIO
-  const mp4Bytes = synthesizeMp4Artifact(compiled);
+  // Render final MP4 binary (FFmpeg H.264/AAC when available, else synthetic fallback) and upload to MinIO
+  const renderResult = await renderCompositionMp4(compiled);
+  const mp4Bytes = renderResult.mp4Bytes;
   const outputStorageKey = `workspaces/${params.workspaceId}/renders/${renderJobId}/output-v${version.versionNumber}.mp4`;
   await storage.putObject({
     bucket: rendersBucket,

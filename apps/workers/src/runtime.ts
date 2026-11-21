@@ -1,12 +1,22 @@
+import { randomUUID } from 'node:crypto';
 import { createServer, Server } from 'node:http';
 import { Job, Worker } from 'bullmq';
 import {
   calculatePublishRetryBackoffMs,
+  CompositionSpecSchema,
+  PublishContentType,
   QUEUE_NAMES,
   WorkerRole,
   WorkerRoleSchema,
 } from '@ai-content-os/shared';
-import { decryptSecret, prisma } from '@ai-content-os/database';
+import { decryptSecret, Prisma, prisma } from '@ai-content-os/database';
+import { MinioStorageAdapter, PostizPublishingAdapter } from '@ai-content-os/integrations';
+import {
+  compileCompositionSpec,
+  inspectCompositionAndFrames,
+  renderCompositionMp4,
+  renderInspectionFramePng,
+} from '@ai-content-os/remotion-engine';
 
 export interface WorkerRuntimeConfig {
   role: WorkerRole;
@@ -69,6 +79,134 @@ export async function processFoundationJob(
   }
 
   if (
+    role === 'rendering' &&
+    job.name === 'composition.render' &&
+    typeof payload['compositionVersionId'] === 'string' &&
+    typeof payload['compositionId'] === 'string' &&
+    typeof payload['workspaceId'] === 'string'
+  ) {
+    const workspaceId = payload['workspaceId'];
+    const compositionId = payload['compositionId'];
+    const compositionVersionId = payload['compositionVersionId'];
+    const renderJobId =
+      typeof payload['renderJobId'] === 'string' ? payload['renderJobId'] : randomUUID();
+    const workflowId =
+      typeof payload['workflowId'] === 'string' ? payload['workflowId'] : null;
+
+    const version = await prisma.compositionVersion.findFirst({
+      where: { id: compositionVersionId, compositionId },
+    });
+
+    if (version) {
+      const storage = new MinioStorageAdapter();
+      await storage.ensureAllBuckets();
+      const rendersBucket = storage.getConfig().rendersBucket;
+      const spec = CompositionSpecSchema.parse(version.specJson);
+      const compiled = compileCompositionSpec(spec);
+
+      await prisma.renderJob.upsert({
+        where: { id: renderJobId },
+        create: {
+          id: renderJobId,
+          workspaceId,
+          compositionId,
+          compositionVersionId: version.id,
+          workflowId,
+          idempotencyKey: `render-${version.id}-${renderJobId.slice(0, 8)}`,
+          status: 'RENDERING',
+          progressPercent: 25,
+          startedAt: new Date(),
+        },
+        update: {
+          status: 'RENDERING',
+          progressPercent: 25,
+          startedAt: new Date(),
+          errorMessage: null,
+        },
+      });
+
+      try {
+        const sampleFrames = [
+          0,
+          Math.floor(compiled.durationInFrames / 2),
+          Math.max(0, compiled.durationInFrames - 5),
+        ];
+        const qaFrameKeys: string[] = [];
+        for (let idx = 0; idx < sampleFrames.length; idx++) {
+          const frameNum = sampleFrames[idx] ?? 0;
+          const { pngBytes } = renderInspectionFramePng(compiled, frameNum);
+          const frameKey = `workspaces/${workspaceId}/renders/${renderJobId}/qa-frame-${idx + 1}-f${frameNum}.png`;
+          await storage.putObject({
+            bucket: rendersBucket,
+            storageKey: frameKey,
+            body: pngBytes,
+            contentType: 'image/png',
+          });
+          qaFrameKeys.push(frameKey);
+        }
+
+        const renderResult = await renderCompositionMp4(compiled);
+        const outputStorageKey = `workspaces/${workspaceId}/renders/${renderJobId}/output-v${version.versionNumber}.mp4`;
+        await storage.putObject({
+          bucket: rendersBucket,
+          storageKey: outputStorageKey,
+          body: renderResult.mp4Bytes,
+          contentType: 'video/mp4',
+        });
+
+        const qaReport = inspectCompositionAndFrames(spec);
+        await prisma.$transaction([
+          prisma.renderJob.update({
+            where: { id: renderJobId },
+            data: {
+              status: 'COMPLETED',
+              progressPercent: 100,
+              outputStorageKey,
+              outputSizeBytes: BigInt(renderResult.mp4Bytes.byteLength),
+              durationMs: Math.round(compiled.totalDurationSec * 1000),
+              qaFrameKeys,
+              completedAt: new Date(),
+            },
+          }),
+          prisma.qaInspection.create({
+            data: {
+              renderJobId,
+              workflowId,
+              passed: qaReport.passed,
+              overallScore: qaReport.overallScore,
+              defectsJson: JSON.parse(JSON.stringify(qaReport.defects)) as Prisma.InputJsonValue,
+              patchInstructionsJson: JSON.parse(
+                JSON.stringify(qaReport.patchInstructions),
+              ) as Prisma.InputJsonValue,
+              inspectorProvider: renderResult.renderer,
+              isSimulated: !renderResult.isPlayableMp4,
+            },
+          }),
+          prisma.usageRecord.create({
+            data: {
+              workspaceId,
+              category: 'RENDER_SECONDS',
+              provider: renderResult.renderer,
+              quantity: BigInt(Math.ceil(compiled.totalDurationSec)),
+              estimatedCostUsd: 0,
+              referenceId: renderJobId,
+            },
+          }),
+        ]);
+      } catch (err) {
+        await prisma.renderJob.update({
+          where: { id: renderJobId },
+          data: {
+            status: 'FAILED',
+            errorMessage: err instanceof Error ? err.message : 'Worker render failed',
+          },
+        });
+        throw err;
+      }
+    }
+  }
+
+  if (
     role === 'publishing' &&
     job.name === 'publish.execute' &&
     typeof payload['publishPostId'] === 'string'
@@ -84,22 +222,24 @@ export async function processFoundationJob(
     if (post && post.status !== 'PUBLISHED' && post.status !== 'CANCELLED') {
       const attemptNum = post.attempts.length + 1;
       const accessToken = decryptSecret(post.socialAccount.encryptedAccessToken);
-      const isRevoked =
-        accessToken.includes('REVOKED') ||
-        post.captionText.includes('[SIMULATE_AUTH_REVOKED]') ||
-        post.socialAccount.status === 'REVOKED';
-      const isRateLimited = post.captionText.includes('[SIMULATE_RATE_LIMIT]');
-      const isTransient = post.captionText.includes('[SIMULATE_TRANSIENT_ERROR]');
+      const postiz = new PostizPublishingAdapter();
+      const adapterResult = await postiz.publishPost({
+        postId: post.id,
+        platform: post.platform,
+        accessToken,
+        contentType: post.contentType as PublishContentType,
+        captionText: post.captionText,
+        hashtags: post.hashtags,
+        idempotencyKey: post.idempotencyKey,
+        ...(post.title ? { title: post.title } : {}),
+        ...(post.scheduledFor ? { scheduledFor: post.scheduledFor } : {}),
+      });
 
-      if (isRevoked || isRateLimited || isTransient) {
-        const errorCategory = isRevoked
-          ? 'AUTH_REVOKED'
-          : isRateLimited
-            ? 'RATE_LIMIT'
-            : 'TRANSIENT_NETWORK';
-        const httpStatus = isRevoked ? 401 : isRateLimited ? 429 : 503;
+      if (!adapterResult.success) {
+        const errorCategory = adapterResult.errorCategory ?? 'PROVIDER_REJECTED';
+        const isRetryable = adapterResult.retryable;
         const newRetryCount = post.retryCount + 1;
-        const canRetry = !isRevoked && newRetryCount < post.maxRetries;
+        const canRetry = isRetryable && newRetryCount < post.maxRetries;
         const backoffMs = canRetry ? calculatePublishRetryBackoffMs(newRetryCount, 5_000) : 0;
 
         await prisma.publishAttempt.create({
@@ -109,9 +249,9 @@ export async function processFoundationJob(
             idempotencyKey: `${post.idempotencyKey}:attempt:${attemptNum}`,
             status: 'FAILED',
             errorCategory,
-            errorMessage: `Worker publishing error (${errorCategory})`,
-            isSimulated: true,
-            responseJson: { errorCategory, httpStatus },
+            errorMessage: adapterResult.errorMessage ?? `Worker publishing error (${errorCategory})`,
+            isSimulated: adapterResult.isSimulated,
+            responseJson: adapterResult.rawResponse as Prisma.InputJsonValue,
           },
         });
 
@@ -122,35 +262,31 @@ export async function processFoundationJob(
             providerStatus: canRetry ? 'FAILED' : 'DEAD_LETTER',
             retryCount: newRetryCount,
             nextRetryAt: canRetry ? new Date(Date.now() + backoffMs) : null,
-            errorMessage: `Worker publishing error (${errorCategory})`,
+            errorMessage: adapterResult.errorMessage ?? `Worker publishing error (${errorCategory})`,
           },
         });
       } else {
-        const externalPostId = `sim_postiz_${post.platform.toLowerCase()}_${post.idempotencyKey.slice(0, 14)}`;
+        const finalStatus =
+          adapterResult.providerStatus === 'PUBLISHED' ? 'PUBLISHED' : 'PUBLISHING';
         await prisma.publishAttempt.create({
           data: {
             publishPostId: post.id,
             attemptNumber: attemptNum,
             idempotencyKey: `${post.idempotencyKey}:attempt:${attemptNum}`,
-            status: 'PUBLISHED',
-            isSimulated: true,
-            responseJson: {
-              provider: 'postiz-sandbox-worker',
-              httpStatus: 200,
-              externalPostId,
-              confirmedAt: new Date().toISOString(),
-            },
+            status: finalStatus,
+            isSimulated: adapterResult.isSimulated,
+            responseJson: adapterResult.rawResponse as Prisma.InputJsonValue,
           },
         });
 
         await prisma.publishPost.update({
           where: { id: post.id },
           data: {
-            status: 'PUBLISHED',
-            providerStatus: 'PUBLISHED',
-            publishedAt: new Date(),
-            externalPostId,
-            externalPostUrl: `https://sandbox.postiz.local/${post.platform.toLowerCase()}/${externalPostId}`,
+            status: finalStatus,
+            providerStatus: adapterResult.providerStatus,
+            ...(finalStatus === 'PUBLISHED' ? { publishedAt: new Date() } : {}),
+            ...(adapterResult.externalPostId ? { externalPostId: adapterResult.externalPostId } : {}),
+            ...(adapterResult.externalPostUrl ? { externalPostUrl: adapterResult.externalPostUrl } : {}),
             errorMessage: null,
             nextRetryAt: null,
           },

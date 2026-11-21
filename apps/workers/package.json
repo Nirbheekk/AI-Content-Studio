@@ -12,7 +12,10 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@ai-content-os/ai-providers": "workspace:*",
     "@ai-content-os/database": "workspace:*",
+    "@ai-content-os/integrations": "workspace:*",
+    "@ai-content-os/remotion-engine": "workspace:*",
     "@ai-content-os/shared": "workspace:*",
     "bullmq": "^5.28.2",
     "ioredis": "^5.4.1",

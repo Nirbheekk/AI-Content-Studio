@@ -244,14 +244,24 @@ export default function RepurposeEnginePage() {
                         Open in Timeline Editor
                       </Link>
                       {comp.downloadUrl && (
-                        <a
-                          href={comp.downloadUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded border border-zinc-700 px-3 py-1.5 text-xs text-zinc-200 hover:bg-zinc-800"
-                        >
-                          Download MP4
-                        </a>
+                        <>
+                          <a
+                            href={comp.downloadUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded border border-zinc-700 px-3 py-1.5 text-xs text-zinc-200 hover:bg-zinc-800"
+                          >
+                            Download MP4
+                          </a>
+                          <video
+                            key={comp.downloadUrl}
+                            controls
+                            playsInline
+                            preload="metadata"
+                            src={comp.downloadUrl}
+                            className="mt-2 max-h-48 w-full rounded-lg border border-zinc-800 bg-black object-contain"
+                          />
+                        </>
                       )}
                     </div>
                   </div>

@@ -74,7 +74,7 @@ export default function AIStudioPage() {
   // Production configuration
   const [templateId, setTemplateId] = useState<string>('instagram-reel');
   const [targetPlatform, setTargetPlatform] = useState<string>('INSTAGRAM_REELS');
-  const [simulateDefectsOnce, setSimulateDefectsOnce] = useState<boolean>(true);
+  const [simulateDefectsOnce, setSimulateDefectsOnce] = useState<boolean>(false);
   const [promptInput, setPromptInput] = useState<string>('');
   const [newConvTitle, setNewConvTitle] = useState<string>('');
   const [revisionInput, setRevisionInput] = useState<string>('');
@@ -703,18 +703,28 @@ export default function AIStudioPage() {
                 <p className="mt-1 text-[11px] text-zinc-400">{qaReport.summary}</p>
 
                 {renderJob?.downloadUrl && (
-                  <div className="mt-2 flex items-center justify-between border-t border-zinc-800 pt-2">
-                    <span className="text-[11px] text-zinc-400">
-                      MP4 ({renderJob.outputSizeBytes} bytes)
-                    </span>
-                    <a
-                      href={renderJob.downloadUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-xs font-semibold text-indigo-400 hover:underline"
-                    >
-                      Download Rendered MP4
-                    </a>
+                  <div className="mt-3 space-y-2 border-t border-zinc-800 pt-3">
+                    <video
+                      key={renderJob.downloadUrl}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      src={renderJob.downloadUrl}
+                      className="max-h-72 w-full rounded-lg border border-zinc-800 bg-black object-contain"
+                    />
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-zinc-400">
+                        MP4 ({renderJob.outputSizeBytes} bytes)
+                      </span>
+                      <a
+                        href={renderJob.downloadUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs font-semibold text-indigo-400 hover:underline"
+                      >
+                        Download Rendered MP4
+                      </a>
+                    </div>
                   </div>
                 )}
               </div>

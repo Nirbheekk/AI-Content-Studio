@@ -321,6 +321,27 @@ export class MinioStorageAdapter {
     return new Uint8Array(arrayBuffer);
   }
 
+  public async getObjectBuffer(params: {
+    bucket: string;
+    storageKey: string;
+  }): Promise<Uint8Array> {
+    const cleanKey = params.storageKey.replace(/^\/+/, '');
+    const res = await this.signedFetch({
+      method: 'GET',
+      path: `/${params.bucket}/${cleanKey}`,
+    });
+
+    if (!res.ok) {
+      throw new ExternalProviderError(
+        'MinIO',
+        `Failed to read object ${cleanKey}: HTTP ${res.status}`,
+      );
+    }
+
+    const arrayBuffer = await res.arrayBuffer();
+    return new Uint8Array(arrayBuffer);
+  }
+
   public async deleteObject(params: { bucket: string; storageKey: string }): Promise<void> {
     const cleanKey = params.storageKey.replace(/^\/+/, '');
     const res = await this.signedFetch({

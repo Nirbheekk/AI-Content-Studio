@@ -150,10 +150,12 @@ export class SlidingWindowRateLimiter {
   private readonly hits = new Map<string, number[]>();
   private readonly windowMs: number;
   private readonly maxRequests: number;
+  private readonly maxTrackedKeys: number;
 
-  constructor(maxRequests = 20, windowMs = 60_000) {
+  constructor(maxRequests = 20, windowMs = 60_000, maxTrackedKeys = 10_000) {
     this.maxRequests = maxRequests;
     this.windowMs = windowMs;
+    this.maxTrackedKeys = maxTrackedKeys;
   }
 
   public enforce(request: FastifyRequest, keySuffix = ''): void {
@@ -161,9 +163,25 @@ export class SlidingWindowRateLimiter {
     const key = `${ip}:${keySuffix}`;
     const now = Date.now();
     const cutoff = now - this.windowMs;
-    const recent = (this.hits.get(key) ?? []).filter((ts) => ts > cutoff);
 
+    if (this.hits.size >= this.maxTrackedKeys && !this.hits.has(key)) {
+      for (const [k, timestamps] of this.hits) {
+        const valid = timestamps.filter((ts) => ts > cutoff);
+        if (valid.length === 0) {
+          this.hits.delete(k);
+        } else {
+          this.hits.set(k, valid);
+        }
+      }
+      if (this.hits.size >= this.maxTrackedKeys) {
+        const oldestKey = this.hits.keys().next().value;
+        if (oldestKey !== undefined) this.hits.delete(oldestKey);
+      }
+    }
+
+    const recent = (this.hits.get(key) ?? []).filter((ts) => ts > cutoff);
     if (recent.length >= this.maxRequests) {
+      this.hits.set(key, recent);
       throw new QuotaExceededError('authentication rate limit');
     }
 

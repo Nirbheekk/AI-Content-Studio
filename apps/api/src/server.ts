@@ -78,6 +78,7 @@ export async function buildApiServer(deps: ServerDependencies = {}): Promise<Fas
   const app = Fastify({
     logger: false,
     bodyLimit: 520 * 1024 * 1024,
+    trustProxy: true,
   });
 
   const allowedOrigins = (process.env['CORS_ALLOWED_ORIGINS'] ?? 'http://localhost:3000,http://127.0.0.1:3000,http://localhost,http://localhost:8080')

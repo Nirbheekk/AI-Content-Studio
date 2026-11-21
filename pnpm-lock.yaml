@@ -294,9 +294,18 @@ importers:
 
   apps/workers:
     dependencies:
+      '@ai-content-os/ai-providers':
+        specifier: workspace:*
+        version: link:../../packages/ai-providers
       '@ai-content-os/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@ai-content-os/integrations':
+        specifier: workspace:*
+        version: link:../../packages/integrations
+      '@ai-content-os/remotion-engine':
+        specifier: workspace:*
+        version: link:../../packages/remotion-engine
       '@ai-content-os/shared':
         specifier: workspace:*
         version: link:../../packages/shared

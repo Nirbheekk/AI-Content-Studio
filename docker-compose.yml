@@ -52,6 +52,7 @@ services:
     volumes:
       - minio_data:/data
     networks:
+      - edge-network
       - backend-network
       - render-sandbox-network
     healthcheck:

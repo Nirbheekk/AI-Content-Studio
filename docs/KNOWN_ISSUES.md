@@ -53,10 +53,10 @@
 - **Description**: The /publish modal generates a placeholder code instead of completing a real provider redirect and callback. Real connections need per-platform developer apps (client ID and secret) and a callback route.
 - **Mitigation**: Implement redirect callback handling in the live-integration phase.
 
-### KI-010: Worker Publishing Path Is Simplified
-- **Severity**: Medium
-- **Description**: The BullMQ publish.execute processor in apps/workers confirms posts via sandbox logic and does not call the live adapter, auto-refresh tokens, or re-enqueue retries. Delayed scheduled jobs persist in Redis across restarts, but live-provider execution from the worker is not implemented. Immediate publish and manual retry run through the API service.
-- **Mitigation**: Move executePostPublication into a shared package used by both API and worker.
+### KI-010: Worker Publishing Path Is Simplified (RESOLVED in Phase 9)
+- **Severity**: Medium -> **RESOLVED**
+- **Description**: Previously `apps/workers` `publish.execute` used hardcoded sandbox logic instead of calling `PostizPublishingAdapter`.
+- **Resolution (Phase 9)**: `apps/workers/src/runtime.ts` now invokes `PostizPublishingAdapter.publishPost` directly, aligning live/sandbox behavior and retry classification with the API service.
 
 ### KI-011: Provider Status Polling and Workspace Default Timezone
 - **Severity**: Low
