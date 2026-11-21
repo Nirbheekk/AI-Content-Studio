@@ -1,0 +1,112 @@
+# Staging / Single-Tenant Override (4 vCPU, 8 GB RAM, 80 GB NVMe, 1 Concurrent Render)
+# Usage:
+#   docker compose --env-file .env.staging -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.staging.yml up -d
+# Preserves all production security controls (no internal ports exposed, internal render-sandbox, mandatory secrets).
+
+services:
+  postgres:
+    command:
+      - postgres
+      - -c
+      - max_connections=100
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - effective_cache_size=768MB
+      - -c
+      - work_mem=4MB
+      - -c
+      - wal_level=replica
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1536M
+
+  redis:
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
+      - --maxmemory
+      - 384mb
+      - --maxmemory-policy
+      - noeviction
+      - --requirepass
+      - ${REDIS_PASSWORD:?REDIS_PASSWORD_REQUIRED}
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  minio:
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  api:
+    environment:
+      AI_PRIMARY_LLM_PROVIDER: ${AI_PRIMARY_LLM_PROVIDER:?AI_PRIMARY_LLM_PROVIDER_REQUIRED}
+      STAGING_SAFE_MODE: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+
+  frontend:
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  worker:
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  ai-orchestrator:
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  media-worker:
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+
+  rendering-worker:
+    shm_size: "512mb"
+    tmpfs:
+      - /tmp/remotion:size=1G,mode=1777
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+
+  publishing-worker:
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  nginx:
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
