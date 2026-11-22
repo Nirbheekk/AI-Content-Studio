@@ -174,6 +174,21 @@ export function getApiBaseUrl(): string {
   return (process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4000').replace(/\/$/, '');
 }
 
+/**
+ * Resolves a backend media stream/download URL against the configured API base URL
+ * so `<video src>` and download links work identically on Nginx (:8080) and direct Next.js (:3000).
+ */
+export function resolveMediaUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (/^https?:\/\//i.test(url) || url.startsWith('blob:') || url.startsWith('data:')) {
+    return url;
+  }
+  if (url.startsWith('/api/')) {
+    return `${getApiBaseUrl()}${url}`;
+  }
+  return url;
+}
+
 export interface ApiRequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   path: string;

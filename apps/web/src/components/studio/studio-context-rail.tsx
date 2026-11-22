@@ -41,6 +41,15 @@ export function StudioContextRail({
   const fileRef = useRef<HTMLInputElement>(null);
   const [sessionTitle, setSessionTitle] = React.useState('');
 
+  const generatedCount = projectAssets.filter(
+    (a) =>
+      a.folderPath === '/rendered-videos' ||
+      a.folderPath === '/youtube-viral-clips' ||
+      a.tags?.includes('rendered-video') ||
+      a.tags?.includes('youtube-viral-clip'),
+  ).length;
+  const sourceCount = Math.max(0, projectAssets.length - generatedCount);
+
   const handleNewSession = (e: React.FormEvent) => {
     e.preventDefault();
     onCreateConversation(sessionTitle.trim() || `Session ${conversations.length + 1}`);
@@ -73,10 +82,15 @@ export function StudioContextRail({
           ))}
         </NativeSelect>
 
-        <div className="flex items-center justify-between pt-1">
-          <span className="text-xs text-muted-foreground">
-            {projectAssets.length} media assets
-          </span>
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <div className="space-y-0.5 text-xs text-muted-foreground">
+            <div className="font-medium text-foreground">
+              {projectAssets.length} total asset{projectAssets.length === 1 ? '' : 's'}
+            </div>
+            <div>
+              {sourceCount} source · {generatedCount} generated
+            </div>
+          </div>
           <input
             ref={fileRef}
             type="file"

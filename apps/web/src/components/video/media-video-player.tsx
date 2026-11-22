@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { resolveMediaUrl } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
 
 export type VideoPlaybackPhase =
@@ -22,6 +23,16 @@ export type VideoPlaybackPhase =
   | 'ended'
   | 'error';
 
+export type VideoFailureCategory =
+  | 'unauthorized'
+  | 'forbidden'
+  | 'expired'
+  | 'missing'
+  | 'unsupported'
+  | 'network'
+  | 'server'
+  | 'unknown';
+
 export interface MediaVideoPlayerProps {
   src: string | null | undefined;
   downloadUrl?: string | null | undefined;
@@ -31,6 +42,7 @@ export interface MediaVideoPlayerProps {
   maxHeightClass?: string | undefined;
   className?: string | undefined;
   onRequestRefreshUrl?: (() => Promise<void> | void) | undefined;
+  onPhaseChange?: ((phase: VideoPlaybackPhase) => void) | undefined;
 }
 
 const SPEED_OPTIONS = [0.75, 1, 1.25, 1.5, 2] as const;
@@ -42,27 +54,43 @@ function formatDuration(sec: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-function buildDownloadHref(src: string, explicitDownloadUrl?: string | null): string {
-  if (explicitDownloadUrl) return explicitDownloadUrl;
-  if (src.includes('/stream?')) {
-    return src.includes('download=1') ? src : `${src}&download=1`;
+function buildDownloadHref(resolvedSrc: string, explicitDownloadUrl?: string | null): string {
+  const resolvedExplicit = resolveMediaUrl(explicitDownloadUrl);
+  if (resolvedExplicit) return resolvedExplicit;
+  if (resolvedSrc.includes('/stream?')) {
+    return resolvedSrc.includes('download=1') ? resolvedSrc : `${resolvedSrc}&download=1`;
   }
-  return src;
+  return resolvedSrc;
 }
 
-function describeMediaError(video: HTMLVideoElement | null): string {
+function describeMediaError(video: HTMLVideoElement | null): {
+  category: VideoFailureCategory;
+  message: string;
+} {
   const code = video?.error?.code;
   switch (code) {
     case 1:
-      return 'Playback was aborted before loading finished.';
+      return { category: 'network', message: 'Playback was aborted before loading finished.' };
     case 2:
-      return 'Network error or media session expired while loading video.';
+      return {
+        category: 'network',
+        message: 'Network interruption while streaming video. Click Retry to reconnect.',
+      };
     case 3:
-      return 'Video decoding failed. The file may be corrupted or incomplete.';
+      return {
+        category: 'unsupported',
+        message: 'Video decoding failed. The MP4 file may be corrupted or incomplete.',
+      };
     case 4:
-      return 'Video unavailable, access expired, or format not supported by this browser.';
+      return {
+        category: 'unknown',
+        message: 'Video source could not be loaded. Checking exact error reason...',
+      };
     default:
-      return 'Unable to play video. Retry or refresh your session.';
+      return {
+        category: 'unknown',
+        message: 'Unable to play video. Retry or refresh the preview link.',
+      };
   }
 }
 
@@ -75,21 +103,36 @@ export function MediaVideoPlayer({
   maxHeightClass = 'max-h-80',
   className,
   onRequestRefreshUrl,
+  onPhaseChange,
 }: MediaVideoPlayerProps) {
+  const resolvedSrc = resolveMediaUrl(src);
+  const resolvedPoster = resolveMediaUrl(poster);
+
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [phase, setPhase] = useState<VideoPlaybackPhase>(src ? 'loading' : 'idle');
+  const [phase, setPhaseState] = useState<VideoPlaybackPhase>(resolvedSrc ? 'loading' : 'idle');
+  const [failureCategory, setFailureCategory] = useState<VideoFailureCategory | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [durationSec, setDurationSec] = useState<number>(0);
   const [resolution, setResolution] = useState<string | null>(null);
   const [playbackRate, setPlaybackRate] = useState<number>(1);
   const [retryCount, setRetryCount] = useState<number>(0);
+  const [retrying, setRetrying] = useState<boolean>(false);
+
+  const updatePhase = useCallback(
+    (next: VideoPlaybackPhase) => {
+      setPhaseState(next);
+      onPhaseChange?.(next);
+    },
+    [onPhaseChange],
+  );
 
   useEffect(() => {
-    setPhase(src ? 'loading' : 'idle');
+    updatePhase(resolvedSrc ? 'loading' : 'idle');
+    setFailureCategory(null);
     setErrorMsg(null);
     setDurationSec(0);
     setResolution(null);
-  }, [src]);
+  }, [resolvedSrc, updatePhase]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -97,20 +140,59 @@ export function MediaVideoPlayer({
     }
   }, [playbackRate]);
 
-  const handleRetry = useCallback(async () => {
-    setErrorMsg(null);
-    setPhase('loading');
-    if (onRequestRefreshUrl) {
-      await onRequestRefreshUrl();
+  const diagnoseFailure = useCallback(async (targetUrl: string, fallback: { category: VideoFailureCategory; message: string }) => {
+    try {
+      const res = await fetch(targetUrl, {
+        method: 'GET',
+        headers: { range: 'bytes=0-0' },
+        credentials: 'include',
+      });
+      if (res.status === 401) {
+        setFailureCategory('expired');
+        setErrorMsg('Media access token expired or unauthorized (HTTP 401). Click Retry to refresh your playback link.');
+      } else if (res.status === 403) {
+        setFailureCategory('forbidden');
+        setErrorMsg('Access denied for this workspace video (HTTP 403).');
+      } else if (res.status === 404) {
+        setFailureCategory('missing');
+        setErrorMsg('Video file is missing from storage or has been deleted (HTTP 404). Re-render to regenerate.');
+      } else if (res.status >= 500) {
+        setFailureCategory('server');
+        setErrorMsg(`Storage or streaming server error (HTTP ${res.status}). Retry in a moment.`);
+      } else if (res.status === 200 || res.status === 206) {
+        setFailureCategory('unsupported');
+        setErrorMsg('Video file downloaded, but browser could not decode its codec/container. Re-render as H.264/yuv420p.');
+      } else {
+        setFailureCategory(fallback.category);
+        setErrorMsg(`Unexpected media response (HTTP ${res.status}).`);
+      }
+    } catch {
+      setFailureCategory('network');
+      setErrorMsg('Could not reach the media streaming server. Check API connectivity and retry.');
     }
-    setRetryCount((c) => c + 1);
-    const el = videoRef.current;
-    if (el) {
-      el.load();
-    }
-  }, [onRequestRefreshUrl]);
+  }, []);
 
-  if (!src) {
+  const handleRetry = useCallback(async () => {
+    if (retrying) return;
+    setRetrying(true);
+    setErrorMsg(null);
+    setFailureCategory(null);
+    updatePhase('loading');
+    try {
+      if (onRequestRefreshUrl) {
+        await onRequestRefreshUrl();
+      }
+      setRetryCount((c) => c + 1);
+      const el = videoRef.current;
+      if (el) {
+        el.load();
+      }
+    } finally {
+      setRetrying(false);
+    }
+  }, [onRequestRefreshUrl, retrying, updatePhase]);
+
+  if (!resolvedSrc) {
     return (
       <div
         data-testid="media-video-unavailable"
@@ -120,15 +202,16 @@ export function MediaVideoPlayer({
         )}
       >
         <Film className="h-8 w-8 text-muted-foreground" />
-        <div className="text-sm font-medium text-foreground">Video not available yet</div>
+        <div className="text-sm font-medium text-foreground">Final MP4 not available yet</div>
         <p className="text-xs text-muted-foreground">
-          Render or upload a verified MP4 to preview and play it here.
+          Render or upload a verified MP4 to preview, seek, and download it here.
         </p>
       </div>
     );
   }
 
-  const downloadHref = buildDownloadHref(src, downloadUrl);
+  const downloadHref = buildDownloadHref(resolvedSrc, downloadUrl);
+  const canDownload = phase !== 'error';
   const statusLabel =
     phase === 'loading'
       ? 'Loading'
@@ -141,13 +224,19 @@ export function MediaVideoPlayer({
             : phase === 'ended'
               ? 'Completed'
               : phase === 'error'
-                ? 'Unavailable'
+                ? failureCategory === 'expired'
+                  ? 'Link Expired'
+                  : failureCategory === 'missing'
+                    ? 'Missing File'
+                    : failureCategory === 'forbidden'
+                      ? 'Forbidden'
+                      : 'Unavailable'
                 : 'Ready';
 
   const statusVariant =
     phase === 'error'
       ? 'destructive'
-      : phase === 'playing' || phase === 'ready' || phase === 'ended'
+      : phase === 'playing' || phase === 'ready' || phase === 'ended' || phase === 'paused'
         ? 'success'
         : 'secondary';
 
@@ -155,6 +244,7 @@ export function MediaVideoPlayer({
     <div
       data-testid="media-video-player"
       data-playback-phase={phase}
+      data-failure-category={failureCategory ?? ''}
       className={cn('space-y-2 rounded-xl border border-border bg-card p-3', className)}
     >
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
@@ -175,9 +265,9 @@ export function MediaVideoPlayer({
           )}
           {typeof sizeBytes === 'number' && sizeBytes > 0 && (
             <span className="font-mono text-xs text-muted-foreground tabular-nums">
-              {(sizeBytes / (1024 * 1024) >= 1
+              {sizeBytes / (1024 * 1024) >= 1
                 ? `${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`
-                : `${(sizeBytes / 1024).toFixed(1)} KB`)}
+                : `${(sizeBytes / 1024).toFixed(1)} KB`}
             </span>
           )}
         </div>
@@ -195,16 +285,18 @@ export function MediaVideoPlayer({
               </option>
             ))}
           </select>
-          <a
-            href={downloadHref}
-            download
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
-          >
-            <Download className="h-3.5 w-3.5" />
-            Download
-          </a>
+          {canDownload && (
+            <a
+              href={downloadHref}
+              download
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Download
+            </a>
+          )}
         </div>
       </div>
 
@@ -217,27 +309,42 @@ export function MediaVideoPlayer({
           >
             <AlertCircle className="h-6 w-6 text-destructive" />
             <div className="space-y-1">
-              <div className="text-sm font-semibold text-foreground">Playback failed</div>
+              <div className="text-sm font-semibold text-foreground">
+                {failureCategory === 'expired'
+                  ? 'Playback link expired'
+                  : failureCategory === 'missing'
+                    ? 'Video object missing'
+                    : failureCategory === 'forbidden'
+                      ? 'Access denied'
+                      : 'Playback failed'}
+              </div>
               <p className="text-xs text-muted-foreground">{errorMsg}</p>
             </div>
-            <Button type="button" variant="outline" size="sm" onClick={() => void handleRetry()}>
-              <RefreshCw className="h-4 w-4" />
-              Retry Playback
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={retrying}
+              onClick={() => void handleRetry()}
+            >
+              <RefreshCw className={cn('h-4 w-4', retrying && 'animate-spin')} />
+              {retrying ? 'Refreshing...' : 'Retry Playback'}
             </Button>
           </div>
         ) : (
           <>
             <video
               ref={videoRef}
-              key={`${src}::${retryCount}`}
-              src={src}
-              poster={poster ?? undefined}
+              key={`${resolvedSrc}::${retryCount}`}
+              src={resolvedSrc}
+              poster={resolvedPoster ?? undefined}
               controls
               playsInline
               preload="metadata"
               onLoadStart={() => {
                 setErrorMsg(null);
-                setPhase('loading');
+                setFailureCategory(null);
+                updatePhase('loading');
               }}
               onLoadedMetadata={(e) => {
                 const el = e.currentTarget;
@@ -248,17 +355,20 @@ export function MediaVideoPlayer({
                   setResolution(`${el.videoWidth}×${el.videoHeight}`);
                 }
               }}
-              onLoadedData={() => setPhase((p) => (p === 'playing' ? 'playing' : 'ready'))}
-              onCanPlay={() => setPhase((p) => (p === 'playing' ? 'playing' : 'ready'))}
-              onWaiting={() => setPhase('buffering')}
-              onPlaying={() => setPhase('playing')}
+              onLoadedData={() => updatePhase(phase === 'playing' ? 'playing' : 'ready')}
+              onCanPlay={() => updatePhase(phase === 'playing' ? 'playing' : 'ready')}
+              onWaiting={() => updatePhase('buffering')}
+              onPlaying={() => updatePhase('playing')}
               onPause={(e) => {
-                if (!e.currentTarget.ended) setPhase('paused');
+                if (!e.currentTarget.ended) updatePhase('paused');
               }}
-              onEnded={() => setPhase('ended')}
+              onEnded={() => updatePhase('ended')}
               onError={(e) => {
-                setPhase('error');
-                setErrorMsg(describeMediaError(e.currentTarget));
+                const fallback = describeMediaError(e.currentTarget);
+                updatePhase('error');
+                setFailureCategory(fallback.category);
+                setErrorMsg(fallback.message);
+                void diagnoseFailure(resolvedSrc, fallback);
               }}
               className={cn(maxHeightClass, 'w-full bg-canvas object-contain')}
             />

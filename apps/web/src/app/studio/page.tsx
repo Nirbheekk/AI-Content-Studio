@@ -85,7 +85,7 @@ export default function AIStudioPage() {
   const [compiled, setCompiled] = useState<CompiledView | null>(null);
   const [renderJob, setRenderJob] = useState<RenderJobView | null>(null);
   const [qaReport, setQaReport] = useState<QaReportView | null>(null);
-  const [isSimulatedMode, setIsSimulatedMode] = useState(true);
+  const [isSimulatedMode, setIsSimulatedMode] = useState(false);
 
   const [currentFrame, setCurrentFrame] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -132,6 +132,70 @@ export default function AIStudioPage() {
     [accessToken, activeWorkspace, setFeedback],
   );
 
+  const loadProjectComposition = useCallback(
+    async (projId: string) => {
+      if (!accessToken || !activeWorkspace || !projId) {
+        setActiveCompositionId(null);
+        setActiveVersion(null);
+        setCompiled(null);
+        setRenderJob(null);
+        setQaReport(null);
+        return;
+      }
+      const compList = await apiRequest<Array<{ id: string }>>({
+        path: `/api/v1/compositions?projectId=${encodeURIComponent(projId)}`,
+        accessToken,
+        workspaceId: activeWorkspace.id,
+      }).catch(() => []);
+
+      if (!compList[0]) {
+        setActiveCompositionId(null);
+        setActiveVersion(null);
+        setCompiled(null);
+        setRenderJob(null);
+        setQaReport(null);
+        return;
+      }
+
+      const detail = await apiRequest<{
+        id: string;
+        currentVersionId?: string | null;
+        activeVersion: CompositionVersionView | null;
+        compiled: CompiledView | null;
+        versions: Array<{ id: string; versionNumber: number; renderJobs: RenderJobView[] }>;
+      }>({
+        path: `/api/v1/compositions/${compList[0].id}`,
+        accessToken,
+        workspaceId: activeWorkspace.id,
+      }).catch(() => null);
+
+      if (detail?.compiled) {
+        setActiveCompositionId(detail.id);
+        setStudioCompositionId(detail.id);
+        setActiveVersion(detail.activeVersion);
+        setCompiled(detail.compiled);
+        const activeVerObj =
+          detail.versions.find((v) => v.id === (detail.activeVersion?.id ?? detail.currentVersionId)) ??
+          detail.versions[detail.versions.length - 1];
+        const latestCompleted =
+          activeVerObj?.renderJobs.find((rj) => rj.status === 'COMPLETED' && (rj.streamUrl || rj.downloadUrl)) ??
+          [...detail.versions]
+            .reverse()
+            .flatMap((v) => v.renderJobs)
+            .find((rj) => rj.status === 'COMPLETED' && (rj.streamUrl || rj.downloadUrl)) ??
+          activeVerObj?.renderJobs[0] ??
+          null;
+        setRenderJob(latestCompleted);
+      } else {
+        setActiveCompositionId(null);
+        setActiveVersion(null);
+        setCompiled(null);
+        setRenderJob(null);
+      }
+    },
+    [accessToken, activeWorkspace, setStudioCompositionId],
+  );
+
   const loadStudioState = useCallback(async () => {
     if (!accessToken || !activeWorkspace) return;
     try {
@@ -154,39 +218,15 @@ export default function AIStudioPage() {
         studioProjectId && projList.some((p) => p.id === studioProjectId) ? studioProjectId : '';
       const defaultProjId = selectedProjectId || preferredStudioProj || projList[0]?.id || '';
       if (defaultProjId && !selectedProjectId) setSelectedProjectId(defaultProjId);
-      if (defaultProjId) await loadProjectAssets(defaultProjId);
+      if (defaultProjId) {
+        await Promise.all([
+          loadProjectAssets(defaultProjId),
+          !compiled ? loadProjectComposition(defaultProjId) : Promise.resolve(),
+        ]);
+      }
 
       if (convList[0] && !activeConversation) {
         await handleSelectConversation(convList[0].id);
-      }
-
-      if (!compiled) {
-        const compList = await apiRequest<Array<{ id: string }>>({
-          path: '/api/v1/compositions',
-          accessToken,
-          workspaceId: activeWorkspace.id,
-        }).catch(() => []);
-        if (compList[0]) {
-          const detail = await apiRequest<{
-            id: string;
-            activeVersion: CompositionVersionView | null;
-            compiled: CompiledView | null;
-            versions: Array<{ id: string; renderJobs: RenderJobView[] }>;
-          }>({
-            path: `/api/v1/compositions/${compList[0].id}`,
-            accessToken,
-            workspaceId: activeWorkspace.id,
-          }).catch(() => null);
-          if (detail?.compiled) {
-            setActiveCompositionId(detail.id);
-            setStudioCompositionId(detail.id);
-            setActiveVersion(detail.activeVersion);
-            setCompiled(detail.compiled);
-            if (detail.versions[0]?.renderJobs[0]) {
-              setRenderJob(detail.versions[0].renderJobs[0]);
-            }
-          }
-        }
       }
     } catch (err) {
       setFeedback({
@@ -197,10 +237,13 @@ export default function AIStudioPage() {
   }, [
     accessToken,
     activeWorkspace,
+    studioProjectId,
     selectedProjectId,
+    setSelectedProjectId,
     activeConversation,
     compiled,
     loadProjectAssets,
+    loadProjectComposition,
     handleSelectConversation,
     setFeedback,
   ]);
@@ -393,6 +436,7 @@ export default function AIStudioPage() {
       setQaReport(result.qaReport);
       setIsSimulatedMode(result.isSimulated);
       setCurrentFrame(0);
+      await loadProjectAssets(targetProjId);
       if (activeConversation) await handleSelectConversation(activeConversation.id);
       else await loadStudioState();
       setFeedback({
@@ -433,6 +477,7 @@ export default function AIStudioPage() {
       setCompiled(result.compiled);
       setRenderJob(result.renderJob);
       setQaReport(result.qaReport);
+      if (selectedProjectId) await loadProjectAssets(selectedProjectId);
       if (activeConversation) await handleSelectConversation(activeConversation.id);
       setFeedback({
         type: 'success',
@@ -536,6 +581,7 @@ export default function AIStudioPage() {
             onSelectProject={(id) => {
               setSelectedProjectId(id);
               void loadProjectAssets(id);
+              void loadProjectComposition(id);
             }}
             projectAssets={projectAssets}
             uploadingAsset={uploadingAsset}
@@ -700,6 +746,7 @@ export default function AIStudioPage() {
             onSeekFrame={setCurrentFrame}
             onUndoRedo={(dir) => void handleUndoRedo(dir)}
             onApprove={() => void handleApprove()}
+            onRefreshPreview={() => void loadProjectComposition(selectedProjectId)}
           />
           </div>
         </div>

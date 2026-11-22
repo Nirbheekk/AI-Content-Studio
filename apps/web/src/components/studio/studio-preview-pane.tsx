@@ -22,8 +22,9 @@ import {
 } from '@/components/design-system/primitives';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { VideoPlayer } from '@/components/creative/video-player';
+import { type VideoPlaybackPhase } from '@/components/video/media-video-player';
 import { RemotionLivePlayer } from '@/components/creative/remotion-live-player';
-import { WorkflowDto } from '@/lib/api-client';
+import { resolveMediaUrl, WorkflowDto } from '@/lib/api-client';
 import {
   CompiledView,
   CompositionVersionView,
@@ -45,6 +46,7 @@ export function StudioPreviewPane({
   onSeekFrame,
   onUndoRedo,
   onApprove,
+  onRefreshPreview,
 }: {
   compiled: CompiledView | null;
   activeCompositionId: string | null;
@@ -59,27 +61,39 @@ export function StudioPreviewPane({
   onSeekFrame: (frame: number) => void;
   onUndoRedo: (dir: 'undo' | 'redo') => void;
   onApprove: () => void;
+  onRefreshPreview?: () => Promise<void> | void;
 }) {
   const isApproved = activeWorkflow?.stage === 'APPROVED' || activeWorkflow?.stage === 'PUBLISHED';
   const playbackSrc = renderJob?.streamUrl ?? renderJob?.downloadUrl ?? null;
-  const hasFinalMp4 = Boolean(playbackSrc && renderJob && renderJob.outputSizeBytes > 2048);
+  const hasFinalMp4 = Boolean(
+    playbackSrc && renderJob && renderJob.status === 'COMPLETED' && renderJob.outputSizeBytes > 2048,
+  );
   const [previewMode, setPreviewMode] = React.useState<'mp4' | 'remotion'>(
     hasFinalMp4 ? 'mp4' : 'remotion',
   );
+  const [mp4Phase, setMp4Phase] = React.useState<VideoPlaybackPhase>(hasFinalMp4 ? 'loading' : 'idle');
 
   React.useEffect(() => {
     setPreviewMode(hasFinalMp4 ? 'mp4' : 'remotion');
+    setMp4Phase(hasFinalMp4 ? 'loading' : 'idle');
   }, [hasFinalMp4, renderJob?.id]);
+
+  const isMp4VerifiedReady =
+    hasFinalMp4 &&
+    (mp4Phase === 'ready' || mp4Phase === 'playing' || mp4Phase === 'paused' || mp4Phase === 'ended');
+  const isMp4Errored = hasFinalMp4 && mp4Phase === 'error';
+  const canApproveAndPublish = hasFinalMp4 && !isMp4Errored;
 
   return (
     <Card className="flex flex-col overflow-hidden">
       <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2.5">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold">Live Preview</span>
           {activeVersion && (
             <Badge variant="outline">v{activeVersion.versionNumber}</Badge>
           )}
-          {isSimulatedMode && <Badge variant="warning">Simulated</Badge>}
+          {isMp4VerifiedReady && <Badge variant="success">Final MP4 Ready</Badge>}
+          {isSimulatedMode && <Badge variant="warning">AI Brief: Simulated</Badge>}
         </div>
         <div className="flex items-center gap-1">
           <Button
@@ -153,6 +167,8 @@ export function StudioPreviewPane({
                   poster={renderJob?.qaFrameUrls?.[0] ?? undefined}
                   label={`${compiled.templateId} · Final MP4`}
                   sizeBytes={renderJob?.outputSizeBytes}
+                  onRequestRefreshUrl={onRefreshPreview}
+                  onPhaseChange={setMp4Phase}
                 />
               ) : (
                 <>
@@ -193,8 +209,20 @@ export function StudioPreviewPane({
                   {activeWorkflow && <StatusIndicator status={activeWorkflow.stage} />}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
+                  {!canApproveAndPublish && (
+                    <p className="w-full text-xs text-muted-foreground">
+                      {isMp4Errored
+                        ? 'Approval & publishing are paused until Final MP4 playback succeeds.'
+                        : 'Render a verified Final MP4 to unlock approval and publishing.'}
+                    </p>
+                  )}
                   {activeWorkflow && !isApproved && (
-                    <Button size="sm" onClick={onApprove} className="w-full">
+                    <Button
+                      size="sm"
+                      onClick={onApprove}
+                      disabled={!canApproveAndPublish}
+                      className="w-full"
+                    >
                       <CheckCircle2 className="h-3.5 w-3.5" />
                       Approve for Publishing
                     </Button>
@@ -217,12 +245,19 @@ export function StudioPreviewPane({
                       Repurpose
                     </Link>
                   </Button>
-                  <Button variant="outline" size="sm" className="flex-1" asChild>
-                    <Link href="/publish">
+                  {canApproveAndPublish ? (
+                    <Button variant="outline" size="sm" className="flex-1" asChild>
+                      <Link href="/publish">
+                        <Send className="h-3 w-3" />
+                        Publish
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm" className="flex-1" disabled>
                       <Send className="h-3 w-3" />
                       Publish
-                    </Link>
-                  </Button>
+                    </Button>
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -273,9 +308,20 @@ export function StudioPreviewPane({
                   Run a production workflow to generate a Visual QA report.
                 </p>
               )}
-              {renderJob?.downloadUrl && (
+              {hasFinalMp4 && playbackSrc && !isMp4Errored && (
                 <Button variant="outline" size="sm" className="w-full" asChild>
-                  <a href={renderJob.downloadUrl} target="_blank" rel="noreferrer">
+                  <a
+                    href={
+                      resolveMediaUrl(
+                        renderJob?.streamUrl
+                          ? `${renderJob.streamUrl}&download=1`
+                          : renderJob?.downloadUrl,
+                      ) ?? '#'
+                    }
+                    download
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     Download Rendered MP4
                   </a>
                 </Button>
