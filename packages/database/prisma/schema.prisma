@@ -165,6 +165,7 @@ model Workspace {
   renderJobs     RenderJob[]
   mediaRights    MediaRightsRecord[]
   budgetPolicies BudgetPolicy[]
+  editorialPlans EditorialPlan[]
   socialAccounts SocialAccount[]
   publishPosts   PublishPost[]
   usageRecords   UsageRecord[]
@@ -255,6 +256,7 @@ model Project {
   workflows      Workflow[]
   compositions   Composition[]
   budgetPolicies BudgetPolicy[]
+  editorialPlans EditorialPlan[]
 
   @@index([workspaceId, createdAt])
 }
@@ -309,13 +311,15 @@ model AssetDerivative {
 }
 
 model Transcript {
-  id           String   @id @default(uuid())
-  assetId      String   @unique
-  language     String   @default("en")
-  fullText     String
-  segmentsJson Json
-  provider     String
-  createdAt    DateTime @default(now())
+  id            String   @id @default(uuid())
+  assetId       String   @unique
+  language      String   @default("en")
+  fullText      String
+  correctedText String?
+  segmentsJson  Json
+  provider      String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
 
   asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
 }
@@ -819,5 +823,64 @@ model BudgetPolicy {
   project   Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([workspaceId, projectId])
+  @@index([workspaceId])
+}
+
+// -----------------------------------------------------------------------------
+// Stage 3 SOTA Editorial Intelligence: Editorial Plans & Concepts
+// -----------------------------------------------------------------------------
+
+model EditorialPlan {
+  id                String   @id @default(uuid())
+  workspaceId       String
+  projectId         String
+  createdByUserId   String
+  brief             String
+  audience          String   @default("General audience")
+  objective         String   @default("Educate and engage")
+  platform          String   @default("INSTAGRAM_REELS")
+  targetDurationSec Int      @default(30)
+  tone              String   @default("Authentic and direct")
+  cta               String   @default("Follow for more")
+  status            String   @default("DRAFT")
+  approvedConceptId String?
+  approvedByUserId  String?
+  approvedAt        DateTime?
+  revisionNumber    Int      @default(1)
+  estimatedCostUsd  Float    @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  workspace Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project   Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  concepts  EditorialConcept[]
+
+  @@index([workspaceId, projectId, createdAt])
+}
+
+model EditorialConcept {
+  id                    String   @id @default(uuid())
+  planId                String
+  workspaceId           String
+  rank                  Int
+  title                 String
+  hook                  String
+  narrativeStructure    String
+  selectedMomentsJson   Json
+  scriptSectionsJson    Json
+  voiceoverApproach     String
+  captionApproach       String
+  cta                   String
+  editorialRationale    String
+  qualityScoreJson      Json
+  overallEditorialScore Int
+  status                String   @default("PROPOSED")
+  reviewerNotes         String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  plan EditorialPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId, rank])
   @@index([workspaceId])
 }

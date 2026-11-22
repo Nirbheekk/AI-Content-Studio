@@ -18,6 +18,7 @@ import {
 import { AppShell } from '@/components/app-shell';
 import { BulkFolderUploader } from '@/components/media/bulk-folder-uploader';
 import { MediaRightsPanel } from '@/components/media/media-rights-panel';
+import { SemanticSearchPanel } from '@/components/media/semantic-search-panel';
 import { MediaVideoPlayer } from '@/components/video/media-video-player';
 import {
   Badge,
@@ -211,6 +212,24 @@ export default function MediaLibraryPage() {
         />
 
         <WorkflowStepper activeStep="brief" projectId={selectedProjectId || undefined} />
+
+        <SemanticSearchPanel
+          projectId={selectedProjectId}
+          onSelectAssetId={(assetId) => {
+            const match = assets.find((a) => a.id === assetId);
+            if (match) {
+              void handleOpenInspect(match);
+            } else if (accessToken && activeWorkspace) {
+              void apiRequest<AssetDto>({
+                path: `/api/v1/assets/${assetId}`,
+                accessToken,
+                workspaceId: activeWorkspace.id,
+              })
+                .then((detail) => setPreviewAsset(detail))
+                .catch(() => null);
+            }
+          }}
+        />
 
         {/* Filter Bar */}
         <div className="flex flex-wrap items-center justify-between gap-2">

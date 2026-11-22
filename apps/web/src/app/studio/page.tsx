@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { StudioContextRail } from '@/components/studio/studio-context-rail';
+import { EditorialPlannerPanel } from '@/components/studio/editorial-planner-panel';
 import { PreflightCostBanner } from '@/components/studio/preflight-cost-banner';
 import { StudioPreviewPane } from '@/components/studio/studio-preview-pane';
 import {
@@ -688,6 +689,12 @@ export default function AIStudioPage() {
             </div>
 
             <div className="space-y-2 border-t border-border p-3">
+              <EditorialPlannerPanel
+                projectId={selectedProjectId}
+                brief={promptInput}
+                platform={targetPlatform}
+                onUseApprovedConcept={(approvedPrompt) => setPromptInput(approvedPrompt)}
+              />
               <PreflightCostBanner projectId={selectedProjectId} />
               <form onSubmit={handleProduce} className="space-y-2">
                 <Textarea
