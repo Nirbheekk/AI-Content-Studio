@@ -9,3 +9,4 @@ export * from './signal-qa.js';
 export * from './smart-cutter.js';
 export * from './caption-engine.js';
 export * from './creative-qa.js';
+export * from './sfx-engine.js';

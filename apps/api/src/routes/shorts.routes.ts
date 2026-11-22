@@ -8,6 +8,7 @@ import {
   ValidationError,
 } from '@ai-content-os/shared';
 import type { MinioStorageAdapter } from '@ai-content-os/integrations';
+import { SFX_PRESETS } from '@ai-content-os/remotion-engine';
 import { authorizeWorkspace } from '../middleware/auth.js';
 import {
   analyzeAssetSmartCuts,
@@ -28,6 +29,7 @@ export async function registerShortsRoutes(
         captionPresets: CAPTION_PRESETS,
         motionPresets: MOTION_PRESETS,
         smartCutPresets: ['GENTLE', 'BALANCED', 'AGGRESSIVE', 'MANUAL_REVIEW'],
+        sfxPresets: Object.values(SFX_PRESETS),
       },
     });
   });
