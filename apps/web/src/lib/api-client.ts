@@ -79,6 +79,17 @@ export interface AssetDto {
   width?: number | null;
   height?: number | null;
   aiMetadataJson?: Record<string, unknown> | null;
+  rightsRecord?: {
+    id: string;
+    rightsOwner: string;
+    source: string;
+    licenseType: string;
+    commercialAllowed: boolean;
+    attributionRequired: boolean;
+    attributionText?: string | null;
+    status: string;
+    expiresAt?: string | null;
+  } | null;
   isDuplicate?: boolean;
   createdAt: string;
   project?: { id: string; name: string } | null;

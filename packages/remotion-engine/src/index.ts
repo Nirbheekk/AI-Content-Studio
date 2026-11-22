@@ -5,3 +5,4 @@ export * from './audio-pipeline.js';
 export * from './ffmpeg-renderer.js';
 export * from './brag-engine.js';
 export * from './video-probe.js';
+export * from './signal-qa.js';

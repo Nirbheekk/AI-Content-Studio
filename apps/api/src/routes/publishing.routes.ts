@@ -7,6 +7,7 @@ import {
   InitiateOAuthConnectSchema,
   NotFoundError,
   PLATFORM_PUBLISHING_CAPABILITIES,
+  PublishRightsCheckRequestSchema,
   ReschedulePublishPostSchema,
   TargetPlatformSchema,
   UpdatePublishPostSchema,
@@ -15,6 +16,7 @@ import {
 import { prisma } from '@ai-content-os/database';
 import { MinioStorageAdapter } from '@ai-content-os/integrations';
 import { authorizeWorkspace } from '../middleware/auth.js';
+import { evaluatePublishRightsGate } from '../services/media-rights.service.js';
 import {
   cancelPublishPost,
   checkSocialAccountConnectionHealth,
@@ -532,6 +534,32 @@ export async function registerPublishingRoutes(
     return reply.status(200).send({
       success: true,
       data: calendarData,
+    });
+  });
+
+  // 17. Pre-Flight Publishing Rights Gate Evaluation (VIEWER+)
+  app.post('/api/v1/publishing/rights-check', async (request, reply) => {
+    const ctx = await authorizeWorkspace(request, 'VIEWER');
+    const parsed = PublishRightsCheckRequestSchema.safeParse(request.body ?? {});
+    if (!parsed.success) {
+      throw new ValidationError('Invalid rights-check payload', parsed.error.flatten());
+    }
+
+    const evaluation = await evaluatePublishRightsGate({
+      workspaceId: ctx.workspaceId,
+      userId: ctx.userId,
+      assetId: parsed.data.assetId ?? null,
+      compositionId: parsed.data.compositionId ?? null,
+      renderJobId: parsed.data.renderJobId ?? null,
+      platform: parsed.data.platform,
+      territory: parsed.data.territory,
+      commercialUse: parsed.data.commercialUse,
+      requireVerifiedRights: parsed.data.requireVerifiedRights,
+    });
+
+    return reply.status(200).send({
+      success: true,
+      data: evaluation,
     });
   });
 }

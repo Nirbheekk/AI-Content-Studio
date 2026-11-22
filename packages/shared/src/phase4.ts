@@ -310,6 +310,8 @@ export const CreatePublishPostRequestSchema = z.object({
   timezone: z.string().trim().default('UTC'),
   publishImmediately: z.boolean().default(false),
   explicitApprovalConfirmed: z.boolean().default(false),
+  requireVerifiedRights: z.boolean().default(false),
+  territory: z.string().trim().min(2).max(16).default('US'),
   idempotencyKey: z.string().trim().min(8).max(128).optional(),
   mediaAspectRatio: AspectRatioSchema.optional(),
   mediaDurationSec: z.number().positive().optional(),

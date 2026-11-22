@@ -163,6 +163,8 @@ model Workspace {
   workflows      Workflow[]
   compositions   Composition[]
   renderJobs     RenderJob[]
+  mediaRights    MediaRightsRecord[]
+  budgetPolicies BudgetPolicy[]
   socialAccounts SocialAccount[]
   publishPosts   PublishPost[]
   usageRecords   UsageRecord[]
@@ -250,8 +252,9 @@ model Project {
   createdBy     User           @relation("ProjectCreator", fields: [createdById], references: [id])
   assets        Asset[]
   conversations Conversation[]
-  workflows     Workflow[]
-  compositions  Composition[]
+  workflows      Workflow[]
+  compositions   Composition[]
+  budgetPolicies BudgetPolicy[]
 
   @@index([workspaceId, createdAt])
 }
@@ -282,9 +285,10 @@ model Asset {
 
   workspace   Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   project     Project?          @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  derivatives AssetDerivative[]
-  transcript  Transcript?
-  scenes      AssetScene[]
+  derivatives  AssetDerivative[]
+  transcript   Transcript?
+  scenes       AssetScene[]
+  rightsRecord MediaRightsRecord?
 
   @@index([workspaceId, projectId])
   @@index([workspaceId, checksumSha256])
@@ -744,4 +748,76 @@ model Invoice {
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId, periodStart])
+}
+
+// -----------------------------------------------------------------------------
+// Stage 2 SOTA Foundation: Media Rights & Budget Policies
+// -----------------------------------------------------------------------------
+
+enum MediaRightsStatus {
+  UNKNOWN
+  PENDING_VERIFICATION
+  VERIFIED
+  RESTRICTED
+  EXPIRED
+  REVOKED
+}
+
+enum MediaRightsSource {
+  USER_OWNED
+  LICENSED_STOCK
+  AI_GENERATED
+  VOICE_CLONED
+  CLIENT_PROVIDED
+  UNKNOWN
+}
+
+model MediaRightsRecord {
+  id                    String            @id @default(uuid())
+  workspaceId           String
+  assetId               String            @unique
+  rightsOwner           String
+  creatorName           String?
+  source                MediaRightsSource @default(UNKNOWN)
+  licenseType           String            @default("UNKNOWN")
+  commercialAllowed     Boolean           @default(false)
+  attributionRequired   Boolean           @default(false)
+  attributionText       String?
+  territoryRestrictions String[]          @default([])
+  usageRestrictions     String[]          @default([])
+  expiresAt             DateTime?
+  consentStatus         String            @default("NOT_REQUIRED")
+  consentDocKey         String?
+  status                MediaRightsStatus @default(UNKNOWN)
+  verifiedByUserId      String?
+  verifiedAt            DateTime?
+  notes                 String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  asset     Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status])
+  @@index([workspaceId, expiresAt])
+}
+
+model BudgetPolicy {
+  id                   String   @id @default(uuid())
+  workspaceId          String
+  projectId            String?
+  monthlyLimitUsd      Float    @default(100)
+  perOperationLimitUsd Float    @default(10)
+  approvalThresholdUsd Float    @default(5)
+  enforceHardStop      Boolean  @default(false)
+  currency             String   @default("USD")
+  updatedByUserId      String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project   Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, projectId])
+  @@index([workspaceId])
 }

@@ -28,6 +28,7 @@ import {
 } from '@ai-content-os/database';
 import { MinioStorageAdapter, PostizPublishingAdapter } from '@ai-content-os/integrations';
 import { cancelScheduledPublishingJob, enqueuePublishingJob } from '../lib/queues.js';
+import { assertPublishRightsPermitted } from './media-rights.service.js';
 
 export const postizAdapter = new PostizPublishingAdapter();
 
@@ -468,6 +469,18 @@ export async function createOrSchedulePublishPost(params: {
     });
   }
 
+  // Stage 2C: Publishing Rights Gate (evaluated before scheduling/publishing)
+  await assertPublishRightsPermitted({
+    workspaceId,
+    userId,
+    assetId: input.assetId ?? null,
+    compositionId: input.compositionId ?? null,
+    renderJobId: resolvedRenderJobId,
+    platform: socialAccount.platform,
+    territory: input.territory,
+    requireVerifiedRights: input.requireVerifiedRights,
+  });
+
   // Persist explicit human approval on linked Composition / Workflow only after validation passes
   if (input.explicitApprovalConfirmed && resolvedCompositionId) {
     await prisma.composition
@@ -619,6 +632,17 @@ export async function executePostPublication(params: {
   if (post.status === 'CANCELLED') {
     throw new ValidationError('Cannot publish a CANCELLED post');
   }
+
+  // Stage 2C: Re-evaluate Media Rights Gate immediately before execution (catches expiry/revocation after scheduling)
+  await assertPublishRightsPermitted({
+    workspaceId: params.workspaceId,
+    userId: params.userId,
+    assetId: post.assetId,
+    compositionId: post.compositionId,
+    renderJobId: post.renderJobId,
+    platform: post.platform,
+    requireVerifiedRights: false,
+  });
 
   await prisma.publishPost.update({
     where: { id: post.id },

@@ -33,6 +33,7 @@ import {
   PLATFORM_TEMPLATES,
   probeVideoBytes,
   renderInspectionFramePng,
+  runFfmpegSignalQaBytes,
 } from '@ai-content-os/remotion-engine';
 import { buildRenderStreamUrl } from '../lib/media-token.js';
 import { workflowEventBus } from '../lib/queues.js';
@@ -419,8 +420,13 @@ export async function renderAndInspectCompositionVersion(params: {
     throw err;
   }
 
-  // Run Agent 7 Quality Assurance inspection on the rendered composition and frames
+  // Run Agent 7 Quality Assurance inspection + Stage 2E deterministic FFmpeg Signal QA
   const qaReport = inspectCompositionAndFrames(spec);
+  const signalQa = await runFfmpegSignalQaBytes(mp4Bytes, {
+    expectedWidth: compiled.width,
+    expectedHeight: compiled.height,
+    requireAudio: false,
+  });
   const checksumSha256 = createHash('sha256').update(mp4Bytes).digest('hex');
   const safeBaseTitle = (version.composition.title || compiled.templateId)
     .toLowerCase()
@@ -481,6 +487,7 @@ export async function renderAndInspectCompositionVersion(params: {
           versionNumber: version.versionNumber,
           templateId: compiled.templateId,
           probe,
+          signalQa,
           qaScore: qaReport.overallScore,
           thumbnailKey: primaryThumbKey,
           verified: true,
@@ -560,6 +567,7 @@ export async function renderAndInspectCompositionVersion(params: {
       streamUrl,
       qaFrameUrls,
       codecInfo: probe,
+      signalQa,
     },
     qaReport,
     compiled,

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   FileText,
@@ -16,6 +16,8 @@ import {
   Wand2,
 } from 'lucide-react';
 import { AppShell } from '@/components/app-shell';
+import { BulkFolderUploader } from '@/components/media/bulk-folder-uploader';
+import { MediaRightsPanel } from '@/components/media/media-rights-panel';
 import { MediaVideoPlayer } from '@/components/video/media-video-player';
 import {
   Badge,
@@ -59,7 +61,6 @@ function AssetIcon({ type }: { type: AssetDto['assetType'] }) {
 export default function MediaLibraryPage() {
   const { accessToken, activeWorkspace, activeProjectId, setActiveProjectId, setFeedback } =
     useStudio();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [assets, setAssets] = useState<AssetDto[]>([]);
   const [projects, setProjects] = useState<ProjectDto[]>([]);
@@ -73,7 +74,6 @@ export default function MediaLibraryPage() {
   const [uploadProjectId, setUploadProjectId] = useState('');
   const [folderPath, setFolderPath] = useState('/raw-clips');
   const [tagsInput, setTagsInput] = useState('');
-  const [uploading, setUploading] = useState(false);
 
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [previewAsset, setPreviewAsset] = useState<AssetDto | null>(null);
@@ -127,67 +127,6 @@ export default function MediaLibraryPage() {
   useEffect(() => {
     void loadLibrary();
   }, [loadLibrary]);
-
-  const handleUploadFiles = async (files: FileList | null) => {
-    if (!files || files.length === 0 || !accessToken || !activeWorkspace) return;
-    setUploading(true);
-    try {
-      const tags = tagsInput
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean);
-
-      for (const file of Array.from(files)) {
-        const mimeType = file.type || 'application/octet-stream';
-        const arrayBuffer = await file.arrayBuffer();
-        const initRes = await apiRequest<{
-          asset: AssetDto;
-          directUploadPath: string;
-        }>({
-          method: 'POST',
-          path: '/api/v1/assets/upload-url',
-          accessToken,
-          workspaceId: activeWorkspace.id,
-          body: {
-            originalName: file.name,
-            mimeType,
-            sizeBytes: file.size || arrayBuffer.byteLength || 1,
-            ...(uploadProjectId ? { projectId: uploadProjectId } : {}),
-            folderPath: folderPath.trim() || '/raw-clips',
-            tags,
-          },
-        });
-
-        await apiRequest<AssetDto>({
-          method: 'PUT',
-          path: initRes.directUploadPath,
-          accessToken,
-          workspaceId: activeWorkspace.id,
-          rawBody: arrayBuffer,
-          contentType: mimeType,
-        });
-
-        await apiRequest<AssetDto>({
-          method: 'POST',
-          path: `/api/v1/assets/${initRes.asset.id}/complete`,
-          accessToken,
-          workspaceId: activeWorkspace.id,
-          body: { tags },
-        });
-      }
-
-      setFeedback({ type: 'success', message: `Uploaded ${files.length} file(s)` });
-      setUploadOpen(false);
-      await loadLibrary();
-    } catch (err) {
-      setFeedback({
-        type: 'error',
-        message: err instanceof Error ? err.message : 'Upload failed',
-      });
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const handleAnalyze = async (asset: AssetDto) => {
     if (!accessToken || !activeWorkspace) return;
@@ -499,22 +438,24 @@ export default function MediaLibraryPage() {
                 />
               </div>
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              className="hidden"
-              onChange={(e) => void handleUploadFiles(e.target.files)}
+            <BulkFolderUploader
+              projectId={uploadProjectId}
+              baseFolderPath={folderPath}
+              tags={tagsInput
+                .split(',')
+                .map((t) => t.trim())
+                .filter(Boolean)}
+              onComplete={({ uploaded, duplicates, failed }) => {
+                if (uploaded > 0 || duplicates > 0) {
+                  setFeedback({
+                    type: failed > 0 ? 'error' : 'success',
+                    message: `Uploaded ${uploaded} file(s)${duplicates ? `, ${duplicates} duplicate(s)` : ''}${failed ? `, ${failed} failed` : ''}`,
+                  });
+                  void loadLibrary();
+                  if (failed === 0) setUploadOpen(false);
+                }
+              }}
             />
-            <Button
-              type="button"
-              className="w-full"
-              disabled={uploading}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="h-3.5 w-3.5" />
-              {uploading ? 'Uploading...' : 'Select Files to Upload'}
-            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -563,6 +504,13 @@ export default function MediaLibraryPage() {
                   className="max-h-72 w-full rounded-lg border border-border bg-canvas object-contain"
                 />
               )}
+              <MediaRightsPanel
+                asset={previewAsset}
+                onUpdated={() => {
+                  void handleOpenInspect(previewAsset);
+                  void loadLibrary();
+                }}
+              />
               {previewAsset.aiSummary && (
                 <div className="rounded-md border border-border bg-muted/30 p-3 text-xs">
                   <div className="mb-1 font-semibold">AI Summary</div>

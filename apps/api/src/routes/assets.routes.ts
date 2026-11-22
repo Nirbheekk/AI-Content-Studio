@@ -10,6 +10,7 @@ import {
   RequestUploadUrlSchema,
   sanitizeAssetFilename,
   sanitizeFolderPath,
+  UpsertMediaRightsRequestSchema,
   ValidationError,
 } from '@ai-content-os/shared';
 import { prisma } from '@ai-content-os/database';
@@ -21,6 +22,10 @@ import {
   streamStorageObjectToReply,
 } from '../lib/stream-media.js';
 import { authorizeWorkspace } from '../middleware/auth.js';
+import {
+  evaluateSingleAssetRights,
+  upsertAssetMediaRights,
+} from '../services/media-rights.service.js';
 import { assertQuotaAvailable, computeQuotaStatuses } from './intelligence.routes.js';
 
 export async function registerAssetRoutes(
@@ -337,6 +342,7 @@ export async function registerAssetRoutes(
         where: whereClause,
         include: {
           project: { select: { id: true, name: true } },
+          rightsRecord: true,
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
@@ -415,6 +421,7 @@ export async function registerAssetRoutes(
         derivatives: true,
         transcript: true,
         scenes: { orderBy: { sceneIndex: 'asc' } },
+        rightsRecord: true,
       },
     });
 
@@ -447,6 +454,56 @@ export async function registerAssetRoutes(
         })),
         streamUrl,
         downloadUrl,
+      },
+    });
+  });
+
+  app.get('/api/v1/assets/:assetId/rights', async (request, reply) => {
+    const ctx = await authorizeWorkspace(request, 'VIEWER');
+    const { assetId } = request.params as { assetId: string };
+    const asset = await prisma.asset.findFirst({
+      where: { id: assetId, workspaceId: ctx.workspaceId },
+      include: { rightsRecord: true },
+    });
+    if (!asset) {
+      throw new NotFoundError('Asset', assetId);
+    }
+    const evaluation = evaluateSingleAssetRights(
+      { id: asset.id, originalName: asset.originalName },
+      asset.rightsRecord,
+    );
+    return reply.status(200).send({
+      success: true,
+      data: {
+        assetId: asset.id,
+        rightsRecord: asset.rightsRecord,
+        evaluation,
+      },
+    });
+  });
+
+  app.put('/api/v1/assets/:assetId/rights', async (request, reply) => {
+    const ctx = await authorizeWorkspace(request, 'EDITOR');
+    const { assetId } = request.params as { assetId: string };
+    const parsed = UpsertMediaRightsRequestSchema.safeParse(request.body);
+    if (!parsed.success) {
+      throw new ValidationError('Invalid media rights payload', parsed.error.flatten());
+    }
+    const record = await upsertAssetMediaRights({
+      workspaceId: ctx.workspaceId,
+      userId: ctx.userId,
+      assetId,
+      input: parsed.data,
+    });
+    const evaluation = evaluateSingleAssetRights(
+      { id: assetId, originalName: record.rightsOwner },
+      record,
+    );
+    return reply.status(200).send({
+      success: true,
+      data: {
+        rightsRecord: record,
+        evaluation,
       },
     });
   });

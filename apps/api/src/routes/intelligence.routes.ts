@@ -3,6 +3,7 @@ import {
   AnalyticsQuerySchema,
   computeEngagementRate,
   computeEvidenceInsights,
+  EstimateCostRequestSchema,
   evaluateQuota,
   ForbiddenError,
   ImportMetricsSchema,
@@ -10,9 +11,11 @@ import {
   listUnavailableMetrics,
   METRIC_KEYS,
   NotFoundError,
+  PROVIDER_PRICING_REGISTRY,
   QuotaStatus,
   SnapshotMetrics,
   UpdateQuotasSchema,
+  UpsertBudgetPolicyRequestSchema,
   UsageCategory,
   ValidationError,
 } from '@ai-content-os/shared';
@@ -23,6 +26,11 @@ import { z } from 'zod';
 import { authorizeWorkspace } from '../middleware/auth.js';
 import { getQueueDepths } from '../lib/queues.js';
 import { metrics } from '../lib/observability.js';
+import {
+  estimateWorkflowPreflightCost,
+  getEffectiveBudgetPolicy,
+  upsertBudgetPolicyForWorkspace,
+} from '../services/cost-estimator.service.js';
 
 const postiz = new PostizPublishingAdapter();
 
@@ -564,6 +572,57 @@ export async function registerIntelligenceRoutes(app: FastifyInstance): Promise<
         })),
         queues,
       },
+    });
+  });
+
+  // Stage 2D: Pre-Flight Cost Estimator & Budget Policies
+  app.post('/api/v1/billing/estimate', async (request, reply) => {
+    const ctx = await authorizeWorkspace(request, 'VIEWER');
+    const parsed = EstimateCostRequestSchema.safeParse(request.body);
+    if (!parsed.success) {
+      throw new ValidationError('Invalid cost estimate payload', parsed.error.flatten());
+    }
+    const estimate = await estimateWorkflowPreflightCost({
+      workspaceId: ctx.workspaceId,
+      projectId: parsed.data.projectId,
+      operations: parsed.data.operations,
+    });
+    return reply.status(200).send({
+      success: true,
+      data: {
+        ...estimate,
+        pricingRegistryCount: PROVIDER_PRICING_REGISTRY.length,
+      },
+    });
+  });
+
+  app.get('/api/v1/billing/budget-policy', async (request, reply) => {
+    const ctx = await authorizeWorkspace(request, 'VIEWER');
+    const query = (request.query ?? {}) as { projectId?: string };
+    const policy = await getEffectiveBudgetPolicy(ctx.workspaceId, query.projectId ?? null);
+    return reply.status(200).send({
+      success: true,
+      data: {
+        policy,
+        pricingRegistry: PROVIDER_PRICING_REGISTRY,
+      },
+    });
+  });
+
+  app.put('/api/v1/billing/budget-policy', async (request, reply) => {
+    const ctx = await authorizeWorkspace(request, 'ADMIN');
+    const parsed = UpsertBudgetPolicyRequestSchema.safeParse(request.body);
+    if (!parsed.success) {
+      throw new ValidationError('Invalid budget policy payload', parsed.error.flatten());
+    }
+    const saved = await upsertBudgetPolicyForWorkspace({
+      workspaceId: ctx.workspaceId,
+      userId: ctx.userId,
+      input: parsed.data,
+    });
+    return reply.status(200).send({
+      success: true,
+      data: { policy: saved },
     });
   });
 }
