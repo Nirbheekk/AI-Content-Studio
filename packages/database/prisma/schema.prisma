@@ -169,6 +169,9 @@ model Workspace {
   generativeJobs GenerativeAssetJob[]
   voiceConsents  VoiceConsentRecord[]
   campaigns      Campaign[]
+  reviewLinks    ReviewLink[]
+  approvalRecords ApprovalRecord[]
+  notifications  Notification[]
   socialAccounts SocialAccount[]
   publishPosts   PublishPost[]
   usageRecords   UsageRecord[]
@@ -1052,4 +1055,69 @@ model CampaignDeliverable {
 
   @@index([campaignId, status])
   @@index([workspaceId])
+}
+
+// -----------------------------------------------------------------------------
+// Stage 7 — Client Collaboration, Review Links, Approvals & Notifications
+// -----------------------------------------------------------------------------
+
+model ReviewLink {
+  id              String    @id @default(uuid())
+  workspaceId     String
+  createdByUserId String
+  campaignId      String?
+  compositionId   String?
+  title           String
+  tokenHash       String    @unique
+  permission      String    @default("APPROVE") // VIEW_ONLY, COMMENT, APPROVE
+  passwordHash    String?
+  allowDownload   Boolean   @default(false)
+  expiresAt       DateTime
+  revokedAt       DateTime?
+  accessCount     Int       @default(0)
+  lastAccessedAt  DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+  @@index([compositionId])
+}
+
+model ApprovalRecord {
+  id                   String   @id @default(uuid())
+  workspaceId          String
+  compositionId        String
+  compositionVersionId String
+  versionNumber        Int
+  stage                String   @default("CLIENT_APPROVAL") // INTERNAL_CREATIVE, CLIENT_APPROVAL, PUBLISHING_APPROVAL
+  reviewerName         String
+  reviewerUserId       String?
+  reviewLinkId         String?
+  decision             String   // APPROVED, CHANGES_REQUESTED, REJECTED
+  notes                String?
+  createdAt            DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, compositionId, versionNumber])
+}
+
+model Notification {
+  id              String    @id @default(uuid())
+  workspaceId     String
+  recipientUserId String?
+  eventType       String
+  dedupeKey       String    @unique
+  title           String
+  body            String
+  entityType      String
+  entityId        String
+  readAt          DateTime?
+  createdAt       DateTime  @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
 }

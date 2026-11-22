@@ -2,13 +2,13 @@
 
 - **Project**: AI Content Operating System
 - **Spec Status**: `FINALIZED` ([SPEC.md](./SPEC.md))
-- **Active Phase**: SOTA Transformation — Stage 6 Completed & Verified (Autonomous Creative Campaigns, Lifecycle State Machine & 8-Node Production DAG)
-- **Last Action**: Implemented and verified Stage 6 Autonomous Creative Campaigns: added additive Prisma models (`Campaign`, `CampaignTask`, `CampaignDeliverable`) synced to PostgreSQL; added `packages/shared/src/stage6.ts` (16-state lifecycle machine); built `apps/api/src/services/campaign-orchestrator.service.ts` and `apps/api/src/routes/campaigns.routes.ts` (NL brief -> strategy & content matrix -> mandatory plan approval -> 8-node durable Production DAG -> editable compositions + Creative QA -> mandatory human approval gate); created `/campaigns` workspace UI (`apps/web/src/app/campaigns/page.tsx`) + `AppShell` nav; added `apps/api/src/__tests__/stage6-campaigns.test.ts` and Stage 6 reports.
+- **Active Phase**: SOTA Transformation — Stage 7 Completed & Verified (Client Collaboration, Expiring Password-Protected Review Links, Version-Bound Approvals & Notifications)
+- **Last Action**: Implemented and verified Stage 7 Client Collaboration: added additive Prisma models (`ReviewLink`, `ApprovalRecord`, `Notification`) synced to PostgreSQL; added `packages/shared/src/stage7.ts`; built `apps/api/src/services/collaboration.service.ts` and `apps/api/src/routes/collaboration.routes.ts` (SHA-256 hashed tokens/passwords, zero workspace leakage on public review endpoints, frame-accurate timestamped client comments, version-bound approval invalidation on new versions, idempotent notifications); created standalone `/review/[token]` client portal (`apps/web/src/app/review/[token]/page.tsx`) and `ReviewLinkPanel` in `/editor`; added `apps/api/src/__tests__/stage7-collaboration.test.ts` and Stage 7 reports.
 - **Empirical Verification**:
   - `pnpm.cmd run typecheck`: `13/13` tasks passed (`0` errors).
   - `pnpm.cmd run lint`: `0` errors, `0` warnings (`--max-warnings 0`).
-  - `pnpm.cmd --env-file=.env run test`: `13/13` tasks passed (`apps/api` `14/14` suites / `36/36` tests).
-  - `pnpm.cmd run build`: `8/8` packages built cleanly (`19/19` Next.js routes including `/campaigns`).
+  - `pnpm.cmd --env-file=.env run test`: `13/13` tasks passed (`apps/api` `15/15` suites / `37/37` tests).
+  - `pnpm.cmd run build`: `8/8` packages built cleanly (`20/20` Next.js routes including `/review/[token]`).
   - Live Chromium E2E (`http://localhost:8080`): Verified real `<video>` `readyState: 4`, playback, seeking to `2.0s`, Nginx HTTP `206` byte-range streaming, and reload persistence across `/editor`, `/repurpose`, and `/library` (`0` mobile/desktop overflow, stationary sidebar preserved).
   - Reports: `PHASE_12_VIDEO_PIPELINE_AUDIT.md`, `PHASE_12_VIDEO_PLAYBACK_FIX_REPORT.md`, `PHASE_12_VIDEO_E2E_TEST_REPORT.md`.
   - `pnpm.cmd -r run typecheck`: `8/8` workspace projects passed (`0` errors).

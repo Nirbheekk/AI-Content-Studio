@@ -35,6 +35,7 @@ import {
 } from '../../components/design-system/primitives';
 import { VideoPlayer } from '../../components/creative/video-player';
 import { CaptionPresetBar } from '../../components/editor/caption-preset-bar';
+import { ReviewLinkPanel } from '../../components/editor/review-link-panel';
 import { useStudio } from '../../context/studio-context';
 import { apiRequest } from '../../lib/api-client';
 
@@ -1184,6 +1185,13 @@ export default function InteractiveEditorPage() {
                 onApplied={async () => {
                   if (selectedCompId) await loadCompositionDetail(selectedCompId);
                 }}
+                onFeedback={setFeedback}
+              />
+
+              <ReviewLinkPanel
+                accessToken={accessToken}
+                workspaceId={activeWorkspace?.id ?? null}
+                compositionId={selectedCompId}
                 onFeedback={setFeedback}
               />
 

@@ -12,3 +12,4 @@ export * from './stage3.js';
 export * from './stage4.js';
 export * from './stage5.js';
 export * from './stage6.js';
+export * from './stage7.js';
