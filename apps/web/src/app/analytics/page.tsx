@@ -13,6 +13,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { AppShell } from '../../components/app-shell';
+import { DistributionIntelligencePanel } from '../../components/distribution/distribution-intelligence-panel';
 import {
   Badge,
   Button,
@@ -795,6 +796,11 @@ export default function AnalyticsPage() {
           </div>
         )}
       </div>
+
+        <DistributionIntelligencePanel
+          accessToken={accessToken}
+          workspaceId={activeWorkspace?.id ?? null}
+        />
 
       {selectedPost && (
         <div

@@ -2,13 +2,13 @@
 
 - **Project**: AI Content Operating System
 - **Spec Status**: `FINALIZED` ([SPEC.md](./SPEC.md))
-- **Active Phase**: SOTA Transformation — Stage 7 Completed & Verified (Client Collaboration, Expiring Password-Protected Review Links, Version-Bound Approvals & Notifications)
-- **Last Action**: Implemented and verified Stage 7 Client Collaboration: added additive Prisma models (`ReviewLink`, `ApprovalRecord`, `Notification`) synced to PostgreSQL; added `packages/shared/src/stage7.ts`; built `apps/api/src/services/collaboration.service.ts` and `apps/api/src/routes/collaboration.routes.ts` (SHA-256 hashed tokens/passwords, zero workspace leakage on public review endpoints, frame-accurate timestamped client comments, version-bound approval invalidation on new versions, idempotent notifications); created standalone `/review/[token]` client portal (`apps/web/src/app/review/[token]/page.tsx`) and `ReviewLinkPanel` in `/editor`; added `apps/api/src/__tests__/stage7-collaboration.test.ts` and Stage 7 reports.
+- **Active Phase**: SOTA Transformation — Stage 8 Completed & Verified (Distribution Capabilities, Pre-Publish Validation, Timezone Rescheduling & Analytics Intelligence)
+- **Last Action**: Implemented and verified Stage 8 Distribution & Analytics: added `packages/shared/src/stage8.ts` (6-platform capability registry for Instagram/Facebook/TikTok/YouTube/LinkedIn/X); built `apps/api/src/services/distribution-intelligence.service.ts` and `apps/api/src/routes/distribution.routes.ts` (`GET /capabilities`, `POST /validate`, `PATCH /posts/:id/reschedule`, `POST /analytics/import`, `GET /intelligence`); wired `DistributionIntelligencePanel` into `/analytics`; added `apps/api/src/__tests__/stage8-distribution.test.ts` (`4/4` PASS) and Stage 8 reports.
 - **Empirical Verification**:
   - `pnpm.cmd run typecheck`: `13/13` tasks passed (`0` errors).
   - `pnpm.cmd run lint`: `0` errors, `0` warnings (`--max-warnings 0`).
-  - `pnpm.cmd --env-file=.env run test`: `13/13` tasks passed (`apps/api` `15/15` suites / `37/37` tests).
-  - `pnpm.cmd run build`: `8/8` packages built cleanly (`20/20` Next.js routes including `/review/[token]`).
+  - `pnpm.cmd --env-file=.env run test`: `13/13` tasks passed (`apps/api` `16/16` suites / `41/41` tests).
+  - `pnpm.cmd run build`: `8/8` packages built cleanly (`20/20` Next.js routes).
   - Live Chromium E2E (`http://localhost:8080`): Verified real `<video>` `readyState: 4`, playback, seeking to `2.0s`, Nginx HTTP `206` byte-range streaming, and reload persistence across `/editor`, `/repurpose`, and `/library` (`0` mobile/desktop overflow, stationary sidebar preserved).
   - Reports: `PHASE_12_VIDEO_PIPELINE_AUDIT.md`, `PHASE_12_VIDEO_PLAYBACK_FIX_REPORT.md`, `PHASE_12_VIDEO_E2E_TEST_REPORT.md`.
   - `pnpm.cmd -r run typecheck`: `8/8` workspace projects passed (`0` errors).
