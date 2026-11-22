@@ -14,6 +14,8 @@ import {
 } from '@ai-content-os/shared';
 import { prisma } from '@ai-content-os/database';
 import { MinioStorageAdapter } from '@ai-content-os/integrations';
+import { probeVideoFile } from '@ai-content-os/remotion-engine';
+import { buildAssetStreamUrl } from '../lib/media-token.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -485,6 +487,15 @@ export async function executeYoutubeViralClipping(params: {
         { timeout: 30_000 },
       );
 
+      // Verify rendered clip via ffprobe before uploading to MinIO
+      const probe = await probeVideoFile(mp4Path);
+      if (probe.probeMode === 'ffprobe' && !probe.browserCompatible) {
+        throw new ExternalProviderError(
+          'ffmpeg',
+          `Clip #${rank} failed browser compatibility verification: ${probe.issues.join('; ')}`,
+        );
+      }
+
       const mp4Buf = await readFile(mp4Path);
       const thumbBuf = await readFile(thumbPath);
 
@@ -498,6 +509,16 @@ export async function executeYoutubeViralClipping(params: {
         body: new Uint8Array(mp4Buf),
         contentType: 'video/mp4',
       });
+      const verifiedObj = await storage.headObject({
+        bucket: storageCfg.rawBucket,
+        storageKey,
+      });
+      if (!verifiedObj.exists || verifiedObj.sizeBytes <= 0) {
+        throw new ExternalProviderError(
+          'MinIO',
+          `Clip #${rank} could not be verified after upload (${storageKey})`,
+        );
+      }
       await storage.putObject({
         bucket: storageCfg.derivativesBucket,
         storageKey: thumbKey,
@@ -565,10 +586,17 @@ export async function executeYoutubeViralClipping(params: {
         usePublicEndpoint: true,
       });
 
+      const streamUrl = buildAssetStreamUrl({
+        userId,
+        workspaceId,
+        assetId: asset.id,
+      });
+
       renderedClips.push({
         rank,
         assetId: asset.id,
         fileName,
+        streamUrl,
         downloadUrl,
         thumbnailUrl,
         startSec: clip.startSec,

@@ -295,6 +295,40 @@ export class MinioStorageAdapter {
     };
   }
 
+  /**
+   * Streams an object directly from MinIO without buffering into memory,
+   * forwarding HTTP Range headers for 200 / 206 / 416 browser video seeking.
+   */
+  public async getObjectStream(params: {
+    bucket: string;
+    storageKey: string;
+    range?: string | undefined;
+  }): Promise<{
+    status: number;
+    contentType: string;
+    contentLength: number | null;
+    contentRange: string | null;
+    acceptRanges: string;
+    body: ReadableStream<Uint8Array> | null;
+  }> {
+    const cleanKey = params.storageKey.replace(/^\/+/, '');
+    const res = await this.signedFetch({
+      method: 'GET',
+      path: `/${params.bucket}/${cleanKey}`,
+      ...(params.range ? { headers: { range: params.range } } : {}),
+    });
+
+    const contentLengthHeader = res.headers.get('content-length');
+    return {
+      status: res.status,
+      contentType: res.headers.get('content-type') ?? 'application/octet-stream',
+      contentLength: contentLengthHeader !== null ? Number(contentLengthHeader) : null,
+      contentRange: res.headers.get('content-range'),
+      acceptRanges: res.headers.get('accept-ranges') ?? 'bytes',
+      body: res.body as ReadableStream<Uint8Array> | null,
+    };
+  }
+
   public async getObjectHeaderBytes(params: {
     bucket: string;
     storageKey: string;

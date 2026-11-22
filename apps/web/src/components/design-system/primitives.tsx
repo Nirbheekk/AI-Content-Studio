@@ -2,7 +2,8 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { AlertCircle, Check } from 'lucide-react';
+import { AlertCircle, Check, RefreshCw } from 'lucide-react';
+import { useStudio } from '@/context/studio-context';
 import { cn } from '@/lib/utils';
 import { Badge, type BadgeProps } from '../ui/badge';
 import { Button, type ButtonProps, buttonVariants } from '../ui/button';
@@ -117,9 +118,11 @@ export function MetricCard({
 }
 
 export function ErrorState({
+  title,
   message,
   onRetry,
 }: {
+  title?: string;
   message: string;
   onRetry?: () => void;
 }) {
@@ -127,14 +130,18 @@ export function ErrorState({
     <div
       role="alert"
       data-slot="alert"
-      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3.5 py-2.5 text-xs text-destructive"
+      className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
     >
-      <div className="flex items-center gap-2">
-        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-        <span>{message}</span>
+      <div className="flex items-start gap-3">
+        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+        <div className="space-y-0.5">
+          {title && <div className="font-semibold text-destructive">{title}</div>}
+          <div className="text-xs text-destructive/90">{message}</div>
+        </div>
       </div>
       {onRetry && (
         <Button variant="outline" size="sm" onClick={onRetry}>
+          <RefreshCw className="h-4 w-4" />
           Retry
         </Button>
       )}
@@ -201,12 +208,17 @@ const DEFAULT_PIPELINE_STEPS: PipelineStepItem[] = [
 export function WorkflowStepper({
   activeStep,
   projectId,
+  compositionId,
   className,
 }: {
   activeStep: PipelineStepItem['id'];
   projectId?: string | undefined;
+  compositionId?: string | undefined;
   className?: string | undefined;
 }) {
+  const { activeProjectId, activeCompositionId } = useStudio();
+  const resolvedProjectId = projectId ?? activeProjectId ?? undefined;
+  const resolvedCompositionId = compositionId ?? activeCompositionId ?? undefined;
   const activeIdx = DEFAULT_PIPELINE_STEPS.findIndex((s) => s.id === activeStep);
 
   return (
@@ -220,12 +232,19 @@ export function WorkflowStepper({
       {DEFAULT_PIPELINE_STEPS.map((step, idx) => {
         const isCurrent = idx === activeIdx;
         const isDone = idx < activeIdx;
-        const href = projectId ? `${step.href}?projectId=${encodeURIComponent(projectId)}` : step.href;
+        const params = new URLSearchParams();
+        if (resolvedProjectId) params.set('projectId', resolvedProjectId);
+        if (resolvedCompositionId && (step.id === 'editor' || step.id === 'publish')) {
+          params.set('compositionId', resolvedCompositionId);
+        }
+        const query = params.toString();
+        const href = query ? `${step.href}?${query}` : step.href;
 
         return (
           <Link
             key={step.id}
             href={href}
+            aria-current={isCurrent ? 'step' : undefined}
             className={cn(
               'inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-150',
               isCurrent

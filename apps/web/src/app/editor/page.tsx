@@ -105,6 +105,7 @@ interface CompositionDetailView {
       id: string;
       status: string;
       outputSizeBytes: number;
+      streamUrl?: string | null;
       downloadUrl: string | null;
     }>;
   }>;
@@ -137,7 +138,13 @@ interface CommentView {
 }
 
 export default function InteractiveEditorPage() {
-  const { accessToken, activeWorkspace, setFeedback } = useStudio();
+  const {
+    accessToken,
+    activeWorkspace,
+    activeCompositionId,
+    setActiveCompositionId,
+    setFeedback,
+  } = useStudio();
   const [compositions, setCompositions] = useState<Array<{ id: string; title: string }>>([]);
   const [selectedCompId, setSelectedCompId] = useState<string>('');
   const [detail, setDetail] = useState<CompositionDetailView | null>(null);
@@ -209,21 +216,36 @@ export default function InteractiveEditorPage() {
 
   useEffect(() => {
     if (!accessToken || !activeWorkspace) return;
+    const urlParams =
+      typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const urlCompId = urlParams?.get('compositionId');
+    const urlProjId = urlParams?.get('projectId');
+    const path = urlProjId
+      ? `/api/v1/compositions?projectId=${encodeURIComponent(urlProjId)}`
+      : '/api/v1/compositions';
+
     apiRequest<Array<{ id: string; title: string }>>({
-      path: '/api/v1/compositions',
+      path,
       accessToken,
       workspaceId: activeWorkspace.id,
     })
       .then((list) => {
         setCompositions(list);
-        const firstId = list[0]?.id ?? '';
-        if (firstId) {
-          setSelectedCompId(firstId);
-          void loadCompositionDetail(firstId);
+        const preferred =
+          (urlCompId && list.some((c) => c.id === urlCompId) ? urlCompId : null) ??
+          (activeCompositionId && list.some((c) => c.id === activeCompositionId)
+            ? activeCompositionId
+            : null) ??
+          list[0]?.id ??
+          '';
+        if (preferred) {
+          setSelectedCompId(preferred);
+          setActiveCompositionId(preferred);
+          void loadCompositionDetail(preferred);
         }
       })
       .catch(() => null);
-  }, [accessToken, activeWorkspace, loadCompositionDetail]);
+  }, [accessToken, activeWorkspace, activeCompositionId, setActiveCompositionId, loadCompositionDetail]);
 
   const compiled = detail?.compiled ?? null;
   const selectedScene =
@@ -852,8 +874,11 @@ export default function InteractiveEditorPage() {
                 const activeVer =
                   detail?.versions.find((v) => v.id === detail.currentVersionId) ??
                   detail?.versions[0];
-                const latestRender = activeVer?.renderJobs.find((r) => r.downloadUrl);
-                if (!latestRender?.downloadUrl) return null;
+                const latestRender = activeVer?.renderJobs.find(
+                  (r) => r.status === 'COMPLETED' && (r.streamUrl || r.downloadUrl),
+                );
+                const playbackUrl = latestRender?.streamUrl ?? latestRender?.downloadUrl;
+                if (!latestRender || !playbackUrl) return null;
                 return (
                   <div className="space-y-2 rounded-xl border border-border bg-secondary/30 p-3">
                     <div className="flex items-center justify-between text-xs font-medium text-foreground">
@@ -861,8 +886,17 @@ export default function InteractiveEditorPage() {
                       <Badge variant="success">H.264 / AAC Ready</Badge>
                     </div>
                     <VideoPlayer
-                      src={latestRender.downloadUrl}
+                      src={playbackUrl}
+                      downloadUrl={
+                        latestRender.streamUrl
+                          ? `${latestRender.streamUrl}&download=1`
+                          : latestRender.downloadUrl
+                      }
+                      label={`v${activeVer?.versionNumber ?? 1} · Final MP4`}
                       sizeBytes={latestRender.outputSizeBytes}
+                      onRequestRefreshUrl={() => {
+                        if (selectedCompId) void loadCompositionDetail(selectedCompId);
+                      }}
                     />
                   </div>
                 );

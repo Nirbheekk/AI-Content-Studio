@@ -34,8 +34,10 @@ export interface RenderJobView {
   id: string;
   status: string;
   outputSizeBytes: number;
+  streamUrl?: string | null;
   downloadUrl: string | null;
   qaFrameUrls: string[];
+  assetId?: string | null;
 }
 
 export interface QaReportView {

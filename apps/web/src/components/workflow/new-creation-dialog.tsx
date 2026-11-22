@@ -41,9 +41,10 @@ export function NewCreationDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
-  const { accessToken, activeWorkspace, setFeedback } = useStudio();
+  const { accessToken, activeWorkspace, activeProjectId, setActiveProjectId, setFeedback } =
+    useStudio();
   const [projects, setProjects] = useState<ProjectDto[]>([]);
-  const [projectId, setProjectId] = useState<string>('');
+  const [projectId, setProjectId] = useState<string>(activeProjectId ?? '');
   const [newProjectName, setNewProjectName] = useState('');
   const [platform, setPlatform] = useState('INSTAGRAM_REELS');
   const [prompt, setPrompt] = useState('');
@@ -59,14 +60,18 @@ export function NewCreationDialog({
       .then((list) => {
         const items = Array.isArray(list) ? list : [];
         setProjects(items);
-        if (!projectId && items[0]) {
-          setProjectId(items[0].id);
+        const preferred =
+          (activeProjectId && items.some((p) => p.id === activeProjectId)
+            ? activeProjectId
+            : null) ?? items[0]?.id;
+        if (!projectId && preferred) {
+          setProjectId(preferred);
         }
       })
       .catch(() => {
         // Ignore transient fetch error; user can still create a new project
       });
-  }, [open, accessToken, activeWorkspace, projectId]);
+  }, [open, accessToken, activeWorkspace, activeProjectId, projectId]);
 
   const handleLaunch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,6 +89,10 @@ export function NewCreationDialog({
           body: { name, description: prompt.trim() || 'Created from New Creation flow' },
         });
         targetProjectId = created.id;
+      }
+
+      if (targetProjectId) {
+        setActiveProjectId(targetProjectId);
       }
 
       const params = new URLSearchParams();

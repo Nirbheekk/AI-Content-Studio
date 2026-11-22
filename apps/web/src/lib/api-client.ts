@@ -73,7 +73,12 @@ export interface AssetDto {
   status: 'UPLOADING' | 'UPLOADED' | 'PROCESSING' | 'READY' | 'FAILED';
   tags: string[];
   aiSummary?: string | null;
+  streamUrl?: string | null;
   downloadUrl?: string | null;
+  durationSec?: number | null;
+  width?: number | null;
+  height?: number | null;
+  aiMetadataJson?: Record<string, unknown> | null;
   isDuplicate?: boolean;
   createdAt: string;
   project?: { id: string; name: string } | null;

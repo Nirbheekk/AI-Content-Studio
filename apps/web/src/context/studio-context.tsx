@@ -12,6 +12,10 @@ interface StudioContextValue {
   user: UserDto | null;
   workspaces: WorkspaceSummaryDto[];
   activeWorkspace: WorkspaceSummaryDto | null;
+  activeProjectId: string | null;
+  activeCompositionId: string | null;
+  setActiveProjectId: (projectId: string | null) => void;
+  setActiveCompositionId: (compositionId: string | null) => void;
   accessToken: string | null;
   isLoading: boolean;
   feedback: { type: 'success' | 'error'; message: string } | null;
@@ -34,11 +38,15 @@ const StudioContext = createContext<StudioContextValue | undefined>(undefined);
 const STORAGE_TOKEN_KEY = 'aicos_access_token';
 const STORAGE_REFRESH_KEY = 'aicos_refresh_token';
 const STORAGE_WORKSPACE_KEY = 'aicos_active_workspace_id';
+const projectStorageKey = (wsId: string) => `aicos_active_project_${wsId}`;
+const compositionStorageKey = (wsId: string) => `aicos_active_composition_${wsId}`;
 
 export function StudioProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserDto | null>(null);
   const [workspaces, setWorkspaces] = useState<WorkspaceSummaryDto[]>([]);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
+  const [activeProjectId, setActiveProjectIdState] = useState<string | null>(null);
+  const [activeCompositionId, setActiveCompositionIdState] = useState<string | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [feedback, setFeedbackState] = useState<{ type: 'success' | 'error'; message: string } | null>(
@@ -237,6 +245,46 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
     }
   }, [accessToken, activeWorkspaceId, hydrateFromToken]);
 
+  const setActiveProjectId = useCallback(
+    (projectId: string | null) => {
+      setActiveProjectIdState(projectId);
+      if (typeof window !== 'undefined' && activeWorkspaceId) {
+        if (projectId) {
+          window.localStorage.setItem(projectStorageKey(activeWorkspaceId), projectId);
+        } else {
+          window.localStorage.removeItem(projectStorageKey(activeWorkspaceId));
+        }
+      }
+    },
+    [activeWorkspaceId],
+  );
+
+  const setActiveCompositionId = useCallback(
+    (compositionId: string | null) => {
+      setActiveCompositionIdState(compositionId);
+      if (typeof window !== 'undefined' && activeWorkspaceId) {
+        if (compositionId) {
+          window.localStorage.setItem(compositionStorageKey(activeWorkspaceId), compositionId);
+        } else {
+          window.localStorage.removeItem(compositionStorageKey(activeWorkspaceId));
+        }
+      }
+    },
+    [activeWorkspaceId],
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !activeWorkspaceId) {
+      setActiveProjectIdState(null);
+      setActiveCompositionIdState(null);
+      return;
+    }
+    setActiveProjectIdState(window.localStorage.getItem(projectStorageKey(activeWorkspaceId)));
+    setActiveCompositionIdState(
+      window.localStorage.getItem(compositionStorageKey(activeWorkspaceId)),
+    );
+  }, [activeWorkspaceId]);
+
   const activeWorkspace =
     workspaces.find((w) => w.id === activeWorkspaceId) ?? workspaces[0] ?? null;
 
@@ -246,6 +294,10 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
         user,
         workspaces,
         activeWorkspace,
+        activeProjectId,
+        activeCompositionId,
+        setActiveProjectId,
+        setActiveCompositionId,
         accessToken,
         isLoading,
         feedback,

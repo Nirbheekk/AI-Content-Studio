@@ -7,6 +7,7 @@ import {
   Film,
   FolderKanban,
   Pencil,
+  Play,
   Plus,
   RotateCcw,
   Search,
@@ -15,6 +16,7 @@ import {
   Upload,
 } from 'lucide-react';
 import { AppShell } from '@/components/app-shell';
+import { MediaVideoPlayer } from '@/components/video/media-video-player';
 import {
   Button,
   Card,
@@ -34,15 +36,50 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useStudio } from '@/context/studio-context';
-import { apiRequest, ProjectDto } from '@/lib/api-client';
+import { apiRequest, AssetDto, ProjectDto } from '@/lib/api-client';
 
 export default function ProjectsPage() {
-  const { accessToken, activeWorkspace, setFeedback } = useStudio();
+  const { accessToken, activeWorkspace, setActiveProjectId, setFeedback } = useStudio();
   const [projects, setProjects] = useState<ProjectDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<'ACTIVE' | 'ARCHIVED' | 'ALL'>('ACTIVE');
+  const [videosProject, setVideosProject] = useState<ProjectDto | null>(null);
+  const [projectVideos, setProjectVideos] = useState<AssetDto[]>([]);
+  const [loadingVideos, setLoadingVideos] = useState(false);
+
+  const openProjectVideos = useCallback(
+    async (project: ProjectDto) => {
+      if (!accessToken || !activeWorkspace) return;
+      setVideosProject(project);
+      setActiveProjectId(project.id);
+      setLoadingVideos(true);
+      try {
+        const list = await apiRequest<AssetDto[]>({
+          path: `/api/v1/assets?projectId=${encodeURIComponent(project.id)}&assetType=VIDEO`,
+          accessToken,
+          workspaceId: activeWorkspace.id,
+        });
+        setProjectVideos(list);
+      } catch (err) {
+        setFeedback({
+          type: 'error',
+          message: err instanceof Error ? err.message : 'Failed to load project videos',
+        });
+      } finally {
+        setLoadingVideos(false);
+      }
+    },
+    [accessToken, activeWorkspace, setActiveProjectId, setFeedback],
+  );
   const [search, setSearch] = useState('');
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -263,6 +300,15 @@ export default function ProjectsPage() {
                         Media
                       </Link>
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void openProjectVideos(project)}
+                      aria-label={`Play videos for ${project.name}`}
+                    >
+                      <Play className="h-3 w-3" />
+                      Videos
+                    </Button>
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/editor?projectId=${encodeURIComponent(project.id)}`}>
                         <Film className="h-3 w-3" />
@@ -406,6 +452,48 @@ export default function ProjectsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Project Videos Playback Sheet */}
+      <Sheet open={Boolean(videosProject)} onOpenChange={(o) => !o && setVideosProject(null)}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>{videosProject?.name} — Videos</SheetTitle>
+            <SheetDescription>
+              Play, seek, or download rendered and uploaded videos for this project.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-4 flex-1 space-y-4 overflow-y-auto studio-scrollbar">
+            {loadingVideos ? (
+              <div className="space-y-3">
+                <Skeleton className="h-44 w-full" />
+                <Skeleton className="h-44 w-full" />
+              </div>
+            ) : projectVideos.length === 0 ? (
+              <Empty
+                icon={<Film className="h-8 w-8" />}
+                title="No videos in this project yet"
+                description="Generate a video in AI Studio, clip a YouTube stream in Repurpose, or upload MP4 media."
+              />
+            ) : (
+              projectVideos.map((asset) => (
+                <MediaVideoPlayer
+                  key={asset.id}
+                  src={asset.streamUrl ?? asset.downloadUrl}
+                  downloadUrl={
+                    asset.streamUrl ? `${asset.streamUrl}&download=1` : asset.downloadUrl
+                  }
+                  label={asset.originalName}
+                  sizeBytes={asset.sizeBytes}
+                  maxHeightClass="max-h-64"
+                  onRequestRefreshUrl={() => {
+                    if (videosProject) void openProjectVideos(videosProject);
+                  }}
+                />
+              ))
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </AppShell>
   );
 }

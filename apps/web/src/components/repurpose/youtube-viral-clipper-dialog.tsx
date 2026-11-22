@@ -24,6 +24,7 @@ export interface YoutubeViralClipDto {
   rank: number;
   assetId: string;
   fileName: string;
+  streamUrl?: string | null;
   downloadUrl: string;
   thumbnailUrl: string | null;
   startSec: number;

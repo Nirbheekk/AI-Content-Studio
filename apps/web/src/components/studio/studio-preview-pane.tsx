@@ -61,6 +61,15 @@ export function StudioPreviewPane({
   onApprove: () => void;
 }) {
   const isApproved = activeWorkflow?.stage === 'APPROVED' || activeWorkflow?.stage === 'PUBLISHED';
+  const playbackSrc = renderJob?.streamUrl ?? renderJob?.downloadUrl ?? null;
+  const hasFinalMp4 = Boolean(playbackSrc && renderJob && renderJob.outputSizeBytes > 2048);
+  const [previewMode, setPreviewMode] = React.useState<'mp4' | 'remotion'>(
+    hasFinalMp4 ? 'mp4' : 'remotion',
+  );
+
+  React.useEffect(() => {
+    setPreviewMode(hasFinalMp4 ? 'mp4' : 'remotion');
+  }, [hasFinalMp4, renderJob?.id]);
 
   return (
     <Card className="flex flex-col overflow-hidden">
@@ -110,35 +119,69 @@ export function StudioPreviewPane({
             </TabsList>
 
             <TabsContent value="preview" className="space-y-3">
-              {renderJob?.downloadUrl && renderJob.outputSizeBytes > 2048 ? (
-                <VideoPlayer src={renderJob.downloadUrl} label={compiled.templateId} />
-              ) : (
-                <RemotionLivePlayer compiled={compiled} currentFrame={currentFrame} />
+              {hasFinalMp4 && (
+                <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/30 p-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={previewMode === 'mp4' ? 'default' : 'ghost'}
+                    className="flex-1"
+                    onClick={() => setPreviewMode('mp4')}
+                  >
+                    Final MP4
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={previewMode === 'remotion' ? 'default' : 'ghost'}
+                    className="flex-1"
+                    onClick={() => setPreviewMode('remotion')}
+                  >
+                    Live Composition
+                  </Button>
+                </div>
               )}
 
-              <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2.5 py-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon-sm"
-                  onClick={onTogglePlay}
-                  aria-label={isPlaying ? 'Pause preview' : 'Play preview'}
-                >
-                  {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-                </Button>
-                <input
-                  type="range"
-                  min={0}
-                  max={Math.max(1, compiled.durationInFrames - 1)}
-                  value={currentFrame}
-                  onChange={(e) => onSeekFrame(Number(e.target.value))}
-                  aria-label="Timeline scrubber"
-                  className="h-1.5 flex-1 accent-primary"
+              {previewMode === 'mp4' && hasFinalMp4 ? (
+                <VideoPlayer
+                  src={playbackSrc}
+                  downloadUrl={
+                    renderJob?.streamUrl
+                      ? `${renderJob.streamUrl}&download=1`
+                      : renderJob?.downloadUrl
+                  }
+                  poster={renderJob?.qaFrameUrls?.[0] ?? undefined}
+                  label={`${compiled.templateId} · Final MP4`}
+                  sizeBytes={renderJob?.outputSizeBytes}
                 />
-                <span className="font-mono text-xs text-muted-foreground tabular-nums">
-                  {(currentFrame / compiled.fps).toFixed(1)}s / {compiled.totalDurationSec.toFixed(1)}s
-                </span>
-              </div>
+              ) : (
+                <>
+                  <RemotionLivePlayer compiled={compiled} currentFrame={currentFrame} />
+                  <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2.5 py-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon-sm"
+                      onClick={onTogglePlay}
+                      aria-label={isPlaying ? 'Pause preview' : 'Play preview'}
+                    >
+                      {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                    </Button>
+                    <input
+                      type="range"
+                      min={0}
+                      max={Math.max(1, compiled.durationInFrames - 1)}
+                      value={currentFrame}
+                      onChange={(e) => onSeekFrame(Number(e.target.value))}
+                      aria-label="Timeline scrubber"
+                      className="h-1.5 flex-1 accent-primary"
+                    />
+                    <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                      {(currentFrame / compiled.fps).toFixed(1)}s / {compiled.totalDurationSec.toFixed(1)}s
+                    </span>
+                  </div>
+                </>
+              )}
 
               {/* Human Approval Gate + Guided Handoffs */}
               <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-3">

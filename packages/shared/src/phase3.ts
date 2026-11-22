@@ -152,6 +152,7 @@ export const YoutubeViralClipItemSchema = z.object({
   rank: z.number().int().positive(),
   assetId: z.string().uuid(),
   fileName: z.string(),
+  streamUrl: z.string().optional(),
   downloadUrl: z.string(),
   thumbnailUrl: z.string().nullable(),
   startSec: z.number().int().nonnegative(),

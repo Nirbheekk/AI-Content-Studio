@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import {
   applyCompositionPatches,
   AssetIntelligenceReport,
@@ -9,6 +9,7 @@ import {
   CompositionTemplateId,
   CreativeProductionPlan,
   CreativeProductionPlanSchema,
+  ExternalProviderError,
   NotFoundError,
   TargetPlatform,
   ValidationError,
@@ -30,8 +31,10 @@ import {
   executeBragRenderPipeline,
   inspectCompositionAndFrames,
   PLATFORM_TEMPLATES,
+  probeVideoBytes,
   renderInspectionFramePng,
 } from '@ai-content-os/remotion-engine';
+import { buildRenderStreamUrl } from '../lib/media-token.js';
 import { workflowEventBus } from '../lib/queues.js';
 
 function toJson(value: unknown): Prisma.InputJsonValue {
@@ -316,6 +319,11 @@ export async function renderAndInspectCompositionVersion(params: {
       id: params.compositionVersionId,
       compositionId: params.compositionId,
     },
+    include: {
+      composition: {
+        select: { id: true, projectId: true, title: true },
+      },
+    },
   });
   if (!version) {
     throw new NotFoundError('CompositionVersion', params.compositionVersionId);
@@ -363,20 +371,66 @@ export async function renderAndInspectCompositionVersion(params: {
   }
 
   // Render final MP4 binary via Brag + Google AI Studio pipeline (voiceover + karaoke + xfade + ducked music)
-  const renderResult = await executeBragRenderPipeline(compiled);
-  const mp4Bytes = renderResult.mp4Bytes;
+  let mp4Bytes: Uint8Array;
+  let probe: Awaited<ReturnType<typeof probeVideoBytes>>;
   const outputStorageKey = `workspaces/${params.workspaceId}/renders/${renderJobId}/output-v${version.versionNumber}.mp4`;
-  await storage.putObject({
-    bucket: rendersBucket,
-    storageKey: outputStorageKey,
-    body: mp4Bytes,
-    contentType: 'video/mp4',
-  });
+
+  try {
+    const renderResult = await executeBragRenderPipeline(compiled);
+    mp4Bytes = renderResult.mp4Bytes;
+
+    // Step 7-8: Verify browser-compatible MP4 output (H.264 + yuv420p + optional AAC)
+    probe = await probeVideoBytes(mp4Bytes);
+    if (probe.probeMode === 'ffprobe' && !probe.browserCompatible) {
+      throw new ExternalProviderError(
+        'RemotionEngine',
+        `Rendered MP4 failed browser compatibility check: ${probe.issues.join('; ')}`,
+      );
+    }
+
+    // Step 9-10: Upload to MinIO and confirm object exists before marking COMPLETED
+    await storage.putObject({
+      bucket: rendersBucket,
+      storageKey: outputStorageKey,
+      body: mp4Bytes,
+      contentType: 'video/mp4',
+    });
+
+    const headInfo = await storage.headObject({
+      bucket: rendersBucket,
+      storageKey: outputStorageKey,
+    });
+    if (!headInfo.exists || headInfo.sizeBytes <= 0) {
+      throw new ExternalProviderError(
+        'MinIO',
+        `Uploaded render object could not be verified in storage (${outputStorageKey})`,
+      );
+    }
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : 'Video rendering failed';
+    await prisma.renderJob.update({
+      where: { id: renderJobId },
+      data: {
+        status: 'FAILED',
+        errorMessage: errMsg.slice(0, 1000),
+        completedAt: new Date(),
+      },
+    });
+    throw err;
+  }
 
   // Run Agent 7 Quality Assurance inspection on the rendered composition and frames
   const qaReport = inspectCompositionAndFrames(spec);
+  const checksumSha256 = createHash('sha256').update(mp4Bytes).digest('hex');
+  const safeBaseTitle = (version.composition.title || compiled.templateId)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48) || 'rendered-video';
+  const renderedFileName = `${safeBaseTitle}-v${version.versionNumber}.mp4`;
+  const primaryThumbKey = qaFrameKeys[0] ?? null;
 
-  const completedRender = await prisma.$transaction(async (tx) => {
+  const { completedRender, registeredAsset } = await prisma.$transaction(async (tx) => {
     const updatedJob = await tx.renderJob.update({
       where: { id: renderJobId },
       data: {
@@ -384,9 +438,65 @@ export async function renderAndInspectCompositionVersion(params: {
         progressPercent: 100,
         outputStorageKey,
         outputSizeBytes: BigInt(mp4Bytes.byteLength),
-        durationMs: Math.round(compiled.totalDurationSec * 1000),
+        durationMs: Math.round((probe.durationSec > 0 ? probe.durationSec : compiled.totalDurationSec) * 1000),
         qaFrameKeys,
         completedAt: new Date(),
+      },
+    });
+
+    // Step 11-12: Register verified render as a first-class project Media Asset (idempotent by storageKey)
+    const asset = await tx.asset.upsert({
+      where: { storageKey: outputStorageKey },
+      update: {
+        status: 'READY',
+        sizeBytes: BigInt(mp4Bytes.byteLength),
+        checksumSha256,
+        durationSec: probe.durationSec > 0 ? probe.durationSec : compiled.totalDurationSec,
+        width: probe.width > 0 ? probe.width : compiled.width,
+        height: probe.height > 0 ? probe.height : compiled.height,
+        fps: probe.fps > 0 ? probe.fps : compiled.fps,
+      },
+      create: {
+        workspaceId: params.workspaceId,
+        projectId: version.composition.projectId,
+        folderPath: '/rendered-videos',
+        originalName: renderedFileName,
+        storageKey: outputStorageKey,
+        bucketName: rendersBucket,
+        mimeType: 'video/mp4',
+        assetType: 'VIDEO',
+        sizeBytes: BigInt(mp4Bytes.byteLength),
+        checksumSha256,
+        durationSec: probe.durationSec > 0 ? probe.durationSec : compiled.totalDurationSec,
+        width: probe.width > 0 ? probe.width : compiled.width,
+        height: probe.height > 0 ? probe.height : compiled.height,
+        fps: probe.fps > 0 ? probe.fps : compiled.fps,
+        status: 'READY',
+        tags: ['rendered-video', compiled.templateId, `v${version.versionNumber}`],
+        aiSummary: `Rendered ${compiled.templateId} v${version.versionNumber} (${probe.videoCodec ?? 'h264'}/${probe.pixelFormat ?? 'yuv420p'}, QA ${qaReport.overallScore}/100)`,
+        aiMetadataJson: toJson({
+          renderJobId: updatedJob.id,
+          compositionId: params.compositionId,
+          compositionVersionId: version.id,
+          versionNumber: version.versionNumber,
+          templateId: compiled.templateId,
+          probe,
+          qaScore: qaReport.overallScore,
+          thumbnailKey: primaryThumbKey,
+          verified: true,
+        }),
+        ...(primaryThumbKey
+          ? {
+              derivatives: {
+                create: {
+                  derivativeType: 'THUMBNAIL',
+                  storageKey: primaryThumbKey,
+                  mimeType: 'image/png',
+                  sizeBytes: BigInt(0),
+                },
+              },
+            }
+          : {}),
       },
     });
 
@@ -414,7 +524,7 @@ export async function renderAndInspectCompositionVersion(params: {
       },
     });
 
-    return updatedJob;
+    return { completedRender: updatedJob, registeredAsset: asset };
   });
 
   const downloadUrl = storage.createPresignedUrl({
@@ -423,6 +533,12 @@ export async function renderAndInspectCompositionVersion(params: {
     storageKey: outputStorageKey,
     expiresInSec: 3600,
     usePublicEndpoint: true,
+  });
+
+  const streamUrl = buildRenderStreamUrl({
+    userId: 'system',
+    workspaceId: params.workspaceId,
+    renderJobId: completedRender.id,
   });
 
   const qaFrameUrls = qaFrameKeys.map((key) =>
@@ -439,8 +555,11 @@ export async function renderAndInspectCompositionVersion(params: {
     renderJob: {
       ...completedRender,
       outputSizeBytes: Number(completedRender.outputSizeBytes ?? 0n),
+      assetId: registeredAsset.id,
       downloadUrl,
+      streamUrl,
       qaFrameUrls,
+      codecInfo: probe,
     },
     qaReport,
     compiled,

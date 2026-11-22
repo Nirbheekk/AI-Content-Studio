@@ -15,6 +15,11 @@ import {
 import { prisma } from '@ai-content-os/database';
 import { MinioStorageAdapter } from '@ai-content-os/integrations';
 import { enqueueMediaProcessingJob } from '../lib/queues.js';
+import { buildAssetStreamUrl } from '../lib/media-token.js';
+import {
+  resolveMediaStreamWorkspace,
+  streamStorageObjectToReply,
+} from '../lib/stream-media.js';
 import { authorizeWorkspace } from '../middleware/auth.js';
 import { assertQuotaAvailable, computeQuotaStatuses } from './intelligence.routes.js';
 
@@ -344,6 +349,14 @@ export async function registerAssetRoutes(
       data: items.map((asset) => ({
         ...asset,
         sizeBytes: Number(asset.sizeBytes),
+        streamUrl:
+          asset.status === 'READY' || asset.status === 'UPLOADED'
+            ? buildAssetStreamUrl({
+                userId: ctx.userId,
+                workspaceId: ctx.workspaceId,
+                assetId: asset.id,
+              })
+            : null,
         downloadUrl:
           asset.status === 'READY' || asset.status === 'UPLOADED'
             ? storage.createPresignedUrl({
@@ -360,6 +373,34 @@ export async function registerAssetRoutes(
         pageSize,
         total,
       },
+    });
+  });
+
+  app.get('/api/v1/assets/:assetId/stream', async (request, reply) => {
+    const { assetId } = request.params as { assetId: string };
+    const query = (request.query ?? {}) as { download?: string };
+    const { workspaceId } = await resolveMediaStreamWorkspace({
+      request,
+      resourceType: 'asset',
+      resourceId: assetId,
+    });
+
+    const asset = await prisma.asset.findFirst({
+      where: { id: assetId, workspaceId },
+    });
+    if (!asset) {
+      throw new NotFoundError('Asset', assetId);
+    }
+
+    return streamStorageObjectToReply({
+      request,
+      reply,
+      storage,
+      bucket: asset.bucketName,
+      storageKey: asset.storageKey,
+      fallbackMimeType: asset.mimeType,
+      fileName: asset.originalName,
+      download: query.download === '1' || query.download === 'true',
     });
   });
 
@@ -389,6 +430,12 @@ export async function registerAssetRoutes(
       usePublicEndpoint: true,
     });
 
+    const streamUrl = buildAssetStreamUrl({
+      userId: ctx.userId,
+      workspaceId: ctx.workspaceId,
+      assetId: asset.id,
+    });
+
     return reply.status(200).send({
       success: true,
       data: {
@@ -398,6 +445,7 @@ export async function registerAssetRoutes(
           ...d,
           sizeBytes: Number(d.sizeBytes),
         })),
+        streamUrl,
         downloadUrl,
       },
     });

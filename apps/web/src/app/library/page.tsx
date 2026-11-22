@@ -16,6 +16,7 @@ import {
   Wand2,
 } from 'lucide-react';
 import { AppShell } from '@/components/app-shell';
+import { MediaVideoPlayer } from '@/components/video/media-video-player';
 import {
   Badge,
   Button,
@@ -56,14 +57,15 @@ function AssetIcon({ type }: { type: AssetDto['assetType'] }) {
 }
 
 export default function MediaLibraryPage() {
-  const { accessToken, activeWorkspace, setFeedback } = useStudio();
+  const { accessToken, activeWorkspace, activeProjectId, setActiveProjectId, setFeedback } =
+    useStudio();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [assets, setAssets] = useState<AssetDto[]>([]);
   const [projects, setProjects] = useState<ProjectDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [selectedProjectId, setSelectedProjectId] = useState(activeProjectId ?? '');
   const [typeFilter, setTypeFilter] = useState('');
   const [search, setSearch] = useState('');
 
@@ -83,8 +85,11 @@ export default function MediaLibraryPage() {
     if (proj) {
       setSelectedProjectId(proj);
       setUploadProjectId(proj);
+      setActiveProjectId(proj);
+    } else if (activeProjectId) {
+      setUploadProjectId(activeProjectId);
     }
-  }, []);
+  }, [activeProjectId, setActiveProjectId]);
 
   const loadLibrary = useCallback(async () => {
     if (!accessToken || !activeWorkspace) return;
@@ -529,6 +534,35 @@ export default function MediaLibraryPage() {
                 <StatusIndicator status={previewAsset.status} />
                 <Badge variant="outline">{previewAsset.folderPath}</Badge>
               </div>
+              {previewAsset.assetType === 'VIDEO' && (
+                <MediaVideoPlayer
+                  src={previewAsset.streamUrl ?? previewAsset.downloadUrl}
+                  downloadUrl={
+                    previewAsset.streamUrl
+                      ? `${previewAsset.streamUrl}&download=1`
+                      : previewAsset.downloadUrl
+                  }
+                  label={previewAsset.originalName}
+                  sizeBytes={previewAsset.sizeBytes}
+                  onRequestRefreshUrl={() => void handleOpenInspect(previewAsset)}
+                />
+              )}
+              {previewAsset.assetType === 'AUDIO' && (previewAsset.streamUrl || previewAsset.downloadUrl) && (
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <audio
+                    controls
+                    src={previewAsset.streamUrl ?? previewAsset.downloadUrl ?? undefined}
+                    className="w-full"
+                  />
+                </div>
+              )}
+              {previewAsset.assetType === 'IMAGE' && (previewAsset.streamUrl || previewAsset.downloadUrl) && (
+                <img
+                  src={previewAsset.streamUrl ?? previewAsset.downloadUrl ?? undefined}
+                  alt={previewAsset.originalName}
+                  className="max-h-72 w-full rounded-lg border border-border bg-canvas object-contain"
+                />
+              )}
               {previewAsset.aiSummary && (
                 <div className="rounded-md border border-border bg-muted/30 p-3 text-xs">
                   <div className="mb-1 font-semibold">AI Summary</div>

@@ -25,6 +25,7 @@ import {
   CardHeader,
   CardTitle,
   Empty,
+  ErrorState,
   Input,
   Label,
   MetricCard,
@@ -88,12 +89,20 @@ function formatDate(iso?: string | null): string {
 
 function DashboardContent() {
   const router = useRouter();
-  const { user, accessToken, activeWorkspace, setFeedback } = useStudio();
+  const {
+    user,
+    accessToken,
+    activeWorkspace,
+    activeProjectId,
+    setActiveProjectId,
+    setFeedback,
+  } = useStudio();
   const [data, setData] = useState<DashboardDataDto | null>(null);
   const [pubSummary, setPubSummary] = useState<PublishingOverviewSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [heroPrompt, setHeroPrompt] = useState('');
-  const [heroProjectId, setHeroProjectId] = useState('');
+  const [heroProjectId, setHeroProjectId] = useState(activeProjectId ?? '');
   const [heroPlatform, setHeroPlatform] = useState('INSTAGRAM_REELS');
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [projectName, setProjectName] = useState('');
@@ -103,6 +112,7 @@ function DashboardContent() {
   const loadDashboard = useCallback(async () => {
     if (!accessToken || !activeWorkspace) return;
     setLoading(true);
+    setLoadError(null);
     try {
       const [dash, pub] = await Promise.all([
         apiRequest<DashboardDataDto>({
@@ -118,18 +128,22 @@ function DashboardContent() {
       ]);
       setData(dash);
       setPubSummary(pub);
-      if (!heroProjectId && dash.recentProjects[0]) {
-        setHeroProjectId(dash.recentProjects[0].id);
+      const preferred =
+        (activeProjectId && dash.recentProjects.some((p) => p.id === activeProjectId)
+          ? activeProjectId
+          : null) ?? dash.recentProjects[0]?.id;
+      if (!heroProjectId && preferred) {
+        setHeroProjectId(preferred);
+        setActiveProjectId(preferred);
       }
     } catch (err) {
-      setFeedback({
-        type: 'error',
-        message: err instanceof Error ? err.message : 'Failed to load dashboard',
-      });
+      const msg = err instanceof Error ? err.message : 'Failed to load dashboard';
+      setLoadError(msg);
+      setFeedback({ type: 'error', message: msg });
     } finally {
       setLoading(false);
     }
-  }, [accessToken, activeWorkspace, heroProjectId, setFeedback]);
+  }, [accessToken, activeWorkspace, activeProjectId, heroProjectId, setActiveProjectId, setFeedback]);
 
   useEffect(() => {
     void loadDashboard();
@@ -138,7 +152,10 @@ function DashboardContent() {
   const handleLaunchStudio = (e: React.FormEvent) => {
     e.preventDefault();
     const params = new URLSearchParams();
-    if (heroProjectId) params.set('projectId', heroProjectId);
+    if (heroProjectId) {
+      setActiveProjectId(heroProjectId);
+      params.set('projectId', heroProjectId);
+    }
     if (heroPrompt.trim()) params.set('prompt', heroPrompt.trim());
     params.set('platform', heroPlatform);
     router.push(`/studio?${params.toString()}`);
@@ -195,6 +212,14 @@ function DashboardContent() {
       />
 
       <WorkflowStepper activeStep="brief" projectId={heroProjectId || undefined} />
+
+      {loadError && (
+        <ErrorState
+          title="Could not load Command Center"
+          message={loadError}
+          onRetry={() => void loadDashboard()}
+        />
+      )}
 
       {/* Lovable.dev Signature Hero Prompt Composer */}
       <section className="lovable-aura relative overflow-hidden rounded-3xl border border-border px-6 py-10 sm:px-10 sm:py-12">

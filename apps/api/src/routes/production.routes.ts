@@ -17,6 +17,11 @@ import {
   PLATFORM_TEMPLATES,
   REMOTION_COMPONENT_LIBRARY,
 } from '@ai-content-os/remotion-engine';
+import { buildRenderStreamUrl } from '../lib/media-token.js';
+import {
+  resolveMediaStreamWorkspace,
+  streamStorageObjectToReply,
+} from '../lib/stream-media.js';
 import { authorizeWorkspace } from '../middleware/auth.js';
 import {
   analyzeAssetInWorkspace,
@@ -422,6 +427,13 @@ export async function registerProductionRoutes(
           renderJobs: ver.renderJobs.map((rj) => ({
             ...rj,
             outputSizeBytes: Number(rj.outputSizeBytes ?? 0n),
+            streamUrl: rj.outputStorageKey
+              ? buildRenderStreamUrl({
+                  userId: ctx.userId,
+                  workspaceId: ctx.workspaceId,
+                  renderJobId: rj.id,
+                })
+              : null,
             downloadUrl: rj.outputStorageKey
               ? storage.createPresignedUrl({
                   method: 'GET',
@@ -469,6 +481,13 @@ export async function registerProductionRoutes(
       renderJobs: ver.renderJobs.map((rj) => ({
         ...rj,
         outputSizeBytes: Number(rj.outputSizeBytes ?? 0n),
+        streamUrl: rj.outputStorageKey
+          ? buildRenderStreamUrl({
+              userId: ctx.userId,
+              workspaceId: ctx.workspaceId,
+              renderJobId: rj.id,
+            })
+          : null,
         downloadUrl: rj.outputStorageKey
           ? storage.createPresignedUrl({
               method: 'GET',
@@ -667,6 +686,34 @@ export async function registerProductionRoutes(
     });
   });
 
+  app.get('/api/v1/renders/:renderJobId/stream', async (request, reply) => {
+    const { renderJobId } = request.params as { renderJobId: string };
+    const query = (request.query ?? {}) as { download?: string };
+    const { workspaceId } = await resolveMediaStreamWorkspace({
+      request,
+      resourceType: 'render',
+      resourceId: renderJobId,
+    });
+
+    const renderJob = await prisma.renderJob.findFirst({
+      where: { id: renderJobId, workspaceId },
+    });
+    if (!renderJob || !renderJob.outputStorageKey) {
+      throw new NotFoundError('RenderJob', renderJobId);
+    }
+
+    return streamStorageObjectToReply({
+      request,
+      reply,
+      storage,
+      bucket: storage.getConfig().rendersBucket,
+      storageKey: renderJob.outputStorageKey,
+      fallbackMimeType: 'video/mp4',
+      fileName: `render-${renderJob.id.slice(0, 8)}.mp4`,
+      download: query.download === '1' || query.download === 'true',
+    });
+  });
+
   app.get('/api/v1/renders/:renderJobId', async (request, reply) => {
     const ctx = await authorizeWorkspace(request, 'VIEWER');
     const { renderJobId } = request.params as { renderJobId: string };
@@ -683,6 +730,13 @@ export async function registerProductionRoutes(
     }
 
     const rendersBucket = storage.getConfig().rendersBucket;
+    const streamUrl = renderJob.outputStorageKey
+      ? buildRenderStreamUrl({
+          userId: ctx.userId,
+          workspaceId: ctx.workspaceId,
+          renderJobId: renderJob.id,
+        })
+      : null;
     const downloadUrl = renderJob.outputStorageKey
       ? storage.createPresignedUrl({
           method: 'GET',
@@ -708,6 +762,7 @@ export async function registerProductionRoutes(
       data: {
         ...renderJob,
         outputSizeBytes: Number(renderJob.outputSizeBytes ?? 0n),
+        streamUrl,
         downloadUrl,
         qaFrameUrls,
       },

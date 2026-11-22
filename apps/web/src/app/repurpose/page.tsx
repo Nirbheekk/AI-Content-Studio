@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight,
-  ExternalLink,
   Film,
   Flame,
   FolderOpen,
@@ -23,10 +22,12 @@ import {
   CardHeader,
   CardTitle,
   Empty,
+  ErrorState,
   Input,
   Label,
   NativeSelect,
   PageHeader,
+  Skeleton,
   Textarea,
   WorkflowStepper,
 } from '@/components/design-system/primitives';
@@ -34,6 +35,7 @@ import {
   YoutubeViralClipperDialog,
   YoutubeViralClipResultDto,
 } from '@/components/repurpose/youtube-viral-clipper-dialog';
+import { MediaVideoPlayer } from '@/components/video/media-video-player';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useStudio } from '@/context/studio-context';
@@ -61,9 +63,12 @@ const TARGET_BLUEPRINTS = [
 ];
 
 export default function RepurposePage() {
-  const { accessToken, activeWorkspace, setFeedback } = useStudio();
+  const { accessToken, activeWorkspace, activeProjectId, setActiveProjectId, setFeedback } =
+    useStudio();
   const [projects, setProjects] = useState<ProjectDto[]>([]);
   const [assets, setAssets] = useState<AssetDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [projectId, setProjectId] = useState('');
   const [sourceAssetId, setSourceAssetId] = useState('');
   const [campaignTitle, setCampaignTitle] = useState('Multi-Platform Campaign Wave');
@@ -77,28 +82,108 @@ export default function RepurposePage() {
   const [youtubeDialogOpen, setYoutubeDialogOpen] = useState(false);
   const [viralResult, setViralResult] = useState<YoutubeViralClipResultDto | null>(null);
 
-  useEffect(() => {
+  const loadData = useCallback(async () => {
     if (!accessToken || !activeWorkspace) return;
-    Promise.all([
-      apiRequest<ProjectDto[]>({
-        path: '/api/v1/projects',
-        accessToken,
-        workspaceId: activeWorkspace.id,
-      }),
-      apiRequest<AssetDto[]>({
-        path: '/api/v1/assets',
-        accessToken,
-        workspaceId: activeWorkspace.id,
-      }),
-    ])
-      .then(([projList, assetList]) => {
-        setProjects(projList);
-        setAssets(assetList);
-        if (projList[0]) setProjectId(projList[0].id);
-        if (assetList[0]) setSourceAssetId(assetList[0].id);
-      })
-      .catch(() => null);
-  }, [accessToken, activeWorkspace]);
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const [projList, assetList] = await Promise.all([
+        apiRequest<ProjectDto[]>({
+          path: '/api/v1/projects',
+          accessToken,
+          workspaceId: activeWorkspace.id,
+        }),
+        apiRequest<AssetDto[]>({
+          path: '/api/v1/assets',
+          accessToken,
+          workspaceId: activeWorkspace.id,
+        }),
+      ]);
+      setProjects(projList);
+      setAssets(assetList);
+      const urlProjectId =
+        typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('projectId')
+          : null;
+      const preferred =
+        (urlProjectId && projList.some((p) => p.id === urlProjectId) ? urlProjectId : null) ??
+        (activeProjectId && projList.some((p) => p.id === activeProjectId)
+          ? activeProjectId
+          : null) ??
+        projList[0]?.id ??
+        '';
+      if (preferred) {
+        setProjectId(preferred);
+        setActiveProjectId(preferred);
+      }
+      if (assetList[0]) setSourceAssetId(assetList[0].id);
+
+      // Hydrate persisted YouTube viral clips from Media Library so they survive page reload
+      const savedClips = assetList.filter(
+        (a) =>
+          a.assetType === 'VIDEO' &&
+          (a.folderPath === '/youtube-viral-clips' || a.tags?.includes('youtube-viral-clip')),
+      );
+      if (savedClips.length > 0) {
+        setViralResult((prev) => {
+          if (prev && prev.clips.length > 0) return prev;
+          return {
+            projectId: preferred || savedClips[0]?.projectId || '',
+            youtubeUrl:
+              typeof savedClips[0]?.aiMetadataJson?.['sourceYoutubeUrl'] === 'string'
+                ? (savedClips[0].aiMetadataJson['sourceYoutubeUrl'] as string)
+                : '',
+            videoId:
+              typeof savedClips[0]?.aiMetadataJson?.['sourceVideoId'] === 'string'
+                ? (savedClips[0].aiMetadataJson['sourceVideoId'] as string)
+                : 'saved',
+            videoTitle:
+              typeof savedClips[0]?.aiMetadataJson?.['sourceVideoTitle'] === 'string'
+                ? (savedClips[0].aiMetadataJson['sourceVideoTitle'] as string)
+                : 'Saved Viral Clips',
+            layout:
+              savedClips[0]?.aiMetadataJson?.['layout'] === 'CENTER_CROP_9_16'
+                ? 'CENTER_CROP_9_16'
+                : 'SPLIT_WEBCAM_BOTTOM',
+            clips: savedClips.slice(0, 6).map((asset, idx) => ({
+              rank: idx + 1,
+              assetId: asset.id,
+              fileName: asset.originalName,
+              streamUrl: asset.streamUrl ?? null,
+              downloadUrl: asset.downloadUrl ?? '',
+              thumbnailUrl: null,
+              startSec: Number(asset.aiMetadataJson?.['startSec'] ?? 0),
+              timestamp:
+                typeof asset.aiMetadataJson?.['timestamp'] === 'string'
+                  ? (asset.aiMetadataJson['timestamp'] as string)
+                  : '00:00:00',
+              durationSec: Math.round(asset.durationSec ?? 22),
+              viralScore: Number(asset.aiMetadataJson?.['viralScore'] ?? 95),
+              hookTitle:
+                typeof asset.aiMetadataJson?.['hookTitle'] === 'string'
+                  ? (asset.aiMetadataJson['hookTitle'] as string)
+                  : asset.originalName,
+              transcript: asset.aiSummary ?? '',
+              captionEvents: Number(asset.aiMetadataJson?.['captionEvents'] ?? 0),
+              sizeBytes: asset.sizeBytes,
+              layout:
+                asset.aiMetadataJson?.['layout'] === 'CENTER_CROP_9_16'
+                  ? 'CENTER_CROP_9_16'
+                  : 'SPLIT_WEBCAM_BOTTOM',
+            })),
+          };
+        });
+      }
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'Failed to load projects and media assets');
+    } finally {
+      setLoading(false);
+    }
+  }, [accessToken, activeWorkspace, activeProjectId, setActiveProjectId]);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
 
   const handleRun = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,6 +247,14 @@ export default function RepurposePage() {
 
         <WorkflowStepper activeStep="repurpose" projectId={projectId || undefined} />
 
+        {loadError && (
+          <ErrorState
+            title="Could not load workspace projects"
+            message={loadError}
+            onRetry={() => void loadData()}
+          />
+        )}
+
         <div className="grid gap-6 lg:grid-cols-12">
           <Card className="lg:col-span-5">
             <CardHeader>
@@ -169,13 +262,24 @@ export default function RepurposePage() {
               <CardDescription>Configure source media and output formats.</CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleRun} className="space-y-3.5">
+              {loading ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-24 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ) : (
+              <form onSubmit={handleRun} className="space-y-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="rep-proj">Project</Label>
                   <NativeSelect
                     id="rep-proj"
                     value={projectId}
-                    onChange={(e) => setProjectId(e.target.value)}
+                    onChange={(e) => {
+                      setProjectId(e.target.value);
+                      setActiveProjectId(e.target.value || null);
+                    }}
                   >
                     {projects.map((p) => (
                       <option key={p.id} value={p.id}>
@@ -249,10 +353,11 @@ export default function RepurposePage() {
                 </div>
 
                 <Button type="submit" className="w-full" disabled={running || !projectId}>
-                  <Repeat className="h-3.5 w-3.5" />
+                  <Repeat className="h-4 w-4" />
                   {running ? 'Generating Wave...' : 'Generate Multi-Platform Wave'}
                 </Button>
               </form>
+              )}
             </CardContent>
           </Card>
 
@@ -311,45 +416,48 @@ export default function RepurposePage() {
                       {viralResult.clips.map((clip) => (
                         <div
                           key={clip.assetId}
-                          className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3 sm:flex-row sm:items-center"
+                          className="space-y-3 rounded-lg border border-border bg-card p-4"
                         >
-                          {clip.thumbnailUrl && (
-                            <img
-                              src={clip.thumbnailUrl}
-                              alt={clip.hookTitle}
-                              className="h-24 w-14 shrink-0 rounded-md border border-border object-cover"
-                            />
-                          )}
-                          <div className="min-w-0 flex-1 space-y-1">
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <Badge variant="default" className="gap-1">
-                                <Flame className="h-3 w-3" />
-                                Viral {clip.viralScore}/100
-                              </Badge>
-                              <Badge variant="secondary">{clip.timestamp}</Badge>
-                              <Badge variant="outline">{clip.captionEvents} captions</Badge>
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="min-w-0 space-y-1">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <Badge variant="default" className="gap-1">
+                                  <Flame className="h-3 w-3" />
+                                  Viral {clip.viralScore}/100
+                                </Badge>
+                                <Badge variant="secondary">{clip.timestamp}</Badge>
+                                <Badge variant="outline">{clip.captionEvents} captions</Badge>
+                              </div>
+                              <div className="truncate text-sm font-semibold text-foreground">
+                                #{clip.rank} · {clip.hookTitle}
+                              </div>
+                              {clip.transcript && (
+                                <p className="line-clamp-2 text-xs text-muted-foreground">
+                                  {clip.transcript}
+                                </p>
+                              )}
                             </div>
-                            <div className="truncate text-sm font-semibold text-foreground">
-                              #{clip.rank} · {clip.hookTitle}
+                            <div className="flex shrink-0 items-center gap-1.5">
+                              <Button variant="outline" size="sm" asChild>
+                                <Link href="/library">
+                                  <FolderOpen className="h-3.5 w-3.5" />
+                                  Library
+                                </Link>
+                              </Button>
                             </div>
-                            <p className="line-clamp-2 text-xs text-muted-foreground">
-                              {clip.transcript}
-                            </p>
                           </div>
-                          <div className="flex shrink-0 items-center gap-1.5">
-                            <Button variant="outline" size="sm" asChild>
-                              <a href={clip.downloadUrl} target="_blank" rel="noreferrer">
-                                <ExternalLink className="h-3.5 w-3.5" />
-                                Watch
-                              </a>
-                            </Button>
-                            <Button size="sm" asChild>
-                              <Link href="/library">
-                                <FolderOpen className="h-3.5 w-3.5" />
-                                Library
-                              </Link>
-                            </Button>
-                          </div>
+
+                          <MediaVideoPlayer
+                            src={clip.streamUrl ?? clip.downloadUrl}
+                            downloadUrl={
+                              clip.streamUrl ? `${clip.streamUrl}&download=1` : clip.downloadUrl
+                            }
+                            poster={clip.thumbnailUrl}
+                            label={clip.fileName}
+                            sizeBytes={clip.sizeBytes}
+                            maxHeightClass="max-h-72"
+                            onRequestRefreshUrl={() => void loadData()}
+                          />
                         </div>
                       ))}
                     </TabsContent>

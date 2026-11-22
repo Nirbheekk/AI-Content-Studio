@@ -46,9 +46,23 @@ import {
 import { cn } from '@/lib/utils';
 
 export default function AIStudioPage() {
-  const { accessToken, activeWorkspace, setFeedback } = useStudio();
+  const {
+    accessToken,
+    activeWorkspace,
+    activeProjectId: studioProjectId,
+    setActiveProjectId: setStudioProjectId,
+    setActiveCompositionId: setStudioCompositionId,
+    setFeedback,
+  } = useStudio();
   const [projects, setProjects] = useState<ProjectDto[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [selectedProjectId, setSelectedProjectIdState] = useState('');
+  const setSelectedProjectId = useCallback(
+    (id: string) => {
+      setSelectedProjectIdState(id);
+      if (id) setStudioProjectId(id);
+    },
+    [setStudioProjectId],
+  );
   const [projectAssets, setProjectAssets] = useState<AssetDto[]>([]);
   const [conversations, setConversations] = useState<ConversationDto[]>([]);
   const [activeConversation, setActiveConversation] = useState<ConversationDto | null>(null);
@@ -136,7 +150,9 @@ export default function AIStudioPage() {
       setProjects(projList);
       setConversations(convList);
 
-      const defaultProjId = selectedProjectId || projList[0]?.id || '';
+      const preferredStudioProj =
+        studioProjectId && projList.some((p) => p.id === studioProjectId) ? studioProjectId : '';
+      const defaultProjId = selectedProjectId || preferredStudioProj || projList[0]?.id || '';
       if (defaultProjId && !selectedProjectId) setSelectedProjectId(defaultProjId);
       if (defaultProjId) await loadProjectAssets(defaultProjId);
 
@@ -163,6 +179,7 @@ export default function AIStudioPage() {
           }).catch(() => null);
           if (detail?.compiled) {
             setActiveCompositionId(detail.id);
+            setStudioCompositionId(detail.id);
             setActiveVersion(detail.activeVersion);
             setCompiled(detail.compiled);
             if (detail.versions[0]?.renderJobs[0]) {
