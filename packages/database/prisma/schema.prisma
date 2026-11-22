@@ -166,6 +166,8 @@ model Workspace {
   mediaRights    MediaRightsRecord[]
   budgetPolicies BudgetPolicy[]
   editorialPlans EditorialPlan[]
+  generativeJobs GenerativeAssetJob[]
+  voiceConsents  VoiceConsentRecord[]
   socialAccounts SocialAccount[]
   publishPosts   PublishPost[]
   usageRecords   UsageRecord[]
@@ -257,6 +259,7 @@ model Project {
   compositions   Composition[]
   budgetPolicies BudgetPolicy[]
   editorialPlans EditorialPlan[]
+  generativeJobs GenerativeAssetJob[]
 
   @@index([workspaceId, createdAt])
 }
@@ -883,4 +886,70 @@ model EditorialConcept {
 
   @@index([planId, rank])
   @@index([workspaceId])
+}
+
+// -----------------------------------------------------------------------------
+// Stage 5 — Generative Media & Voice Consent Governance
+// -----------------------------------------------------------------------------
+
+model GenerativeAssetJob {
+  id                 String    @id @default(uuid())
+  workspaceId        String
+  projectId          String
+  createdByUserId    String
+  assetId            String?
+  compositionId      String?
+  sceneId            String?
+  taskType           String
+  provider           String
+  model              String
+  prompt             String
+  negativePrompt     String?
+  aspectRatio        String    @default("PORTRAIT_9_16")
+  durationSec        Int?
+  quality            String    @default("STANDARD")
+  status             String    @default("PENDING") // PENDING, COMPLETED, ACCEPTED, REJECTED, UNAVAILABLE, FAILED
+  executionMode      String    @default("SIMULATED") // LIVE, SIMULATED, UNAVAILABLE
+  estimatedCostUsd   Float?
+  costStatus         String    @default("ESTIMATED") // ESTIMATED, UNKNOWN
+  idempotencyKey     String    @unique
+  storageBucket      String?
+  storageKey         String?
+  mimeType           String?
+  sizeBytes          BigInt?
+  provenanceJson     Json
+  resultMetadataJson Json?
+  errorMessage       String?
+  approvedByUserId   String?
+  approvedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, projectId, createdAt])
+  @@index([workspaceId, status])
+}
+
+model VoiceConsentRecord {
+  id              String    @id @default(uuid())
+  workspaceId     String
+  voiceOwnerName  String
+  voiceOwnerEmail String?
+  speakerLabel    String
+  consentScope    String    // e.g. "INTERNAL_PREVIEW", "COMMERCIAL_CAMPAIGNS", "SINGLE_PROJECT"
+  permittedUsage  String
+  attestationText String
+  grantedByUserId String
+  status          String    @default("ACTIVE") // ACTIVE, REVOKED, EXPIRED
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+  revokedByUserId String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status])
 }

@@ -26,6 +26,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { StudioContextRail } from '@/components/studio/studio-context-rail';
 import { EditorialPlannerPanel } from '@/components/studio/editorial-planner-panel';
+import { GenerativeMediaStudio } from '@/components/studio/generative-media-studio';
 import { PreflightCostBanner } from '@/components/studio/preflight-cost-banner';
 import { StudioPreviewPane } from '@/components/studio/studio-preview-pane';
 import {
@@ -759,6 +760,16 @@ export default function AIStudioPage() {
           />
           </div>
         </div>
+
+        <GenerativeMediaStudio
+          accessToken={accessToken}
+          workspaceId={activeWorkspace?.id ?? null}
+          projectId={selectedProjectId}
+          onAssetAccepted={async () => {
+            if (selectedProjectId) await loadProjectAssets(selectedProjectId);
+          }}
+          onFeedback={setFeedback}
+        />
       </div>
 
       <Dialog open={newProjectOpen} onOpenChange={setNewProjectOpen}>
