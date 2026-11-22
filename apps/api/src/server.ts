@@ -21,6 +21,7 @@ import { registerIntelligenceRoutes } from './routes/intelligence.routes.js';
 import { registerEditorialRoutes } from './routes/editorial.routes.js';
 import { registerShortsRoutes } from './routes/shorts.routes.js';
 import { registerGenerativeRoutes } from './routes/generative.routes.js';
+import { registerCampaignRoutes } from './routes/campaigns.routes.js';
 import { logEvent, metrics, routeKey } from './lib/observability.js';
 import { SlidingWindowRateLimiter } from './lib/jwt.js';
 import { sanitizeUrlForLog } from '@ai-content-os/shared';
@@ -250,6 +251,7 @@ export async function buildApiServer(deps: ServerDependencies = {}): Promise<Fas
   await registerEditorialRoutes(app);
   await registerShortsRoutes(app, deps.storage);
   await registerGenerativeRoutes(app, deps.storage);
+  await registerCampaignRoutes(app);
 
   return app;
 }

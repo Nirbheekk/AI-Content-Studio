@@ -168,6 +168,7 @@ model Workspace {
   editorialPlans EditorialPlan[]
   generativeJobs GenerativeAssetJob[]
   voiceConsents  VoiceConsentRecord[]
+  campaigns      Campaign[]
   socialAccounts SocialAccount[]
   publishPosts   PublishPost[]
   usageRecords   UsageRecord[]
@@ -260,6 +261,7 @@ model Project {
   budgetPolicies BudgetPolicy[]
   editorialPlans EditorialPlan[]
   generativeJobs GenerativeAssetJob[]
+  campaigns      Campaign[]
 
   @@index([workspaceId, createdAt])
 }
@@ -952,4 +954,102 @@ model VoiceConsentRecord {
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId, status])
+}
+
+// -----------------------------------------------------------------------------
+// Stage 6 — Autonomous Creative Campaigns & Production DAG
+// -----------------------------------------------------------------------------
+
+model Campaign {
+  id                   String    @id @default(uuid())
+  workspaceId          String
+  projectId            String
+  createdByUserId      String
+  name                 String
+  objective            String
+  targetAudience       String    @default("Growth-focused audience")
+  briefText            String
+  tone                 String    @default("Confident, educational, modern")
+  platforms            String[]
+  formats              String[]
+  deliverableCount     Int       @default(4)
+  controlMode          String    @default("PRODUCE_UNTIL_APPROVAL")
+  status               String    @default("AWAITING_PLAN_APPROVAL")
+  budgetCapUsd         Float     @default(50)
+  estimatedCostUsd     Float     @default(0)
+  actualCostUsd        Float     @default(0)
+  strategyJson         Json
+  contentMatrixJson    Json
+  qaSummaryJson        Json?
+  clarificationsJson   Json?
+  planApprovedByUserId String?
+  planApprovedAt       DateTime?
+  approvedByUserId     String?
+  approvedAt           DateTime?
+  scheduleStartAt      DateTime?
+  scheduleEndAt        DateTime?
+  version              Int       @default(1)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  workspace    Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project      Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks        CampaignTask[]
+  deliverables CampaignDeliverable[]
+
+  @@index([workspaceId, projectId, createdAt])
+  @@index([workspaceId, status])
+}
+
+model CampaignTask {
+  id               String    @id @default(uuid())
+  campaignId       String
+  workspaceId      String
+  nodeKey          String
+  stageName        String
+  agentRole        String
+  dependsOn        String[]
+  status           String    @default("PENDING") // PENDING, RUNNING, COMPLETED, FAILED, CANCELLED, SKIPPED
+  attemptCount     Int       @default(0)
+  inputJson        Json?
+  outputJson       Json?
+  errorMessage     String?
+  estimatedCostUsd Float     @default(0)
+  startedAt        DateTime?
+  completedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, nodeKey])
+  @@index([campaignId, status])
+  @@index([workspaceId])
+}
+
+model CampaignDeliverable {
+  id               String    @id @default(uuid())
+  campaignId       String
+  workspaceId      String
+  title            String
+  platform         String
+  format           String
+  aspectRatio      String    @default("PORTRAIT_9_16")
+  hook             String
+  scriptSummary    String
+  captionCopy      String
+  compositionId    String?
+  assetId          String?
+  status           String    @default("PLANNED") // PLANNED, DRAFT, IN_REVIEW, APPROVED, CHANGES_REQUESTED, SCHEDULED, PUBLISHED
+  creativeQaScore  Int?
+  qaNotesJson      Json?
+  approvedByUserId String?
+  approvedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, status])
+  @@index([workspaceId])
 }

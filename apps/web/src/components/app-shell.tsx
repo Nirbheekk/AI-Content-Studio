@@ -13,6 +13,7 @@ import {
   Image as ImageIcon,
   LayoutDashboard,
   LogOut,
+  Megaphone,
   Menu,
   Palette,
   PanelLeftClose,
@@ -69,6 +70,7 @@ const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
     items: [
       { href: '/dashboard', label: 'Command Center', icon: LayoutDashboard },
       { href: '/studio', label: 'AI Studio', icon: Sparkles },
+      { href: '/campaigns', label: 'Campaigns', icon: Megaphone },
       { href: '/editor', label: 'Video Editor', icon: Film },
       { href: '/repurpose', label: 'Repurpose', icon: Repeat },
     ],

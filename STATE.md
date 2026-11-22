@@ -2,13 +2,13 @@
 
 - **Project**: AI Content Operating System
 - **Spec Status**: `FINALIZED` ([SPEC.md](./SPEC.md))
-- **Active Phase**: SOTA Transformation — Stage 5 Completed & Verified (Generative Media, Provider Capability Registry & Voice Consent Governance)
-- **Last Action**: Implemented and verified Stage 5 Generative Media: added additive Prisma models (`GenerativeAssetJob`, `VoiceConsentRecord`) synced to PostgreSQL; added `packages/shared/src/stage5.ts` (5-provider capability registry with honest live/pending-credentials/UNKNOWN pricing); built `apps/api/src/services/generative-media.service.ts` and `apps/api/src/routes/generative.routes.ts` (`GET /providers`, `GET/POST /jobs`, `POST /jobs/:id/decision`, `GET/POST /voice-consents`, `POST /voice-consents/:id/revoke`); integrated `GenerativeMediaStudio` into `/studio`; added integration suite `apps/api/src/__tests__/stage5-generative-media.test.ts` (`4/4` PASS) and Stage 5 reports.
+- **Active Phase**: SOTA Transformation — Stage 6 Completed & Verified (Autonomous Creative Campaigns, Lifecycle State Machine & 8-Node Production DAG)
+- **Last Action**: Implemented and verified Stage 6 Autonomous Creative Campaigns: added additive Prisma models (`Campaign`, `CampaignTask`, `CampaignDeliverable`) synced to PostgreSQL; added `packages/shared/src/stage6.ts` (16-state lifecycle machine); built `apps/api/src/services/campaign-orchestrator.service.ts` and `apps/api/src/routes/campaigns.routes.ts` (NL brief -> strategy & content matrix -> mandatory plan approval -> 8-node durable Production DAG -> editable compositions + Creative QA -> mandatory human approval gate); created `/campaigns` workspace UI (`apps/web/src/app/campaigns/page.tsx`) + `AppShell` nav; added `apps/api/src/__tests__/stage6-campaigns.test.ts` and Stage 6 reports.
 - **Empirical Verification**:
   - `pnpm.cmd run typecheck`: `13/13` tasks passed (`0` errors).
   - `pnpm.cmd run lint`: `0` errors, `0` warnings (`--max-warnings 0`).
-  - `pnpm.cmd --env-file=.env run test`: `13/13` tasks passed (`apps/api` `13/13` suites / `35/35` tests).
-  - `pnpm.cmd run build`: `8/8` packages built cleanly (`18/18` Next.js routes).
+  - `pnpm.cmd --env-file=.env run test`: `13/13` tasks passed (`apps/api` `14/14` suites / `36/36` tests).
+  - `pnpm.cmd run build`: `8/8` packages built cleanly (`19/19` Next.js routes including `/campaigns`).
   - Live Chromium E2E (`http://localhost:8080`): Verified real `<video>` `readyState: 4`, playback, seeking to `2.0s`, Nginx HTTP `206` byte-range streaming, and reload persistence across `/editor`, `/repurpose`, and `/library` (`0` mobile/desktop overflow, stationary sidebar preserved).
   - Reports: `PHASE_12_VIDEO_PIPELINE_AUDIT.md`, `PHASE_12_VIDEO_PLAYBACK_FIX_REPORT.md`, `PHASE_12_VIDEO_E2E_TEST_REPORT.md`.
   - `pnpm.cmd -r run typecheck`: `8/8` workspace projects passed (`0` errors).
