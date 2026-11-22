@@ -34,6 +34,7 @@ import {
   WorkflowStepper,
 } from '../../components/design-system/primitives';
 import { VideoPlayer } from '../../components/creative/video-player';
+import { CaptionPresetBar } from '../../components/editor/caption-preset-bar';
 import { useStudio } from '../../context/studio-context';
 import { apiRequest } from '../../lib/api-client';
 
@@ -1172,6 +1173,19 @@ export default function InteractiveEditorPage() {
                   </form>
                 </Card>
               )}
+
+              <CaptionPresetBar
+                accessToken={accessToken}
+                workspaceId={activeWorkspace?.id ?? null}
+                compositionId={selectedCompId}
+                currentHighlightColor={compiled.captions.highlightColor}
+                currentFontSizePx={compiled.captions.fontSizePx}
+                disabled={busy}
+                onApplied={async () => {
+                  if (selectedCompId) await loadCompositionDetail(selectedCompId);
+                }}
+                onFeedback={setFeedback}
+              />
 
               {/* Version Comparison Diff Report */}
               {diffReport && (

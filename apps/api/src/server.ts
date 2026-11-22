@@ -19,6 +19,7 @@ import { registerCreativeWorkflowRoutes } from './routes/creative.routes.js';
 import { registerPublishingRoutes } from './routes/publishing.routes.js';
 import { registerIntelligenceRoutes } from './routes/intelligence.routes.js';
 import { registerEditorialRoutes } from './routes/editorial.routes.js';
+import { registerShortsRoutes } from './routes/shorts.routes.js';
 import { logEvent, metrics, routeKey } from './lib/observability.js';
 import { SlidingWindowRateLimiter } from './lib/jwt.js';
 import { sanitizeUrlForLog } from '@ai-content-os/shared';
@@ -246,6 +247,7 @@ export async function buildApiServer(deps: ServerDependencies = {}): Promise<Fas
   await registerPublishingRoutes(app, deps.storage);
   await registerIntelligenceRoutes(app);
   await registerEditorialRoutes(app);
+  await registerShortsRoutes(app, deps.storage);
 
   return app;
 }

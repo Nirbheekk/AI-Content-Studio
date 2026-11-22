@@ -6,3 +6,6 @@ export * from './ffmpeg-renderer.js';
 export * from './brag-engine.js';
 export * from './video-probe.js';
 export * from './signal-qa.js';
+export * from './smart-cutter.js';
+export * from './caption-engine.js';
+export * from './creative-qa.js';

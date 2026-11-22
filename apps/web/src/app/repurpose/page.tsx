@@ -35,6 +35,7 @@ import {
   YoutubeViralClipperDialog,
   YoutubeViralClipResultDto,
 } from '@/components/repurpose/youtube-viral-clipper-dialog';
+import { ShortsFactoryPanel } from '@/components/repurpose/shorts-factory-panel';
 import { MediaVideoPlayer } from '@/components/video/media-video-player';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -254,6 +255,19 @@ export default function RepurposePage() {
             onRetry={() => void loadData()}
           />
         )}
+
+        <ShortsFactoryPanel
+          accessToken={accessToken}
+          workspaceId={activeWorkspace?.id ?? null}
+          projects={projects}
+          assets={assets}
+          selectedProjectId={projectId}
+          onSelectProject={(id) => {
+            setProjectId(id);
+            setActiveProjectId(id || null);
+          }}
+          onFeedback={setFeedback}
+        />
 
         <div className="grid gap-6 lg:grid-cols-12">
           <Card className="lg:col-span-5">

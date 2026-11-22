@@ -9,3 +9,4 @@ export * from './phase4.js';
 export * from './phase5.js';
 export * from './stage2.js';
 export * from './stage3.js';
+export * from './stage4.js';

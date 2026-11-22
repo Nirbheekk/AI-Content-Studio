@@ -2,12 +2,13 @@
 
 - **Project**: AI Content Operating System
 - **Spec Status**: `FINALIZED` ([SPEC.md](./SPEC.md))
-- **Active Phase**: SOTA Transformation — Stage 3 Completed & Verified (Editorial Intelligence, Hybrid Semantic Media Search, Highlight Detection & Multi-Concept Story Planning)
-- **Last Action**: Implemented and verified Stage 3 Editorial Intelligence: extended Prisma schema (`Transcript.correctedText`, `EditorialPlan`, `EditorialConcept`) synced to PostgreSQL; added `packages/shared/src/stage3.ts`; built `apps/api/src/services/editorial-intelligence.service.ts` (hybrid phrase+keyword+trigram semantic media search with strict workspace isolation, context-preserving highlight & hook detection, 3-concept autonomous story planner with `DIRECT_QUOTE`/`PARAPHRASE`/`AI_NARRATION` provenance and 11-dimension Anti-Slop rubric); registered `apps/api/src/routes/editorial.routes.ts` (`POST /api/v1/editorial/search`, `/highlights`, `/plans`, `GET /plans`, `PATCH /plans/:id/concepts/:id`, `PUT /api/v1/assets/:id/transcript`); built `SemanticSearchPanel` in `/library` and `EditorialPlannerPanel` in `/studio`; added integration tests in `apps/api/src/__tests__/stage3-editorial.test.ts`.
+- **Active Phase**: SOTA Transformation — Stage 4 Completed & Verified (Professional Shorts Factory: Smart Cutting, 8 Animated Caption Presets, Motion Presets, Creative QA & Batch Shorts Production)
+- **Last Action**: Implemented and verified Stage 4 Professional Shorts Factory: added `packages/shared/src/stage4.ts` (8 Caption Presets, 5 Motion Presets, Smart Cut/Batch/Creative QA Zod schemas); built `packages/remotion-engine/src/smart-cutter.ts`, `caption-engine.ts` (ASS/SRT/VTT + Brand Kit override), and `creative-qa.ts` (9 editorial checks separated from FFmpeg Signal QA); created `apps/api/src/services/shorts-factory.service.ts` and `apps/api/src/routes/shorts.routes.ts` (`GET /api/v1/shorts/presets`, `POST /api/v1/shorts/smart-cuts`, `/captions/preview`, `/batch`); integrated `ShortsFactoryPanel` into `/repurpose` and `CaptionPresetBar` into `/editor`; added unit & integration suites (`stage4-shorts-engine.test.ts`, `stage4-shorts-factory.test.ts`) and reports (`PHASE_4_IMPLEMENTATION_REPORT.md`, `PHASE_4_E2E_ACCEPTANCE_REPORT.md`).
 - **Empirical Verification**:
   - `pnpm.cmd run typecheck`: `13/13` tasks passed (`0` errors).
-  - `pnpm.cmd run lint`: `0` errors, `0` warnings.
-  - `pnpm.cmd --env-file=.env run test`: `13/13` tasks passed (`apps/api` `9/9` suites / `20/20` tests including HTTP 200/206/416, cross-workspace `404`, expired token `401`, post-delete `404`; `video-probe.test.ts` `4/4`).
+  - `pnpm.cmd run lint`: `0` errors, `0` warnings (`--max-warnings 0`).
+  - `pnpm.cmd --env-file=.env run test`: `13/13` tasks passed (`apps/api` `12/12` suites / `31/31` tests including Stage 4 Shorts Factory E2E + workspace isolation; `remotion-engine` `stage4-shorts-engine.test.ts` `4/4`).
+  - `pnpm.cmd run build`: `8/8` packages built cleanly (`18/18` Next.js routes).
   - Live Chromium E2E (`http://localhost:8080`): Verified real `<video>` `readyState: 4`, playback, seeking to `2.0s`, Nginx HTTP `206` byte-range streaming, and reload persistence across `/editor`, `/repurpose`, and `/library` (`0` mobile/desktop overflow, stationary sidebar preserved).
   - Reports: `PHASE_12_VIDEO_PIPELINE_AUDIT.md`, `PHASE_12_VIDEO_PLAYBACK_FIX_REPORT.md`, `PHASE_12_VIDEO_E2E_TEST_REPORT.md`.
   - `pnpm.cmd -r run typecheck`: `8/8` workspace projects passed (`0` errors).
